@@ -1,0 +1,2 @@
+date,day,segment,resource,created_time,deleted_or_stopped_time,elapsed_minutes,estimated_usd,actual_usd_from_cost_explorer,note
+,1,Guardrails,Budget thara-budget,,,,0.00,,credits excluded; alerts 10/25/50

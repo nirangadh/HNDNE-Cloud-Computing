@@ -1,0 +1,21 @@
+/* Open Sans, self-hosted. SIL Open Font License 1.1, see OFL.txt in this folder. */
+@font-face { font-family: "Open Sans"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("OpenSans-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Open Sans"; font-style: italic; font-weight: 400; font-display: swap;
+  src: url("OpenSans-Italic.woff2") format("woff2"); }
+@font-face { font-family: "Open Sans"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("OpenSans-SemiBold.woff2") format("woff2"); }
+@font-face { font-family: "Open Sans"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("OpenSans-Bold.woff2") format("woff2"); }
+@font-face { font-family: "Open Sans"; font-style: normal; font-weight: 800; font-display: swap;
+  src: url("OpenSans-ExtraBold.woff2") format("woff2"); }
+
+:root {
+  --font-heading: "Open Sans", Arial, sans-serif;
+  --font-body: "Open Sans", Arial, sans-serif;
+  --font-code: "Courier New", monospace;
+  --turquoise: #48C9B0; --navy: #0D2B45; --paper: #F7F7F7; --silver: #BBBBBB; --grey: #AAAAAA; --white: #FFFFFF;
+  --turquoise-deep: #2A7A7A; --turquoise-tint: #DEF5F1; --turquoise-wash: #EDFAF7;
+  --navy-raised: #133B50; --navy-deep: #081C2D; --ink-muted: #546472;
+  --signal-amber: #F4B942; --signal-coral: #E86A5B;
+}

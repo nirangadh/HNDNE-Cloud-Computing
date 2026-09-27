@@ -1,0 +1,21 @@
+# Review session
+
+Three hours, after Day 7.
+
+**What happens:** timed practice on a Thara scenario you have not seen, a guided look at strong and weak answers, a review of the ideas the cohort found hardest, and a coursework clinic for the capstone submission and viva.
+
+**Bring:** your attempts at the six practice questions, your evidence packs, and your group's capstone diagram.
+
+## After this session
+
+**Tasks:**
+
+- Capstone submission and viva, on the dates announced for your cohort
+
+## In this folder
+
+- `notes.md`: review notes
+- `slides/`: the session's slides
+- `artefacts/`: interactive visuals (open in a browser)
+
+Files appear here before the session.
