@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regions seen from Colombo: distance, AZs and delay</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 64rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  .lede { max-width: 44rem; margin: 0 0 1.5rem; color: var(--ink-muted); }
+  .layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+  @media (max-width: 48rem) { .layout { grid-template-columns: 1fr; } }
+  figure { margin: 0; background: var(--navy); border-radius: 6px; padding: .75rem; }
+  svg { width: 100%; height: auto; display: block; }
+  figcaption { color: var(--silver); font-size: .8rem; padding: .25rem .25rem 0; }
+  .ring { fill: none; stroke: var(--navy-raised); stroke-width: 1.5; }
+  .ringlabel { fill: var(--grey); font-size: 11px; font-family: var(--font-body); }
+  .compass { fill: var(--grey); font-size: 12px; font-weight: 600; font-family: var(--font-body); }
+  .spoke { stroke: var(--navy-raised); stroke-width: 1; }
+  .region { cursor: pointer; }
+  .region circle.dot { fill: var(--paper); stroke: var(--navy); stroke-width: 1.5; }
+  .region.optin circle.dot { fill: var(--navy); stroke: var(--grey); stroke-dasharray: 3 2; }
+  .region.home circle.dot { fill: var(--turquoise); }
+  .region circle.halo { fill: none; stroke: var(--turquoise); stroke-width: 2.5; opacity: 0; }
+  .region.home circle.halo { opacity: 1; }
+  .region.active circle.halo { opacity: 1; stroke: var(--signal-amber); }
+  .region circle.az { fill: var(--turquoise); }
+  .region text { fill: var(--white); font-size: 12px; font-family: var(--font-body); font-weight: 600; }
+  .region:focus { outline: none; }
+  .region:focus-visible circle.halo { opacity: 1; stroke: var(--signal-amber); stroke-width: 4; }
+  .colombo circle { fill: var(--signal-coral); }
+  .colombo text { fill: var(--white); font-size: 12px; font-weight: 700; font-family: var(--font-body); }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .panel h2 { font-size: 1.25rem; margin: 0; }
+  .code { font-family: var(--font-code); font-size: .95rem; color: var(--turquoise-deep); }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: .35rem 1rem; margin: .9rem 0; }
+  dt { color: var(--ink-muted); font-size: .9rem; }
+  dd { margin: 0; font-weight: 600; }
+  .big { font-weight: 800; font-size: 1.6rem; line-height: 1.1; }
+  .note { font-size: .88rem; color: var(--ink-muted); }
+  .formula { background: var(--turquoise-wash); border-radius: 4px; padding: .6rem .8rem; font-size: .9rem; margin-top: .75rem; }
+  .list { display: flex; flex-wrap: wrap; gap: .4rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+  .list button { font: inherit; font-size: .88rem; background: var(--white); color: var(--navy); border: 1px solid var(--silver); border-radius: 999px; padding: .25rem .75rem; cursor: pointer; }
+  .list button[aria-pressed="true"] { background: var(--turquoise); border-color: var(--turquoise); font-weight: 700; }
+  .list button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 2px; }
+  .edge { margin-top: 1rem; background: var(--turquoise-tint); border-radius: 4px; padding: .75rem .9rem; font-size: .9rem; }
+  footer { margin-top: 1.5rem; font-size: .8rem; color: var(--ink-muted); max-width: 48rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Regions seen from Colombo</h1>
+  <p class="lede">Colombo is at the centre. Each region sits in its true direction, at a distance you can read from the rings. Hover over a region, or tab to it, to see its availability zones and the delay that distance costs.</p>
+
+  <div class="layout">
+    <figure>
+      <svg id="map" viewBox="0 0 560 560" role="group" aria-label="Regions by distance and direction from Colombo"></svg>
+      <figcaption>Direction and distance from Colombo, not a map of coastlines. North is up. Rings are compressed (logarithmic) so near regions stay readable: read distance from the ring labels, not the ruler. Small dots around a region are its availability zones. A dashed outline means the region must be switched on before use.</figcaption>
+    </figure>
+    <div>
+      <section class="panel" aria-live="polite">
+        <h2 id="pName">Asia Pacific (Mumbai)</h2>
+        <p id="pCode" class="code">ap-south-1</p>
+        <dl>
+          <dt>Availability zones</dt><dd id="pAz"></dd>
+          <dt>Enabled for new accounts</dt><dd id="pOpt"></dd>
+          <dt>Distance from Colombo</dt><dd id="pKm"></dd>
+          <dt>Fastest possible round trip</dt><dd id="pMin"></dd>
+          <dt>Estimated round trip</dt><dd><span id="pRtt" class="big"></span></dd>
+        </dl>
+        <p id="pNote" class="note"></p>
+        <div class="formula">Round trip = 2 x distance / 200 km per ms (light in fibre), then x 1.5 because cables do not run in straight lines. Real measurements vary with the route your traffic takes.</div>
+      </section>
+      <ul class="list" id="list" aria-label="Choose a region"></ul>
+      <div class="edge"><strong>Edge locations</strong> are not on this map. There are many more of them than regions, in cities that have no region, close to users. They cache content and answer DNS; they never run your servers.</div>
+    </div>
+  </div>
+
+  <footer>Availability zone counts and opt-in status as published by AWS at the time of writing. Distances are great-circle distances between city centres; delays are estimates from physics, not measurements.</footer>
+</main>
+<script>
+  const COLOMBO = [6.9271, 79.8612];
+  const regions = [
+    { id: 'mum', name: 'Asia Pacific (Mumbai)', code: 'ap-south-1', at: [19.0760, 72.8777], az: 3, optIn: false, home: true, label: 'left',
+      note: 'The home region for this module: the nearest region every new account can use straight away.' },
+    { id: 'hyd', name: 'Asia Pacific (Hyderabad)', at: [17.3850, 78.4867], az: 3, optIn: true, label: 'right',
+      note: 'Closer on the map, but a newer region that is switched off until the account owner enables it.' },
+    { id: 'sin', name: 'Asia Pacific (Singapore)', at: [1.3521, 103.8198], az: 3, optIn: false,
+      note: 'Nearly twice as far as Mumbai, and outside South Asia.' },
+    { id: 'tok', name: 'Asia Pacific (Tokyo)', at: [35.6762, 139.6503], az: 4, optIn: false, note: '' },
+    { id: 'syd', name: 'Asia Pacific (Sydney)', at: [-33.8688, 151.2093], az: 3, optIn: false, note: '' },
+    { id: 'fra', name: 'Europe (Frankfurt)', at: [50.1109, 8.6821], az: 3, optIn: false, note: '' },
+    { id: 'vir', name: 'US East (N. Virginia)', code: 'us-east-1', at: [39.0438, -77.4874], az: 6, optIn: false,
+      note: 'The oldest and largest region. Used once in this module, to show that a region you are not looking at hides your resources.' }
+  ];
+  const rad = d => d * Math.PI / 180;
+  function distanceKm(a, b) {
+    const [la1, lo1, la2, lo2] = [a[0], a[1], b[0], b[1]].map(rad);
+    const h = Math.sin((la2 - la1) / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin((lo2 - lo1) / 2) ** 2;
+    return 2 * 6371 * Math.asin(Math.sqrt(h));
+  }
+  function bearing(a, b) {
+    const [la1, lo1, la2, lo2] = [a[0], a[1], b[0], b[1]].map(rad);
+    const y = Math.sin(lo2 - lo1) * Math.cos(la2);
+    const x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(lo2 - lo1);
+    return Math.atan2(y, x);
+  }
+  const C = 280, RMAX = 250, KMAX = 16000;
+  const r = km => RMAX * Math.log(1 + km / 500) / Math.log(1 + KMAX / 500);
+  const svg = document.getElementById('map');
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; }
+  [1000, 2500, 5000, 10000].forEach(km => {
+    el('circle', { cx: C, cy: C, r: r(km), class: 'ring' });
+    const t = el('text', { x: C + 4, y: C + r(km) + 13, class: 'ringlabel' }); t.textContent = km.toLocaleString('en-GB') + ' km';
+  });
+  [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([l, deg]) => {
+    const a = rad(deg), x = C + (RMAX + 18) * Math.sin(a), y = C - (RMAX + 18) * Math.cos(a);
+    const t = el('text', { x, y: y + 4, 'text-anchor': 'middle', class: 'compass' }); t.textContent = l;
+  });
+  const listEl = document.getElementById('list');
+  regions.forEach(g => {
+    g.km = distanceKm(COLOMBO, g.at);
+    const b = bearing(COLOMBO, g.at), rr = r(g.km);
+    g.x = C + rr * Math.sin(b); g.y = C - rr * Math.cos(b);
+    el('line', { x1: C, y1: C, x2: g.x, y2: g.y, class: 'spoke' });
+  });
+  const col = el('g', { class: 'colombo' });
+  el('circle', { cx: C, cy: C, r: 6 }, col);
+  const ct = el('text', { x: C + 10, y: C + 18 }, col); ct.textContent = 'Colombo';
+  regions.forEach(g => {
+    const grp = el('g', { class: 'region' + (g.optIn ? ' optin' : '') + (g.home ? ' home' : ''), tabindex: 0, role: 'button', 'aria-label': g.name });
+    el('circle', { cx: g.x, cy: g.y, r: 10, class: 'halo' }, grp);
+    for (let i = 0; i < g.az; i++) {
+      const a = (2 * Math.PI * i) / g.az - Math.PI / 2;
+      el('circle', { cx: g.x + 14 * Math.cos(a), cy: g.y + 14 * Math.sin(a), r: 2.6, class: 'az' }, grp);
+    }
+    el('circle', { cx: g.x, cy: g.y, r: 6, class: 'dot' }, grp);
+    const left = g.label ? g.label === 'left' : g.x > C + 60;
+    const t = el('text', { x: g.x + (left ? -22 : 22), y: g.y + 4, 'text-anchor': left ? 'end' : 'start' }, grp);
+    t.textContent = g.name.replace(/^.*\(|\)$/g, '');
+    g.node = grp;
+    grp.addEventListener('mouseenter', () => show(g));
+    grp.addEventListener('focus', () => show(g));
+    grp.addEventListener('click', () => show(g));
+    grp.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(g); } });
+    const li = document.createElement('li'); const btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = g.name.replace(/^.*\(|\)$/g, ''); btn.addEventListener('click', () => show(g));
+    g.btn = btn; li.appendChild(btn); listEl.appendChild(li);
+  });
+  const fmt = n => Math.round(n).toLocaleString('en-GB');
+  function show(g) {
+    regions.forEach(o => { o.node.classList.toggle('active', o === g); o.btn.setAttribute('aria-pressed', String(o === g)); });
+    document.getElementById('pName').textContent = g.name;
+    const code = document.getElementById('pCode');
+    code.textContent = g.code || ''; code.hidden = !g.code;
+    document.getElementById('pAz').textContent = g.az;
+    document.getElementById('pOpt').textContent = g.optIn ? 'No: must be switched on first' : 'Yes';
+    document.getElementById('pKm').textContent = 'about ' + (Math.round(g.km / 10) * 10).toLocaleString('en-GB') + ' km';
+    document.getElementById('pMin').textContent = 'about ' + fmt(2 * g.km / 200) + ' ms';
+    document.getElementById('pRtt').textContent = 'about ' + fmt(2 * g.km * 1.5 / 200) + ' ms';
+    document.getElementById('pNote').textContent = g.note;
+  }
+  show(regions[0]);
+</script>
+</body>
+</html>

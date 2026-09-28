@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtual machines and containers: where the boundary is</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 64rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  .lede { max-width: 44rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  .actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  button { font: inherit; font-weight: 600; border-radius: 4px; padding: .55rem 1.1rem; cursor: pointer; border: 2px solid var(--navy); }
+  .primary { background: var(--turquoise); color: var(--navy); border-color: var(--turquoise); }
+  .secondary { background: var(--white); color: var(--navy); }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 2px; }
+  .hosts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 44rem) { .hosts { grid-template-columns: 1fr; } }
+  .host { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem; display: flex; flex-direction: column; }
+  .host h2 { font-size: 1.15rem; margin: 0 0 .75rem; }
+  .workloads { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-end; min-height: 12.5rem; margin-bottom: 6px; }
+  .vm { width: calc((100% - 30px) / 6); min-width: 3.4rem; border-radius: 3px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--navy); }
+  .vm .app, .ctr { background: var(--turquoise); color: var(--navy); font-size: .72rem; font-weight: 600; text-align: center; padding: .3rem .1rem; }
+  .vm .os { background: var(--navy-raised); color: var(--white); font-size: .7rem; text-align: center; padding: 1.9rem .1rem; position: relative; }
+  .ctr { width: calc((100% - 30px) / 6); min-width: 3.4rem; border-radius: 3px; border: 1px solid var(--navy); }
+  .boot { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--signal-amber); width: 0; }
+  .layer { border-radius: 3px; padding: .45rem .7rem; font-size: .85rem; font-weight: 600; margin-top: 4px; }
+  .kernel { background: var(--navy-raised); color: var(--white); }
+  .hv { background: var(--navy); color: var(--white); }
+  .hw { background: var(--navy-deep); color: var(--white); }
+  .boundary { border-top: 3px dashed var(--signal-coral); margin-top: 6px; padding-top: 4px; font-size: .8rem; color: var(--ink-muted); }
+  .meter { margin-top: 1rem; }
+  .meter .label { display: flex; justify-content: space-between; font-size: .85rem; }
+  .bar { height: .7rem; background: var(--turquoise-wash); border-radius: 999px; overflow: hidden; border: 1px solid var(--silver); }
+  .fill { height: 100%; background: var(--turquoise-deep); width: 0; transition: width .4s; }
+  .start { margin-top: .75rem; font-size: .92rem; }
+  .start strong { font-weight: 800; font-size: 1.3rem; }
+  .takeaway { margin-top: 1.5rem; background: var(--turquoise-tint); border-radius: 6px; padding: 1rem 1.1rem; max-width: 50rem; }
+  footer { margin-top: 1.5rem; font-size: .8rem; color: var(--ink-muted); max-width: 50rem; }
+  @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Where the boundary is</h1>
+  <p class="lede">Two identical servers. The left one runs virtual machines on a hypervisor; the right one runs containers on one shared kernel. Launch three more workloads on each and compare how full each server gets and how long the new ones take to start.</p>
+
+  <div class="actions">
+    <button type="button" class="primary" id="launch">Launch three more</button>
+    <button type="button" class="secondary" id="reset">Reset</button>
+  </div>
+  <p class="sr" id="status" aria-live="polite" style="position:absolute;left:-9999px"></p>
+
+  <div class="hosts">
+    <section class="host" aria-labelledby="vmTitle">
+      <h2 id="vmTitle">Virtual machines</h2>
+      <div class="workloads" id="vms"></div>
+      <div class="boundary">Isolation boundary: the hypervisor. Each VM has its own kernel.</div>
+      <div class="layer hv">Hypervisor (on EC2: the Nitro System)</div>
+      <div class="layer hw">Server hardware</div>
+      <div class="meter"><div class="label"><span>Memory in use</span><span id="vmMemText"></span></div><div class="bar"><div class="fill" id="vmMem"></div></div></div>
+      <p class="start">New workloads started in <strong id="vmTime">-</strong></p>
+    </section>
+    <section class="host" aria-labelledby="ctrTitle">
+      <h2 id="ctrTitle">Containers</h2>
+      <div class="workloads" id="ctrs"></div>
+      <div class="boundary">Isolation boundary: namespaces and cgroups in one shared kernel.</div>
+      <div class="layer kernel">One host kernel, shared by every container</div>
+      <div class="layer hw">Server hardware</div>
+      <div class="meter"><div class="label"><span>Memory in use</span><span id="ctrMemText"></span></div><div class="bar"><div class="fill" id="ctrMem"></div></div></div>
+      <p class="start">New workloads started in <strong id="ctrTime">-</strong></p>
+    </section>
+  </div>
+
+  <div class="takeaway"><strong>What to notice.</strong> Each VM carries a whole operating system, so the server fills faster and every new one has to boot. A container is a group of processes on a kernel that is already running, so it starts almost at once and many more fit. That is density and start time. The price is the boundary: every container depends on the one shared kernel. A container is not a smaller VM; its wall is in a different place.</div>
+
+  <footer>Sizes and times are illustrative orders of magnitude, not measurements: a VM typically boots in seconds to minutes, a container typically starts in under a second to a few seconds. Real figures depend on the image and the workload.</footer>
+</main>
+<script>
+  // Illustrative units: a VM costs 5 memory units (guest OS plus app); a container costs 1 (app and libraries only). Capacity 30 units.
+  const CAP = 30, VM_COST = 5, CTR_COST = 1, START = 2, MAX = 11;
+  let nVm = 0, nCtr = 0, busy = false;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const vms = document.getElementById('vms'), ctrs = document.getElementById('ctrs');
+  const launchBtn = document.getElementById('launch');
+  function addVm(animate) {
+    if ((nVm + 1) * VM_COST > CAP) return false;
+    nVm++;
+    const d = document.createElement('div'); d.className = 'vm';
+    d.innerHTML = '<div class="app">app</div><div class="os">guest OS<br>+ kernel<span class="boot"></span></div>';
+    vms.appendChild(d);
+    if (animate && !reduce) {
+      const b = d.querySelector('.boot');
+      b.animate([{ width: '0%' }, { width: '100%' }], { duration: 2400, fill: 'forwards' });
+    }
+    return true;
+  }
+  function addCtr() {
+    nCtr++;
+    const d = document.createElement('div'); d.className = 'ctr'; d.textContent = 'app';
+    ctrs.appendChild(d);
+  }
+  function meters() {
+    const v = nVm * VM_COST, c = nCtr * CTR_COST;
+    document.getElementById('vmMem').style.width = (100 * v / CAP) + '%';
+    document.getElementById('ctrMem').style.width = (100 * c / CAP) + '%';
+    document.getElementById('vmMemText').textContent = v + ' of ' + CAP + ' units';
+    document.getElementById('ctrMemText').textContent = c + ' of ' + CAP + ' units';
+  }
+  function reset() {
+    vms.innerHTML = ''; ctrs.innerHTML = ''; nVm = 0; nCtr = 0;
+    for (let i = 0; i < START; i++) { addVm(false); addCtr(); }
+    document.getElementById('vmTime').textContent = '-'; document.getElementById('ctrTime').textContent = '-';
+    launchBtn.disabled = false; meters();
+    document.getElementById('status').textContent = 'Reset: two virtual machines and two containers running.';
+  }
+  launchBtn.addEventListener('click', () => {
+    if (busy) return;
+    let addedVm = 0;
+    for (let i = 0; i < 3; i++) { if (addVm(true)) addedVm++; if (nCtr < MAX + 7) addCtr(); }
+    meters();
+    document.getElementById('ctrTime').textContent = 'about a second';
+    const full = addedVm < 3;
+    const vmMsg = addedVm === 0 ? 'no room: the server is full' : (full ? 'tens of seconds, and only ' + addedVm + ' fitted' : 'tens of seconds');
+    document.getElementById('vmTime').textContent = vmMsg;
+    document.getElementById('status').textContent = 'Now ' + nVm + ' virtual machines and ' + nCtr + ' containers. Virtual machines: ' + vmMsg + '. Containers: about a second.';
+    if (nVm * VM_COST + VM_COST > CAP && nCtr >= MAX + 7) launchBtn.disabled = true;
+  });
+  document.getElementById('reset').addEventListener('click', reset);
+  reset();
+</script>
+</body>
+</html>

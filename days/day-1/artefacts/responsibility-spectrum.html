@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who runs which layer: on-premises to SaaS</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 60rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  .lede { max-width: 42rem; margin: 0 0 1.75rem; color: var(--ink-muted); }
+  .control { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1.25rem 1.25rem 1rem; margin-bottom: 1.5rem; }
+  .control label { font-weight: 600; display: block; margin-bottom: .5rem; }
+  input[type=range] { width: 100%; accent-color: var(--turquoise-deep); height: 2rem; }
+  .ticks { position: relative; height: 2.1rem; margin: .25rem .5rem 0; }
+  .ticks button { position: absolute; top: 0; transform: translateX(-50%); font: inherit; font-size: .9rem; background: none; border: 0; padding: .35rem .3rem; color: var(--ink-muted); cursor: pointer; border-radius: 4px; white-space: nowrap; }
+  .ticks button:first-child { left: 0; transform: none; } .ticks button:nth-child(2) { left: 33.33%; } .ticks button:nth-child(3) { left: 66.67%; } .ticks button:last-child { left: auto; right: 0; transform: none; }
+  .ticks button[aria-current="true"] { color: var(--navy); font-weight: 700; }
+  :focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 2px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 18rem); gap: 1.5rem; align-items: start; }
+  @media (max-width: 44rem) { .layout { grid-template-columns: 1fr; } }
+  ol.stack { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .layer { display: flex; justify-content: space-between; align-items: center; padding: .6rem .9rem; border-radius: 4px; transition: background-color .35s, color .35s; }
+  .layer .name { font-weight: 600; }
+  .layer .who { font-size: .85rem; font-weight: 600; }
+  .layer.thara { background: var(--turquoise); color: var(--navy); }
+  .layer.aws { background: var(--navy); color: var(--white); }
+  .layer.fixed { box-shadow: inset 4px 0 0 var(--signal-amber); }
+  .key { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .85rem; margin: 0 0 .75rem; }
+  .swatch { display: inline-block; width: .9rem; height: .9rem; border-radius: 2px; vertical-align: -2px; margin-right: .35rem; }
+  aside { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  aside h2 { font-size: 1.1rem; margin: 0 0 .5rem; }
+  .count { font-weight: 800; font-size: 2.25rem; line-height: 1; margin: .25rem 0; }
+  .note { font-size: .9rem; color: var(--ink-muted); }
+  .thara-box { background: var(--turquoise-tint); border-radius: 4px; padding: .75rem .9rem; margin-top: .9rem; font-size: .92rem; }
+  footer { margin-top: 2rem; font-size: .8rem; color: var(--ink-muted); }
+  @media (prefers-reduced-motion: reduce) { .layer { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Who runs which layer?</h1>
+  <p class="lede">Move the slider from running everything yourself to using finished software. Watch which layers pass to AWS at each step, and which two never do.</p>
+
+  <div class="control">
+    <label for="model">Service model: <span id="modelName">IaaS</span></label>
+    <input id="model" type="range" min="0" max="3" step="1" value="1" aria-describedby="modelHelp">
+    <div class="ticks" role="group" aria-label="Jump to a service model">
+      <button type="button" data-v="0">On-premises</button>
+      <button type="button" data-v="1">IaaS</button>
+      <button type="button" data-v="2">PaaS</button>
+      <button type="button" data-v="3">SaaS</button>
+    </div>
+    <p id="modelHelp" class="note">Use the arrow keys on the slider, or choose a model.</p>
+  </div>
+
+  <div class="layout">
+    <div>
+      <p class="key">
+        <span><span class="swatch" style="background:var(--turquoise)"></span>Thara runs and secures it</span>
+        <span><span class="swatch" style="background:var(--navy)"></span>AWS runs and secures it</span>
+        <span><span class="swatch" style="background:var(--signal-amber)"></span>Never moves</span>
+      </p>
+      <ol class="stack" id="stack" aria-live="polite"></ol>
+    </div>
+    <aside>
+      <h2 id="asideTitle">IaaS</h2>
+      <p class="note">Layers Thara still runs</p>
+      <p class="count"><span id="count">5</span> of 9</p>
+      <p id="summary"></p>
+      <div class="thara-box"><strong>Thara:</strong> <span id="example"></span></div>
+    </aside>
+  </div>
+
+  <footer>A simplified stack for teaching. Real services draw some lines differently, but data and access always stay with the customer.</footer>
+</main>
+<script>
+  // Layers from top to bottom. 'handover' is the first model index at which AWS takes the layer; null means never.
+  const layers = [
+    { name: 'Data', handover: null },
+    { name: 'Access and identity', handover: null },
+    { name: 'Application', handover: 3 },
+    { name: 'Runtime', handover: 2 },
+    { name: 'Operating system', handover: 2 },
+    { name: 'Virtualisation', handover: 1 },
+    { name: 'Servers and storage', handover: 1 },
+    { name: 'Network', handover: 1 },
+    { name: 'Facility: building, power, cooling', handover: 1 }
+  ];
+  const models = [
+    { name: 'On-premises', summary: 'Thara owns every layer, down to the basement it floods in.', example: 'The HIS and portal on two servers in the Colombo basement, before the monsoon.' },
+    { name: 'IaaS', summary: 'AWS runs the building, hardware and hypervisor. Thara patches the operating system and everything above it.', example: 'The patient portal on an EC2 instance, which you build on Day 2.' },
+    { name: 'PaaS', summary: 'AWS also runs the operating system and runtime. Thara brings the application and its data.', example: 'A managed database for patient records: AWS patches the engine, Thara decides who may connect.' },
+    { name: 'SaaS', summary: 'AWS runs the application too. Thara only uses it, but still owns its data and who can sign in.', example: 'Software Thara staff only sign in to and use. The DPO still asks who can read the data.' }
+  ];
+  const slider = document.getElementById('model');
+  const stack = document.getElementById('stack');
+  const ticks = document.querySelectorAll('.ticks button');
+  function render(v) {
+    const m = models[v];
+    slider.setAttribute('aria-valuetext', m.name);
+    document.getElementById('modelName').textContent = m.name;
+    document.getElementById('asideTitle').textContent = m.name;
+    document.getElementById('summary').textContent = m.summary;
+    document.getElementById('example').textContent = m.example;
+    let thara = 0;
+    stack.innerHTML = '';
+    layers.forEach(l => {
+      const aws = l.handover !== null && v >= l.handover;
+      if (!aws) thara++;
+      const li = document.createElement('li');
+      li.className = 'layer ' + (aws ? 'aws' : 'thara') + (l.handover === null ? ' fixed' : '');
+      li.innerHTML = '<span class="name"></span><span class="who"></span>';
+      li.querySelector('.name').textContent = l.name;
+      li.querySelector('.who').textContent = aws ? 'AWS' : 'Thara';
+      stack.appendChild(li);
+    });
+    document.getElementById('count').textContent = thara;
+    ticks.forEach(b => b.setAttribute('aria-current', String(Number(b.dataset.v) === v)));
+  }
+  slider.addEventListener('input', () => render(Number(slider.value)));
+  ticks.forEach(b => b.addEventListener('click', () => { slider.value = b.dataset.v; render(Number(b.dataset.v)); slider.focus(); }));
+  render(Number(slider.value));
+</script>
+</body>
+</html>
