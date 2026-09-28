@@ -1,5 +1,9 @@
 # Day 4
 
+## Materials
+
+Files appear here before the teaching day.
+
 ## Morning: Beyond the VPC: egress, peering, hybrid, edge
 
 **Ideas covered:** Getting out without being reachable; Talking to other networks; Names and the edge; Estimating the pilot.
@@ -33,12 +37,3 @@
 - Groups agree tier responsibilities and draft a first capstone diagram; bring it to Day 5 afternoon
 
 **Evidence pack 4** is due before the next teaching day, on the date announced for your cohort. See the [portfolio brief](../../coursework/portfolio-brief.md).
-
-## In this folder
-
-- `notes.md`: student notes for the day
-- `lab.md`: the lab sheet
-- `slides/`: the day's slides
-- `artefacts/`: interactive visuals (open in a browser)
-
-Files appear here before the teaching day.

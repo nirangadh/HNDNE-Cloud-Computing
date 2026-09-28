@@ -1,5 +1,9 @@
 # Day 7
 
+## Materials
+
+Files appear here before the teaching day.
+
 ## Morning: HA delivered and monitored
 
 **Ideas covered:** Availability as arithmetic; Making it heal itself; The edge, demonstrated; The bill, read properly.
@@ -29,12 +33,3 @@
 **Tasks:**
 
 - Groups continue the capstone build for submission after the review session
-
-## In this folder
-
-- `notes.md`: student notes for the day
-- `lab.md`: the lab sheet
-- `slides/`: the day's slides
-- `artefacts/`: interactive visuals (open in a browser)
-
-Files appear here before the teaching day.

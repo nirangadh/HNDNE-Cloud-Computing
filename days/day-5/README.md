@@ -1,5 +1,9 @@
 # Day 5
 
+## Materials
+
+Files appear here before the teaching day.
+
 ## Morning: Identity, encryption, detection
 
 **Ideas covered:** Identity is the perimeter; Encrypting what the hospital holds; Knowing when something happened.
@@ -31,12 +35,3 @@
 - Groups begin the capstone network build in the host account
 
 **Evidence pack 5** is due before the next teaching day, on the date announced for your cohort. See the [portfolio brief](../../coursework/portfolio-brief.md).
-
-## In this folder
-
-- `notes.md`: student notes for the day
-- `lab.md`: the lab sheet
-- `slides/`: the day's slides
-- `artefacts/`: interactive visuals (open in a browser)
-
-Files appear here before the teaching day.

@@ -1,5 +1,9 @@
 # Day 6
 
+## Materials
+
+Files appear here before the teaching day.
+
 ## Morning: Storage strategy, managed databases, recovery
 
 **Ideas covered:** S3 as a strategy, not a bucket; Managed databases; Recovery as a number.
@@ -31,12 +35,3 @@
 - Groups complete the capstone data tier in the host account
 
 **Evidence pack 6** is due before the next teaching day, on the date announced for your cohort. See the [portfolio brief](../../coursework/portfolio-brief.md).
-
-## In this folder
-
-- `notes.md`: student notes for the day
-- `lab.md`: the lab sheet
-- `slides/`: the day's slides
-- `artefacts/`: interactive visuals (open in a browser)
-
-Files appear here before the teaching day.

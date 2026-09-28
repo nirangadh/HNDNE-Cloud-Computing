@@ -6,7 +6,7 @@ Attempt each one without notes, in about 35 minutes, then compare with the guida
 
 | Question | Posted | Topic |
 |---|---|---|
-| PQ1 | Day 1 | Should the Thara portal be a VM image or a container image, and what does the monsoon change |
+| [PQ1](PQ1.md) | Day 1 | Should the Thara portal be a VM image or a container image, and what does the monsoon change |
 | PQ2 | Day 2 | Choosing storage for laboratory reports and patient records, with cost |
 | PQ3 | Day 3 | A VPC design for a new branch in Trincomalee, drawn and justified |
 | PQ4 | Day 4 | Connecting four branch hospitals: options, cost and latency |

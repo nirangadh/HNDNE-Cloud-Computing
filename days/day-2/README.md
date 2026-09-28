@@ -1,5 +1,9 @@
 # Day 2
 
+## Materials
+
+Files appear here before the teaching day.
+
 ## Morning: Instances, images and volumes
 
 **Ideas covered:** The EC2 model; Block storage and images; Object storage, first look; Paying for compute.
@@ -29,12 +33,3 @@
 - On paper, carve 10.0.0.0/16 into thara-public-a/b and thara-private-a/b across two AZs and say why each is public or private; bring it to Day 3 morning
 
 **Evidence pack 2** is due before the next teaching day, on the date announced for your cohort. See the [portfolio brief](../../coursework/portfolio-brief.md).
-
-## In this folder
-
-- `notes.md`: student notes for the day
-- `lab.md`: the lab sheet
-- `slides/`: the day's slides
-- `artefacts/`: interactive visuals (open in a browser)
-
-Files appear here before the teaching day.

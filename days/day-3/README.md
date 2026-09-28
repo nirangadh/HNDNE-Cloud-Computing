@@ -1,5 +1,9 @@
 # Day 3
 
+## Materials
+
+Files appear here before the teaching day.
+
 ## Morning: VPC anatomy
 
 **Ideas covered:** A VPC is a network you already know; Two firewalls, two behaviours; Seeing the traffic.
@@ -30,12 +34,3 @@
 - One paragraph: why is VPC peering non-transitive and what does that force a hospital group with five sites to do
 
 **Evidence pack 3** is due before the next teaching day, on the date announced for your cohort. See the [portfolio brief](../../coursework/portfolio-brief.md).
-
-## In this folder
-
-- `notes.md`: student notes for the day
-- `lab.md`: the lab sheet
-- `slides/`: the day's slides
-- `artefacts/`: interactive visuals (open in a browser)
-
-Files appear here before the teaching day.

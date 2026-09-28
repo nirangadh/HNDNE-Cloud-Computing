@@ -12,10 +12,6 @@ Three hours, after Day 7.
 
 - Capstone submission and viva, on the dates announced for your cohort
 
-## In this folder
-
-- `notes.md`: review notes
-- `slides/`: the session's slides
-- `artefacts/`: interactive visuals (open in a browser)
+## Materials
 
 Files appear here before the session.
