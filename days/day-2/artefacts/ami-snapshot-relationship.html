@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An AMI is a snapshot plus launch metadata</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 62rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .5rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  .actions { display: flex; flex-wrap: wrap; gap: .6rem; margin: 0 0 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.primary { background: var(--navy); color: var(--white); }
+  button[aria-pressed="true"] { background: var(--turquoise); color: var(--navy); }
+  button:disabled { border-color: var(--silver); color: var(--ink-muted); background: var(--paper); cursor: not-allowed; }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .note { background: var(--turquoise-tint); border-left: 5px solid var(--turquoise-deep); border-radius: 4px; padding: .8rem 1rem; margin-top: 1rem; }
+  .warn { background: var(--white); border-left: 5px solid var(--signal-coral); }
+  .sr { position: absolute; left: -9999px; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .stage { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: .8rem; align-items: stretch; }
+  @media (max-width: 50rem) { .stage { grid-template-columns: 1fr; } }
+  .zone { border: 2px dashed var(--silver); border-radius: 6px; padding: .7rem; background: var(--white); min-height: 17rem; }
+  .zone > .zt { font-size: .8rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .6rem; }
+  .box { border: 2px solid var(--navy); border-radius: 6px; padding: .55rem .7rem; margin-bottom: .6rem; background: var(--paper); }
+  .box b { display: block; } .box small { color: var(--ink-muted); }
+  .box.vol { background: var(--turquoise-wash); }
+  .box.snap { background: var(--turquoise); }
+  .box.snap small { color: var(--navy); }
+  .box.ami { background: var(--navy); color: var(--white); }
+  .box.ami small, .box.ami li { color: var(--paper); }
+  .box.ami ul { margin: .3rem 0 0; padding-left: 1.1rem; font-size: .88rem; }
+  .box.new { border-style: solid; box-shadow: 0 0 0 4px var(--signal-amber); }
+  .hidden { visibility: hidden; }
+  .steps { display: flex; gap: .4rem; flex-wrap: wrap; margin: 0 0 1rem; padding: 0; list-style: none; }
+  .steps li { border: 1px solid var(--silver); border-radius: 999px; padding: .25rem .8rem; font-size: .9rem; color: var(--ink-muted); background: var(--white); }
+  .steps li.on { background: var(--navy); color: var(--white); border-color: var(--navy); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>An AMI is a snapshot plus launch metadata</h1>
+  <p class="lede">Follow <code>thara-web-1</code> as it becomes the image <code>thara-portal-v1</code>, and then a second server in another availability zone. Use Next and Back. Each newly created thing is ringed in amber.</p>
+  <ol class="steps" id="steps" aria-hidden="true"><li>Start</li><li>1. Create snapshot</li><li>2. Register AMI</li><li>3. Launch</li></ol>
+  <div class="actions">
+    <button type="button" id="back">Back</button>
+    <button type="button" class="primary" id="next">Next</button>
+    <button type="button" id="reset">Reset</button>
+  </div>
+  <div class="stage">
+    <section class="zone" aria-label="Availability zone a">
+      <div class="zt">Availability zone a</div>
+      <div class="box" id="i1"><b>Instance thara-web-1</b><small>t3.micro, running the pilot page</small></div>
+      <div class="box vol" id="v1"><b>Root volume</b><small>8 GiB gp3. Lives in this zone only</small></div>
+    </section>
+    <section class="zone" aria-label="Region-wide storage and registry">
+      <div class="zt">The region (not tied to a zone)</div>
+      <div class="box snap hidden" id="s1"><b>Snapshot</b><small>A point-in-time copy of the volume's blocks, kept in storage AWS runs on S3. It holds the bytes and nothing else</small></div>
+      <div class="box ami hidden" id="a1"><b>AMI thara-portal-v1</b><small>Holds no data of its own. It records:</small>
+        <ul><li>root device: built from the snapshot above</li><li>volume size and type: 8 GiB gp3</li><li>architecture: 64-bit x86</li><li>boot mode and virtualisation type</li><li>who may launch it: this account</li></ul></div>
+    </section>
+    <section class="zone" aria-label="Availability zone b">
+      <div class="zt">Availability zone b</div>
+      <div class="box hidden" id="i2"><b>New instance</b><small>You choose at launch: type, subnet, security group, key pair, tags. None of these come from the AMI</small></div>
+      <div class="box vol hidden" id="v2"><b>New root volume</b><small>Created from the snapshot, in this zone. A separate disk from the original</small></div>
+    </section>
+  </div>
+  <div class="note" id="explain" aria-live="polite"></div>
+  <div class="note warn"><strong>Why it matters.</strong> Delete the snapshot and the AMI cannot launch anything. Delete the original instance and the AMI still works. The image depends on the snapshot, not on the server it was made from.</div>
+
+  <footer>Simplified: an image can hold more than one volume, and each gets its own snapshot. In the lab you remove the data volume so the image holds the root volume only.</footer>
+</main>
+<script>
+  const SHOW = [[], ['s1'], ['s1', 'a1'], ['s1', 'a1', 'i2', 'v2']];
+  const NEW = [[], ['s1'], ['a1'], ['i2', 'v2']];
+  const TEXT = [
+    'Start. One instance in zone a, with its root volume. A volume cannot leave its zone, so if zone a is lost, so is this server.',
+    'Step 1, create snapshot. The used blocks of the root volume are copied into region-wide storage. The snapshot is only data. It does not know it was a boot disk.',
+    'Step 2, register AMI. The AMI is a small record that points at the snapshot and adds what a launch needs. When you choose Create image in the console, AWS performs steps 1 and 2 for you, one after the other.',
+    'Step 3, launch. AWS builds a new volume from the snapshot in the zone you chose, applies the launch metadata, and boots it. Same software, different server, different zone. That is the rebuild after the flood.'
+  ];
+  let n = 0; const $ = id => document.getElementById(id);
+  function draw() {
+    ['s1', 'a1', 'i2', 'v2'].forEach(id => { $(id).classList.toggle('hidden', !SHOW[n].includes(id)); $(id).classList.toggle('new', NEW[n].includes(id)); });
+    [...$('steps').children].forEach((li, i) => li.classList.toggle('on', i === n));
+    $('explain').textContent = TEXT[n];
+    $('back').disabled = n === 0; $('next').disabled = n === 3;
+  }
+  $('next').onclick = () => { if (n < 3) n++; draw(); };
+  $('back').onclick = () => { if (n > 0) n--; draw(); };
+  $('reset').onclick = () => { n = 0; draw(); };
+  draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instance lifecycle: which meters run in each state</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 62rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .5rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  .actions { display: flex; flex-wrap: wrap; gap: .6rem; margin: 0 0 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.primary { background: var(--navy); color: var(--white); }
+  button[aria-pressed="true"] { background: var(--turquoise); color: var(--navy); }
+  button:disabled { border-color: var(--silver); color: var(--ink-muted); background: var(--paper); cursor: not-allowed; }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .note { background: var(--turquoise-tint); border-left: 5px solid var(--turquoise-deep); border-radius: 4px; padding: .8rem 1rem; margin-top: 1rem; }
+  .warn { background: var(--white); border-left: 5px solid var(--signal-coral); }
+  .sr { position: absolute; left: -9999px; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1rem; }
+  @media (max-width: 46rem) { .grid { grid-template-columns: 1fr; } }
+  .states { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: 1rem; }
+  .state { border: 2px solid var(--silver); border-radius: 999px; padding: .35rem .9rem; font-weight: 600; color: var(--ink-muted); background: var(--paper); }
+  .state.on { border-color: var(--navy); background: var(--turquoise); color: var(--navy); }
+  .state.on.dead { background: var(--navy); color: var(--white); }
+  .arrow { color: var(--ink-muted); }
+  .server { border: 2px solid var(--navy); border-radius: 6px; padding: .8rem 1rem; }
+  .server dl { display: grid; grid-template-columns: auto 1fr; gap: .2rem .9rem; margin: 0; }
+  .server dt { color: var(--ink-muted); } .server dd { margin: 0; font-weight: 600; }
+  .meter { display: grid; grid-template-columns: 1fr auto; gap: .2rem .8rem; align-items: center; padding: .65rem 0; border-bottom: 1px solid var(--silver); }
+  .meter:last-of-type { border-bottom: 0; }
+  .meter .name { font-weight: 600; } .meter .rate { font-size: .85rem; color: var(--ink-muted); }
+  .meter .amt { font-weight: 800; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+  .lamp { display: inline-block; font-size: .78rem; font-weight: 700; border-radius: 4px; padding: .1rem .45rem; margin-left: .5rem; border: 1px solid var(--silver); color: var(--ink-muted); background: var(--paper); }
+  .lamp.run { background: var(--signal-amber); color: var(--navy); border-color: var(--navy); }
+  .total { display: flex; justify-content: space-between; align-items: baseline; margin-top: .6rem; padding-top: .6rem; border-top: 2px solid var(--navy); font-weight: 700; }
+  .total .amt { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .clock { color: var(--ink-muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>The life of an instance, and what it costs in each state</h1>
+  <p class="lede">One <code>t3.micro</code> in Mumbai with an 8 GiB disk. Choose a transition and watch the three meters. One hour passes every second. Rates are approximate, at the time of writing.</p>
+  <div class="actions" role="group" aria-label="Transitions">
+    <button type="button" class="primary" id="launch">Launch</button>
+    <button type="button" id="stop">Stop</button>
+    <button type="button" id="start">Start</button>
+    <button type="button" id="reboot">Reboot</button>
+    <button type="button" id="terminate">Terminate</button>
+    <button type="button" id="reset">Reset</button>
+  </div>
+  <p class="sr" id="status" aria-live="polite"></p>
+  <div class="states" id="states" aria-hidden="true"></div>
+  <div class="grid">
+    <section class="panel" aria-labelledby="srvT">
+      <h2 id="srvT">The instance</h2>
+      <div class="server"><dl>
+        <dt>State</dt><dd id="st">not launched</dd>
+        <dt>Public IPv4 address</dt><dd id="ip">none</dd>
+        <dt>Root volume</dt><dd id="vol">none</dd>
+        <dt>Data on the volume</dt><dd id="data">-</dd>
+      </dl></div>
+      <div class="note" id="explain">Nothing exists yet, so nothing bills. Choose Launch.</div>
+    </section>
+    <section class="panel" aria-labelledby="billT">
+      <h2 id="billT">The meters</h2>
+      <div class="meter"><div><span class="name">Instance</span><span class="lamp" id="l0">stopped</span><div class="rate">USD 0.0112 per hour while running</div></div><div class="amt" id="a0">0.000</div></div>
+      <div class="meter"><div><span class="name">Public IPv4 address</span><span class="lamp" id="l1">stopped</span><div class="rate">USD 0.005 per hour while assigned</div></div><div class="amt" id="a1">0.000</div></div>
+      <div class="meter"><div><span class="name">EBS volume, 8 GiB</span><span class="lamp" id="l2">stopped</span><div class="rate">about USD 0.001 per hour while it exists</div></div><div class="amt" id="a2">0.000</div></div>
+      <div class="total"><span>Total, USD <span class="clock" id="clock">(0 hours)</span></span><span class="amt" id="tot">0.000</span></div>
+    </section>
+  </div>
+  <div class="note warn"><strong>The point.</strong> Stop the instance and leave it for a while. Two meters stop. The volume meter does not: a stopped instance still has a disk, and the disk is still stored. Only Terminate ends every charge, and it also deletes the disk.</div>
+
+  <footer>Rates are approximate figures for Asia Pacific (Mumbai) at the time of writing, rounded for clarity. The volume rate is an 8 GiB gp3 volume spread over a month. Check the AWS pricing pages before you rely on any number.</footer>
+</main>
+<script>
+  const RATE = [0.0112, 0.005, 0.001];
+  const ORDER = ['pending', 'running', 'stopping', 'stopped', 'shutting-down', 'terminated'];
+  const BILL = { none: [0,0,0], pending: [0,0,1], running: [1,1,1], stopping: [0,0,1], stopped: [0,0,1], 'shutting-down': [0,0,0], terminated: [0,0,0] };
+  const TEXT = {
+    none: 'Nothing exists yet, so nothing bills. Choose Launch.',
+    pending: 'Pending: AWS is finding a host and building the disk from the image. The instance is not billed yet; the new volume already is.',
+    running: 'Running: the instance, its public address and its volume all bill. A reboot keeps this state, this address and this meter.',
+    stopping: 'Stopping: the operating system is shutting down. Instance billing has ended.',
+    stopped: 'Stopped: no instance charge and no public address. The volume and everything on it are kept, so the volume meter keeps running.',
+    'shutting-down': 'Shutting down: the instance is being deleted.',
+    terminated: 'Terminated: the instance is gone and its root volume is deleted with it. Nothing bills, and nothing can be started again. An image made earlier would be the only way back.'
+  };
+  let state, amt, hours, ipn, timer, hop;
+  const $ = id => document.getElementById(id);
+  function ip() { return '13.233.' + (40 + ipn * 37) % 250 + '.' + (17 + ipn * 91) % 250; }
+  function draw() {
+    $('states').innerHTML = ORDER.map((s, i) => (i ? '<span class="arrow">&rarr;</span>' : '') + '<span class="state' + (s === state ? ' on' : '') + (s === 'terminated' ? ' dead' : '') + '">' + s + '</span>').join('');
+    $('st').textContent = state === 'none' ? 'not launched' : state;
+    $('ip').textContent = state === 'running' ? ip() : 'none';
+    const gone = state === 'none' || state === 'terminated' || state === 'shutting-down';
+    $('vol').textContent = gone ? (state === 'none' ? 'none' : 'deleted') : '8 GiB gp3, in one availability zone';
+    $('data').textContent = gone ? (state === 'none' ? '-' : 'lost') : 'kept';
+    $('explain').textContent = TEXT[state];
+    BILL[state].forEach((b, i) => { const l = $('l' + i); l.textContent = b ? 'running' : 'stopped'; l.className = 'lamp' + (b ? ' run' : ''); $('a' + i).textContent = amt[i].toFixed(3); });
+    $('tot').textContent = (amt[0] + amt[1] + amt[2]).toFixed(3);
+    $('clock').textContent = '(' + hours + (hours === 1 ? ' hour)' : ' hours)');
+    $('launch').disabled = state !== 'none';
+    $('stop').disabled = $('reboot').disabled = state !== 'running';
+    $('start').disabled = state !== 'stopped';
+    $('terminate').disabled = !(state === 'running' || state === 'stopped');
+  }
+  function go(s, next) {
+    state = s; clearTimeout(hop); draw(); $('status').textContent = 'State: ' + s + '. ' + TEXT[s];
+    if (next) hop = setTimeout(() => go(next), 1600);
+  }
+  function tick() { if (state === 'none' || state === 'terminated') return; hours++; BILL[state].forEach((b, i) => { amt[i] += b * RATE[i]; }); draw(); }
+  function reset() { clearTimeout(hop); state = 'none'; amt = [0, 0, 0]; hours = 0; ipn = 0; draw(); $('status').textContent = 'Reset.'; }
+  $('launch').onclick = () => { ipn++; go('pending', 'running'); };
+  $('stop').onclick = () => go('stopping', 'stopped');
+  $('start').onclick = () => { ipn++; go('pending', 'running'); $('status').textContent += ' Note the new public address.'; };
+  $('reboot').onclick = () => { $('status').textContent = 'Rebooted. Still running, same public address, same meters.'; $('explain').textContent = 'Rebooted: the operating system restarted, but the instance never left the running state. Same host, same public address, no gap in billing.'; };
+  $('terminate').onclick = () => go('shutting-down', 'terminated');
+  $('reset').onclick = reset;
+  reset(); timer = setInterval(tick, 1000);
+</script>
+</body>
+</html>

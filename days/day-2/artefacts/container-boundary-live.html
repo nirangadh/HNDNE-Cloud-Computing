@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The container boundary: the same processes seen from outside and inside</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 62rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .5rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  .actions { display: flex; flex-wrap: wrap; gap: .6rem; margin: 0 0 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.primary { background: var(--navy); color: var(--white); }
+  button[aria-pressed="true"] { background: var(--turquoise); color: var(--navy); }
+  button:disabled { border-color: var(--silver); color: var(--ink-muted); background: var(--paper); cursor: not-allowed; }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .note { background: var(--turquoise-tint); border-left: 5px solid var(--turquoise-deep); border-radius: 4px; padding: .8rem 1rem; margin-top: 1rem; }
+  .warn { background: var(--white); border-left: 5px solid var(--signal-coral); }
+  .sr { position: absolute; left: -9999px; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 46rem) { .grid { grid-template-columns: 1fr; } }
+  pre { font-family: var(--font-code); font-size: .92rem; line-height: 1.45; margin: 0; white-space: pre-wrap; background: var(--navy); color: var(--paper); border-radius: 6px; padding: .8rem .9rem; min-height: 15.5rem; }
+  pre .c { color: var(--turquoise); font-weight: 700; }
+  pre .m { color: var(--silver); }
+  pre .x { color: var(--signal-amber); }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem; margin-top: 1rem; }
+  .fact { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .7rem .9rem; }
+  .fact .k { font-size: .85rem; color: var(--ink-muted); } .fact .v { font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <h1>One machine, two views</h1>
+  <p class="lede">This is your instance after you start the nginx container. Switch between standing on the host and standing inside the container. The highlighted lines are the same processes and the same files, seen from each side of the boundary.</p>
+  <div class="actions" role="group" aria-label="Where you are standing">
+    <button type="button" id="out" aria-pressed="true">Outside: on the host</button>
+    <button type="button" id="in" aria-pressed="false">Inside: in the container</button>
+  </div>
+  <div class="grid">
+    <section class="panel" aria-labelledby="pT"><h2 id="pT">Process tree</h2><pre id="proc" aria-live="polite"></pre></section>
+    <section class="panel" aria-labelledby="fT"><h2 id="fT">File system</h2><pre id="fs" aria-live="polite"></pre></section>
+  </div>
+  <div class="facts">
+    <div class="fact"><div class="k">Kernel in use</div><div class="v" id="k"></div></div>
+    <div class="fact"><div class="k">Processes visible</div><div class="v" id="n"></div></div>
+    <div class="fact"><div class="k">Operating system it reports</div><div class="v" id="os"></div></div>
+    <div class="fact"><div class="k">Can it see <code>/data</code>?</div><div class="v" id="d"></div></div>
+  </div>
+  <div class="note" id="explain"></div>
+  <div class="note warn"><strong>The point.</strong> There is no second machine. The container's nginx is an ordinary process on the host, using the host's kernel. Namespaces change what that process can see; they do not move it anywhere.</div>
+
+  <footer>Process ids and paths are illustrative. Run the commands in step 8 of the lab sheet and compare your own output with these two views.</footer>
+</main>
+<script>
+  const V = {
+    out: {
+      proc: 'PID    COMMAND\n1      systemd\n<span class="m">742    \u251c\u2500 sshd</span>\n1203   \u251c\u2500 httpd            <span class="m">native web server, port 80</span>\n1210   \u2502   \u251c\u2500 httpd\n1211   \u2502   \u2514\u2500 httpd\n3051   \u251c\u2500 dockerd\n3388   \u2514\u2500 containerd-shim\n<span class="c">3410       \u2514\u2500 nginx: master process</span>\n<span class="c">3455           \u251c\u2500 nginx: worker process</span>\n<span class="c">3456           \u2514\u2500 nginx: worker process</span>',
+      fs: '/\n\u251c\u2500 etc/os-release        <span class="m">Amazon Linux</span>\n\u251c\u2500 var/www/html/index.html  <span class="m">the pilot page</span>\n\u251c\u2500 data/reports-index.txt   <span class="m">your EBS volume</span>\n\u251c\u2500 home/ec2-user/.aws/credentials\n\u2514\u2500 var/lib/docker/overlay2/\n<span class="c">     \u2514\u2500 .../merged/         the container\u2019s whole world</span>\n<span class="c">         \u251c\u2500 etc/os-release</span>\n<span class="c">         \u2514\u2500 usr/share/nginx/html/index.html</span>',
+      k: 'The host kernel', n: 'Everything, including the container\u2019s nginx', os: 'Amazon Linux', d: 'Yes',
+      explain: 'From the host, the container is not a box. Its nginx processes sit in the same list as httpd, with ordinary host process ids, and its files are a folder under /var/lib/docker.'
+    },
+    in: {
+      proc: 'PID    COMMAND\n<span class="c">1      nginx: master process</span>\n<span class="c">29     \u251c\u2500 nginx: worker process</span>\n<span class="c">30     \u2514\u2500 nginx: worker process</span>\n\n<span class="x">No systemd, no sshd, no httpd, no dockerd.</span>\n<span class="x">They are still running. This view cannot see them.</span>',
+      fs: '<span class="c">/</span>\n<span class="c">\u251c\u2500 etc/os-release   Debian</span>\n<span class="c">\u251c\u2500 usr/share/nginx/html/index.html</span>\n\u251c\u2500 usr/sbin/nginx\n\u2514\u2500 var/log/nginx/\n\n<span class="x">No /data. No /home/ec2-user. No /var/www.</span>\n<span class="x">The root here is the folder you saw from outside.</span>',
+      k: 'The same host kernel', n: 'Three: only its own', os: 'Debian, because the image says so', d: 'No',
+      explain: 'From inside, the same nginx master is process 1 and believes it is alone on a Debian machine. The PID namespace renumbers the processes; the mount namespace swaps the root of the file system. The kernel underneath has not changed.'
+    }
+  };
+  const $ = id => document.getElementById(id);
+  function show(w) {
+    const v = V[w];
+    $('proc').innerHTML = v.proc; $('fs').innerHTML = v.fs;
+    ['k', 'n', 'os', 'd'].forEach(id => { $(id).textContent = v[id]; });
+    $('explain').textContent = v.explain;
+    $('out').setAttribute('aria-pressed', w === 'out'); $('in').setAttribute('aria-pressed', w === 'in');
+  }
+  $('out').onclick = () => show('out'); $('in').onclick = () => show('in');
+  show('out');
+</script>
+</body>
+</html>
