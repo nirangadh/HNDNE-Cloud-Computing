@@ -63,6 +63,43 @@
 <h3 id="budget">Budget</h3>
 <p>A spending threshold in AWS Budgets that emails an alert when cost crosses it. It measures and warns. It does not stop anything.</p>
 <p><em>Thara example:</em> <code>thara-budget</code> excludes credits, so it reads what the pilot's resources would cost without them.</p>
+<h2 id="day-2">Day 2</h2>
+<h3 id="ami">AMI</h3>
+<p>Amazon Machine Image: the template an instance's disk is built from. It is a snapshot of a root volume plus the launch settings, so every instance launched from it starts identical.</p>
+<p><em>Thara example:</em> <code>thara-portal-v1</code> is the portal server as an image; Day 3 launches the private web tier from it.</p>
+<h3 id="key-pair">Key pair</h3>
+<p>An SSH key in two halves. AWS puts the public half on the instance; you download the private half once, and it never expires.</p>
+<p><em>Thara example:</em> <code>thara-key</code> is created at launch, and its file is needed again on Day 3.</p>
+<h3 id="user-data">User data</h3>
+<p>A script handed to an instance at launch. It runs once, as root, at first boot, with nobody logged in.</p>
+<p><em>Thara example:</em> the user data for <code>thara-web-1</code> installs the web server and writes the pilot page.</p>
+<h3 id="security-group">Security group</h3>
+<p>A firewall attached to an instance, with allow rules only. It is stateful: when a request is allowed in, its reply is allowed out automatically.</p>
+<p><em>Thara example:</em> the group in front of <code>thara-web-1</code> allows HTTP from anywhere, and SSH from your IP and from the EC2 Instance Connect service.</p>
+<h3 id="ebs-volume">EBS volume</h3>
+<p>A virtual disk that you attach to an instance, format and mount. It lives in one availability zone, and its data survives a stop, a start and a reboot.</p>
+<p><em>Thara example:</em> the 8 GiB gp3 data volume mounted at <code>/data</code> holds <code>reports-index.txt</code>.</p>
+<h3 id="snapshot">Snapshot</h3>
+<p>A point-in-time copy of a volume, kept in region-wide storage. The first copies every block in use; each later one stores only the blocks changed since.</p>
+<p><em>Thara example:</em> the data volume's snapshot is kept after the volume is deleted; Day 5 and Day 6 restore from it.</p>
+<h3 id="bucket">Bucket</h3>
+<p>A container for objects in Amazon S3. Its name is unique across all of AWS, yet it is created in one region and its data stays there.</p>
+<p><em>Thara example:</em> <code class="long">thara-reports-&lt;student id&gt;</code> lives in Mumbai and holds the laboratory reports.</p>
+<h3 id="object">Object</h3>
+<p>One whole item stored in a bucket: data plus a little metadata, under a key, which is its name. You put, get or delete a whole object.</p>
+<p><em>Thara example:</em> each laboratory report PDF is one object, written once and fetched by its key.</p>
+<h3 id="block-public-access">Block Public Access</h3>
+<p>A master switch on a bucket that overrides any setting that would make the bucket or its objects public. It is on by default.</p>
+<p><em>Thara example:</em> with the switch on, no link can make a laboratory report public by accident.</p>
+<h3 id="reserved-instance">Reserved Instance</h3>
+<p>A one-year or three-year commitment to a particular instance family in a region, in return for a discount. You pay for every hour, used or not.</p>
+<p><em>Thara example:</em> a one-year commitment would cut the web tier's cost by roughly a third, but the pilot is approved for six months.</p>
+<h3 id="tag">Tag</h3>
+<p>A label of a key and a value on a resource. It changes nothing about how the resource works; it says what it is, who made it and on which day.</p>
+<p><em>Thara example:</em> everything from today carries <code>Module=CC</code>, <code>Day=&lt;n&gt;</code> and <code>Owner=&lt;student id&gt;</code>, so Day 7 can group spending by tag.</p>
+<h3 id="access-key">Access key</h3>
+<p>A long-lived credential for an IAM user: a key id and a secret, used by programs and the command line. It works until someone deactivates or deletes it.</p>
+<p><em>Thara example:</em> the key typed into <code>thara-web-1</code> today is deactivated in teardown and deleted on Day 5.</p>
 <nav class="pager" aria-label="Page navigation"><span></span><span><a href="index.html">All days</a></span><span></span></nav>
 </div>
 </main>

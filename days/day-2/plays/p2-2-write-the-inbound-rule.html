@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Write the inbound rule | Day 2 | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="thara-web-1 sits behind a security group, and this afternoon it needs four different things let in. Each brief needs one inbound rule. Too wide is risky, too narrow does not work. A 8-minute practice...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-2/plays/p2-2-write-the-inbound-rule.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Write the inbound rule">
+<meta property="og:description" content="thara-web-1 sits behind a security group, and this afternoon it needs four different things let in. Each brief needs one inbound rule. Too wide is risky, too narrow does not work. A 8-minute practice...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-2/plays/p2-2-write-the-inbound-rule.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"thara-web-1 sits behind a security group, and this afternoon it needs four different things let in. Each brief needs one inbound rule. Too wide is risky, too narrow does not work. A 8-minute practice...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Practice activity","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Write the inbound rule","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-2/plays/p2-2-write-the-inbound-rule.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-2/","name":"Day 2","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-2/plays/p2-2-write-the-inbound-rule.html","name":"Write the inbound rule","position":3}]}</script>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+/* Cloud Computing plays. MIT licence. Inlined into every play by the generator.
+   Palette variables come from assets/fonts/fonts.css. Right and wrong always carry a mark and a word. */
+*{box-sizing:border-box}
+body{margin:0;font-family:"Open Sans","Segoe UI",Roboto,Arial,sans-serif;font-size:1.0625rem;line-height:1.6;color:var(--navy);background:var(--paper);-webkit-text-size-adjust:100%}
+.wrap{max-width:46rem;margin:0 auto;padding:0 1.1rem}
+a{color:var(--turquoise-deep);font-weight:600}
+:focus-visible{outline:3px solid var(--turquoise-deep);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:0;background:var(--navy);color:var(--white);padding:.5rem 1rem}
+.skip:focus{left:1rem}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+code{font-family:"Courier New",Consolas,"DejaVu Sans Mono",monospace;font-size:.92em;background:var(--turquoise-wash);padding:.08em .3em;border-radius:5px;overflow-wrap:anywhere}
+.play-header{background:var(--navy);color:var(--white);padding:1.4rem 0 1.2rem}
+.play-header .eyebrow{margin:0;color:var(--silver);font-size:.85rem;font-weight:600;letter-spacing:.04em}
+.play-header .eyebrow a{color:var(--silver)}
+.play-header h1{margin:.3rem 0 0;font-size:clamp(1.4rem,4vw,1.9rem);line-height:1.2;font-weight:800}
+.play-header :focus-visible{outline-color:var(--turquoise)}
+.bars{display:flex;gap:6px;margin-top:.8rem}
+.bars i{display:block;height:6px;border-radius:2px}
+.bars i:first-child{width:56px;background:var(--turquoise)}
+.bars i:last-child{width:26px;background:var(--paper)}
+main.wrap{padding:1.3rem 1.1rem 2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem}
+.badge{display:inline-block;color:var(--white);background:var(--navy);font-weight:700;font-size:.8rem;line-height:1;padding:.38rem .55rem;border-radius:6px}
+.intro{margin:.2rem 0 1rem}
+.howto{background:var(--white);border:1px solid var(--hairline);border-left:5px solid var(--navy);border-radius:0 12px 12px 0;padding:.6rem 1rem;margin:0 0 1.2rem}
+.howto summary{font-weight:800;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;min-height:32px;display:flex;align-items:center}
+.howto ol{margin:.3rem 0 .4rem;padding-left:1.3rem}
+.box{background:var(--white);border:1px solid var(--hairline);border-left:5px solid var(--signal-coral);padding:.8rem 1rem}
+#play{background:var(--white);border:1px solid var(--hairline);border-top:5px solid var(--turquoise);border-radius:14px;padding:1.1rem 1.2rem 1.3rem;min-height:8rem}
+#play:empty{display:none}
+#play:focus{outline:none}
+.count{margin:0;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--turquoise-deep)}
+h2.q{margin:.3rem 0 .9rem;font-size:1.2rem;line-height:1.4}
+.opts,.bins{display:grid;gap:.55rem}
+@media (min-width:36rem){.bins{grid-template-columns:repeat(auto-fit,minmax(9rem,1fr))}}
+.opt{display:flex;align-items:flex-start;gap:.7rem;width:100%;min-height:48px;text-align:left;font:inherit;color:var(--navy);background:var(--white);border:2px solid var(--ink-muted);border-radius:10px;padding:.6rem .8rem;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--navy);background:var(--turquoise-wash)}
+.opt:disabled{cursor:default;color:var(--navy);border-color:var(--hairline)}
+.opt .n{flex:none;display:grid;place-items:center;width:1.6rem;height:1.6rem;border-radius:6px;background:var(--turquoise-tint);font-weight:800;font-size:.85rem}
+.opt.right{border-color:var(--turquoise-deep);background:var(--turquoise-tint)}
+.opt.wrong{border-color:var(--signal-coral);border-style:dashed}
+.opt .verdict{margin-left:auto;padding-left:.5rem}
+.verdict{font-size:.8rem;font-weight:800;letter-spacing:.04em;white-space:nowrap}
+.verdict.ok{color:var(--navy);background:var(--turquoise);border-radius:5px;padding:.1rem .4rem}
+.verdict.no{color:var(--navy);background:var(--white);border:2px solid var(--signal-coral);border-radius:5px;padding:.02rem .4rem}
+.why{margin:.8rem 0 0;padding:.6rem .8rem;background:var(--turquoise-wash);border-left:4px solid var(--turquoise);border-radius:0 8px 8px 0}
+.actions{display:flex;flex-wrap:wrap;gap:.6rem;margin:1rem 0 0}
+.btn{font:inherit;font-weight:700;color:var(--white);background:var(--turquoise-deep);border:2px solid var(--turquoise-deep);border-radius:9px;padding:.5rem 1rem;min-height:44px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btn:hover:not(:disabled){background:var(--navy);border-color:var(--navy)}
+.btn:disabled{background:var(--white);color:var(--ink-muted);border-color:var(--hairline);cursor:default}
+.btn.ghost{background:var(--white);color:var(--navy);border-color:var(--navy)}
+.btn.small{min-height:44px;font-size:.9rem;padding:.3rem .8rem}
+.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;margin:0 0 .9rem;font-weight:700}
+.clock{font-variant-numeric:tabular-nums}
+.card,.narration{font-size:1.15rem;line-height:1.5;margin:.4rem 0 1rem}
+.card{background:var(--turquoise-wash);border-radius:10px;padding:.9rem 1rem;font-weight:600}
+.last{margin-top:1.1rem;border-top:1px dashed var(--silver);padding-top:.6rem}
+.last:empty{display:none}
+.last-q{margin:0}
+.prompt{margin:0 0 .7rem;font-weight:600}
+/* rank */
+.rank-list{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.rank-item{display:flex;align-items:center;gap:.7rem;background:var(--white);border:2px solid var(--ink-muted);border-radius:10px;padding:.4rem .5rem .4rem .7rem;min-height:52px}
+.rank-item.lifted{border-color:var(--navy);background:var(--turquoise-tint);box-shadow:0 4px 12px rgba(8,28,45,.25)}
+.rank-item .n{flex:none;display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:6px;background:var(--turquoise);font-weight:800;font-size:.9rem}
+.rank-text{flex:1}
+.rank-move{display:flex;gap:.3rem}
+.mv{width:44px;height:44px;font:inherit;font-weight:800;font-size:1.1rem;color:var(--navy);background:var(--white);border:2px solid var(--navy);border-radius:8px;cursor:pointer}
+.mv:disabled{border-color:var(--hairline);color:var(--silver);cursor:default}
+.views{display:grid;gap:.8rem;margin-top:.6rem}
+@media (min-width:40rem){.views{grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))}}
+.view{background:var(--white);border:1px solid var(--hairline);border-top:4px solid var(--navy);border-radius:10px;padding:.6rem .9rem .8rem}
+.view.yours{border-top-color:var(--turquoise)}
+.view h3{margin:.2rem 0 .3rem;font-size:1rem}
+.view ol{margin:0;padding-left:1.2rem;font-size:.95rem}
+/* ladder */
+.rungs{list-style:none;display:flex;gap:.4rem;margin:.4rem 0 .2rem;padding:0}
+.rungs li{font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:.15rem .6rem;border-radius:999px;border:2px solid var(--hairline);color:var(--ink-muted)}
+.rungs li.on{border-color:var(--navy);background:var(--navy);color:var(--white)}
+.rungs li.past{border-color:var(--turquoise);background:var(--turquoise-tint);color:var(--navy)}
+.use{margin:0 0 1rem;padding:.7rem 1rem;background:var(--turquoise-wash);border-left:4px solid var(--navy);border-radius:0 8px 8px 0;font-style:italic}
+/* builder */
+.slots{display:grid;gap:.7rem}
+@media (min-width:36rem){.slots{grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))}}
+.slot label{display:block;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--turquoise-deep);margin-bottom:.2rem}
+.slot select{width:100%;min-height:44px;font:inherit;color:var(--navy);background:var(--white);border:2px solid var(--ink-muted);border-radius:8px;padding:.3rem .5rem}
+.preview-line{margin:1rem 0 0}
+.preview{display:block;margin-top:.3rem;background:var(--navy-deep);color:var(--turquoise);padding:.7rem .9rem;border-radius:8px;font-size:.95rem}
+.out{margin-top:.9rem}
+.out code{background:none}
+/* story */
+.meter{background:var(--signal-amber);border-radius:8px;padding:.4rem .8rem;font-size:.92rem}
+.scene.has-cast{display:grid;grid-template-columns:6.5rem 1fr;gap:1rem;align-items:start}
+.cast svg{display:block;width:100%;height:auto}
+.cast p{margin:.2rem 0 0;font-size:.78rem;font-weight:700;text-align:center;color:var(--ink-muted)}
+@media (max-width:30rem){.scene.has-cast{grid-template-columns:4.2rem 1fr;gap:.8rem}.narration{font-size:1.05rem}}
+.outcome{margin-top:1rem;border-top:1px dashed var(--silver);padding-top:.7rem}
+.outcome p{margin:.2rem 0}
+.cost{display:inline-block;font-size:.8rem;font-weight:800;background:var(--signal-amber);border-radius:5px;padding:.05rem .4rem;white-space:nowrap}
+.path{padding-left:1.3rem}
+/* spot */
+.hint{margin:.2rem 0 .7rem;font-size:.93rem;color:var(--ink-muted)}
+.exhibit-scroll{overflow-x:auto;border-radius:10px;background:var(--navy-deep);padding:.5rem}
+.exhibit{display:grid;gap:3px;min-width:min-content;font-family:"Courier New",Consolas,"DejaVu Sans Mono",monospace;font-size:.9rem}
+.exhibit.table,.exhibit.bill{min-width:calc(var(--cols,2) * 10.5rem + 6rem)}
+.ex-row{display:grid;grid-template-columns:repeat(var(--cols,1),minmax(5.5rem,1fr)) auto;gap:.2rem .9rem;align-items:center;width:100%;min-height:44px;text-align:left;font:inherit;color:var(--paper);background:var(--navy-raised);border:2px solid var(--navy-raised);border-radius:6px;padding:.3rem .7rem;white-space:pre-wrap}
+button.ex-row{cursor:pointer}
+button.ex-row:hover:not(:disabled){border-color:var(--silver)}
+button.ex-row:focus-visible{outline-color:var(--turquoise)}
+.ex-head{background:none;border-color:transparent;color:var(--silver);font-weight:700;min-height:0;font-family:"Open Sans",Arial,sans-serif;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+.ex-row .flag{visibility:hidden;font-family:"Open Sans",Arial,sans-serif;font-size:.75rem;font-weight:800;color:var(--navy);background:var(--signal-amber);border-radius:5px;padding:.05rem .4rem;white-space:nowrap}
+.ex-row[aria-pressed="true"]{border-color:var(--signal-amber)}
+.ex-row[aria-pressed="true"] .flag{visibility:visible}
+.ex-row:disabled{color:var(--paper);cursor:default}
+.ex-row:disabled .flag{display:none}
+.ex-row.right{border-color:var(--turquoise)}
+.ex-row.missed,.ex-row.wrong{border-color:var(--signal-coral);border-style:dashed}
+.ex-row .verdict{font-family:"Open Sans",Arial,sans-serif}
+.notes{list-style:none;padding:0;display:grid;gap:.8rem}
+.round-score{font-weight:700;margin:1rem 0 .2rem}
+/* result */
+.result{background:var(--white);border:2px solid var(--navy);border-radius:14px;padding:1rem 1.2rem 1.3rem;margin-top:1.2rem}
+.result h2{margin:.1rem 0 .2rem;font-size:1.3rem}
+.result h2:focus{outline:none}
+.result h3{margin:1.2rem 0 .3rem;font-size:1.05rem}
+.score{margin:.1rem 0;font-size:1.3rem}
+.score strong{font-size:2.2rem;font-weight:800}
+.best{margin:0;font-size:.9rem;color:var(--ink-muted)}
+.misses{padding-left:1.3rem}
+.misses li,.path li{margin:.9rem 0}
+.misses p,.path p,.notes p{margin:.2rem 0}
+.m-q{font-weight:600}
+.clean{font-weight:600}
+.back{margin:1.2rem 0 0}
+.study{display:none}
+.site-footer{border-top:1px solid var(--hairline);color:var(--ink-muted);font-size:.85rem;padding:1.2rem 0 2rem;text-align:center}
+.site-footer p{margin:.3rem 0}
+.site-footer .author{color:var(--ink-muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media print{
+  html{filter:grayscale(1)}
+  body{background:var(--white);font-size:11pt}
+  .play-header{background:var(--white);color:var(--navy);border-bottom:2px solid var(--navy)}
+  .play-header .eyebrow,.play-header .eyebrow a{color:var(--ink-muted)}
+  #play,.result,.bars,.skip,.back,.howto,noscript{display:none!important}
+  .study{display:block}
+  .study li{break-inside:avoid;margin:.8rem 0}
+}
+</style>
+</head>
+<body class="play engine-builder">
+<a class="skip" href="#play">Skip to the play</a>
+<header class="play-header"><div class="wrap">
+<p class="eyebrow"><a href="../index.html">Day 2</a> | 8 minutes</p>
+<h1>Write the inbound rule</h1>
+<div class="bars" aria-hidden="true"><i></i><i></i></div>
+</div></header>
+<main class="wrap">
+<div class="meta"><span class="badge" title="Learning outcome 5">LO5</span></div>
+<p class="intro"><code>thara-web-1</code> sits behind a security group, and this afternoon it needs four different things let in. Each brief needs one inbound rule. Too wide is risky, too narrow does not work.</p>
+<details class="howto" open><summary>How to play</summary><ol><li>Read the brief, then choose a value for each of the three slots.</li><li>Choose <strong>Check this rule</strong>. The verdict is valid, risky or wrong, with the reason.</li><li>A brief scores when your first check is valid. You can keep trying until it is.</li></ol></details>
+<noscript><p class="box">This play needs JavaScript. The questions and reasons are still in the notes for this day.</p></noscript>
+<div id="play" tabindex="-1"></div>
+<div id="live" class="sr" aria-live="polite"></div>
+<section id="result" class="result" hidden aria-labelledby="h-result"></section>
+<p class="back"><a href="../index.html">Back to Day 2</a></p>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Your answers stay on this device.</p>
+</div></footer>
+<script type="application/json" id="play-data">{"day":2,"draws_on":["The EC2 model","Lab segment: Launch and connect","Lab segment: Docker contrast","Lab: Break it"],"engine":"builder","how_to":["Read the brief, then choose a value for each of the three slots.","Choose **Check this rule**. The verdict is valid, risky or wrong, with the reason.","A brief scores when your first check is valid. You can keep trying until it is."],"id":"p2-2-write-the-inbound-rule","intro":"`thara-web-1` sits behind a security group, and this afternoon it needs four different things let in. Each brief needs one inbound rule. Too wide is risky, too narrow does not work.","lo":[5],"minutes":8,"rules":[{"verdict":"wrong","when":{"port":["p22","p8080"],"protocol":"http"},"why":"The HTTP type means port 80. Choose Custom TCP for any other port."},{"verdict":"wrong","when":{"port":["p80","p8080"],"protocol":"ssh"},"why":"The SSH type means port 22."},{"target":"page","verdict":"valid","when":{"port":"p80","protocol":"http","source":"anywhere"},"why":"A public web page has to be reachable from anywhere, and port 80 is the only thing this rule opens."},{"target":"page","verdict":"wrong","when":{"port":"p80"},"why":"The port is right, but this source lets in only you or the Instance Connect service. Patients would see a timeout, which is exactly the break-it fault."},{"target":"page","verdict":"wrong","when":{},"why":"The pilot page is served by the web server on port 80. This rule opens something else."},{"target":"connect","verdict":"valid","when":{"port":"p22","source":"eic"},"why":"The browser-based terminal arrives from the EC2 Instance Connect service, not from your computer, so that prefix list is the source that works."},{"target":"connect","verdict":"wrong","when":{"port":"p22","source":"myip"},"why":"The browser-based connection does not come from your IP address. It comes from the EC2 Instance Connect service, so this rule never matches it."},{"target":"connect","verdict":"risky","when":{"port":"p22","source":"anywhere"},"why":"It works, but SSH is now open to the whole internet and will be probed within minutes. Name the service's prefix list as the source."},{"target":"connect","verdict":"wrong","when":{},"why":"Instance Connect uses SSH, which is port 22."},{"target":"laptop","verdict":"valid","when":{"port":"p22","source":"myip"},"why":"Plain SSH leaves your own machine, so your own address is the narrowest source that works."},{"target":"laptop","verdict":"wrong","when":{"port":"p22","source":"eic"},"why":"That prefix list covers the Instance Connect service. Your laptop is not in it, so plain SSH from your laptop would time out."},{"target":"laptop","verdict":"risky","when":{"port":"p22","source":"anywhere"},"why":"It works, and so would an attempt from anyone else. A private key file never expires, so do not also open the door to the whole internet."},{"target":"laptop","verdict":"wrong","when":{},"why":"Plain SSH is port 22."},{"target":"container","verdict":"valid","when":{"port":"p8080","source":"myip"},"why":"Only you need this page, and only today, so the source is your own address. The rule is removed in teardown."},{"target":"container","verdict":"risky","when":{"port":"p8080","source":"anywhere"},"why":"It works, but a test container is now public. Nobody else needs it, so the source should be My IP."},{"target":"container","verdict":"wrong","when":{"port":"p8080"},"why":"The port is right, but your laptop is not in the Instance Connect address range."},{"target":"container","verdict":"wrong","when":{},"why":"The container is mapped to port 8080 on the instance. Port 80 is the native web server."},{"verdict":"wrong","when":{},"why":"This rule does not serve the brief."}],"slots":[{"id":"protocol","label":"Type","options":[{"id":"http","label":"HTTP"},{"id":"ssh","label":"SSH"},{"id":"tcp","label":"Custom TCP"}]},{"id":"port","label":"Port","options":[{"id":"p22","label":"22"},{"id":"p80","label":"80"},{"id":"p8080","label":"8080"}]},{"id":"source","label":"Source","options":[{"id":"anywhere","label":"Anywhere-IPv4"},{"id":"myip","label":"My IP"},{"id":"eic","label":"the EC2 Instance Connect prefix list"}]}],"targets":[{"brief":"Patients anywhere in Sri Lanka must be able to load the pilot page on `thara-web-1`.","id":"page","solution":{"port":"p80","protocol":"http","source":"anywhere"}},{"brief":"You choose **Connect** in the console to open the browser-based EC2 Instance Connect terminal, and it fails.","id":"connect","solution":{"port":"p22","protocol":"ssh","source":"eic"}},{"brief":"Later you will connect from your own laptop with plain SSH and the file for the key pair `thara-key`.","id":"laptop","solution":{"port":"p22","protocol":"ssh","source":"myip"}},{"brief":"For this afternoon only, you must see the nginx container's page from your own laptop.","id":"container","solution":{"port":"p8080","protocol":"tcp","source":"myip"}}],"template":"allow {protocol} port {port} from {source}","title":"Write the inbound rule"}</script>
+<script>
+/* Cloud Computing plays: shared shell. MIT licence. No network, nothing leaves the device.
+   An engine calls Play.start(function (P) {...}) and, when the student has finished,
+   P.finish(score, max, misses). The audit drives a play through window.__play. */
+(function () {
+  "use strict";
+  var D = JSON.parse(document.getElementById("play-data").textContent);
+  var root = document.getElementById("play"), live = document.getElementById("live"), result = document.getElementById("result");
+  var state = { done: false, score: 0, max: 0 }, solver = null, starter = null;
+  var BEST = "hndne-cc:best:" + D.id;
+
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  /* the small Markdown the data may use: `code`, **bold**, *emphasis* */
+  function md(s) {
+    return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  }
+  function h(tag, attrs, kids) {
+    var n = document.createElement(tag), k;
+    for (k in (attrs || {})) {
+      if (k === "html") { n.innerHTML = attrs[k]; } else if (k === "text") { n.textContent = attrs[k]; }
+      else if (k === "on") { for (var e in attrs.on) { n.addEventListener(e, attrs.on[e]); } }
+      else if (attrs[k] !== null && attrs[k] !== undefined && attrs[k] !== false) { n.setAttribute(k, attrs[k] === true ? "" : attrs[k]); }
+    }
+    (kids || []).forEach(function (c) { if (c) { n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); } });
+    return n;
+  }
+  function btn(label, cls, fn) { return h("button", { type: "button", "class": cls || "btn", html: label, on: { click: fn } }); }
+  function say(t) { live.textContent = ""; window.setTimeout(function () { live.textContent = t; }, 40); }
+  function clear(n) { while (n.firstChild) { n.removeChild(n.firstChild); } }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function store(fn, fb) { try { return fn(window.localStorage); } catch (e) { return fb; } }
+  /* a verdict is always a mark and a word, never colour alone */
+  function verdict(ok, word) { return h("span", { "class": "verdict " + (ok ? "ok" : "no"), text: (ok ? "✓ " : "✗ ") + (word || (ok ? "Right" : "Not quite")) }); }
+  function why(text, label) { return h("p", { "class": "why", html: "<b>" + (label || "Why") + ":</b> " + md(text) }); }
+  function progress(i, n, what) { return h("p", { "class": "count", text: (what || "Question") + " " + i + " of " + n }); }
+
+  function finish(score, max, misses, extra) {
+    state = { done: true, score: score, max: max };
+    var prev = store(function (s) { return parseInt(s.getItem(BEST), 10); }, NaN);
+    var best = isNaN(prev) ? score : Math.max(prev, score);
+    store(function (s) { s.setItem(BEST, String(best)); });
+    clear(result);
+    result.appendChild(h("h2", { id: "h-result", tabindex: "-1", text: "Your result" }));
+    result.appendChild(h("p", { "class": "score", html: "<strong>" + score + "</strong> of " + max }));
+    result.appendChild(h("p", { "class": "best", text: "Best on this device: " + best + " of " + max + "." }));
+    if (extra) { result.appendChild(extra); }
+    if (misses && misses.length) {
+      result.appendChild(h("h3", { text: "Check these again" }));
+      result.appendChild(h("ol", { "class": "misses" }, misses.map(function (m) {
+        return h("li", {}, [h("p", { "class": "m-q", html: md(m.q) }),
+          m.yours ? h("p", { "class": "m-yours", html: "<b>You chose:</b> " + md(m.yours) }) : null,
+          m.right ? h("p", { "class": "m-right", html: "<b>Better:</b> " + md(m.right) }) : null,
+          why(m.why)]);
+      })));
+    } else if (score >= max) {
+      result.appendChild(h("p", { "class": "clean", text: "Nothing to check again: every answer held." }));
+    }
+    result.appendChild(h("p", { "class": "actions" }, [btn("Play again", "btn", function () { begin(); root.focus(); }),
+      h("a", { "class": "btn ghost", href: "../index.html", text: "Back to the day" })]));
+    result.hidden = false;
+    document.getElementById("h-result").focus();
+    say("Finished. You scored " + score + " of " + max + ".");
+  }
+
+  /* the print view: questions and reasons as a study sheet */
+  function study(rows) {
+    var old = document.getElementById("study");
+    if (old) { old.parentNode.removeChild(old); }
+    var sec = h("section", { id: "study", "class": "study" }, [h("h2", { text: "Study sheet" }),
+      h("ol", {}, rows.map(function (r) {
+        return h("li", {}, [h("p", { "class": "m-q", html: md(r.q) }), r.a ? h("p", { html: "<b>Answer:</b> " + md(r.a) }) : null, r.why ? why(r.why) : null]);
+      }))]);
+    result.parentNode.insertBefore(sec, result.nextSibling);
+  }
+
+  function begin() {
+    state = { done: false, score: 0, max: 0 };
+    result.hidden = true;
+    clear(root);
+    solver = null;
+    starter(api);
+  }
+  var api = { data: D, root: root, h: h, md: md, esc: esc, btn: btn, say: say, clear: clear, shuffle: shuffle, verdict: verdict,
+    why: why, progress: progress, finish: finish, study: study, hook: function (fn) { solver = fn; } };
+  window.Play = { start: function (fn) { starter = fn; begin(); } };
+  /* test hook: solve() plays the keyed answers through the real handlers; state() reports the outcome */
+  window.__play = { solve: function () { if (solver) { solver(); } return state; }, state: function () { return state; } };
+})();
+/* builder: compose a rule from slots for each brief, then check it. The verdict is valid, risky or wrong,
+   each with its reason. A point is scored when the first check of a brief is valid. */
+Play.start(function (P) {
+  "use strict";
+  var D = P.data, i = 0, score = 0, misses = [], tries = 0, selects = {}, preview, out, check, next = null;
+  var WORD = { valid: "Valid", risky: "Risky", wrong: "Wrong" };
+  var optLabel = {};
+  D.slots.forEach(function (s) { optLabel[s.id] = {}; s.options.forEach(function (o) { optLabel[s.id][o.id] = o.label; }); });
+  function line(choice) {
+    return (D.template || "").replace(/\{(\w+)\}/g, function (m, k) { return choice[k] ? optLabel[k][choice[k]] : "..."; });
+  }
+  function judge(choice, t) {
+    for (var r = 0; r < D.rules.length; r++) {
+      var rule = D.rules[r], ok = true, k;
+      if (rule.target !== undefined && rule.target !== null && rule.target !== t.id) { continue; }
+      for (k in (rule.when || {})) {
+        var v = rule.when[k];
+        if ((Array.isArray(v) ? v : [v]).indexOf(choice[k]) < 0) { ok = false; }
+      }
+      if (ok) { return rule; }
+    }
+    return { verdict: "wrong", why: "No rule covers this combination." };
+  }
+  P.study(D.targets.map(function (t) { return { q: t.brief, a: "`" + line(t.solution) + "`", why: judge(t.solution, t).why }; }));
+  function current() { var c = {}, k; for (k in selects) { c[k] = selects[k].value; } return c; }
+  function paintPreview() { preview.textContent = line(current()); }
+  function run() {
+    var t = D.targets[i], c = current(), k;
+    for (k in c) { if (!c[k]) { out.textContent = "Choose a value for every slot first."; P.say(out.textContent); return; } }
+    var r = judge(c, t);
+    tries++;
+    P.clear(out);
+    out.appendChild(P.h("p", {}, [P.verdict(r.verdict === "valid", WORD[r.verdict]), P.h("code", { text: " " + line(c) })]));
+    out.appendChild(P.why(r.why));
+    P.say(WORD[r.verdict] + ". " + r.why);
+    if (r.verdict === "valid") {
+      if (tries === 1) { score++; }
+      check.disabled = true;
+      for (k in selects) { selects[k].disabled = true; }
+      next = P.btn(i + 1 < D.targets.length ? "Next brief" : "See your result", "btn", function () { i++; show(); });
+      out.appendChild(P.h("p", { "class": "actions" }, [next]));
+      next.focus();
+    } else if (tries === 1) {
+      misses.push({ q: t.brief, yours: "`" + line(c) + "` (" + WORD[r.verdict].toLowerCase() + ")", right: "`" + line(t.solution) + "`", why: r.why });
+    }
+  }
+  function show() {
+    if (i >= D.targets.length) { P.clear(P.root); return P.finish(score, D.targets.length, misses); }
+    var t = D.targets[i];
+    tries = 0;
+    selects = {};
+    P.clear(P.root);
+    P.root.appendChild(P.progress(i + 1, D.targets.length, "Brief"));
+    P.root.appendChild(P.h("h2", { "class": "q", html: P.md(t.brief) }));
+    P.root.appendChild(P.h("div", { "class": "slots" }, D.slots.map(function (s) {
+      var sel = P.h("select", { id: "slot-" + s.id, on: { change: paintPreview } }, [P.h("option", { value: "", text: "Choose..." })].concat(
+        s.options.map(function (o) { return P.h("option", { value: o.id, text: o.label }); })));
+      selects[s.id] = sel;
+      return P.h("div", { "class": "slot" }, [P.h("label", { "for": "slot-" + s.id, text: s.label }), sel]);
+    })));
+    preview = P.h("code", { "class": "preview" });
+    P.root.appendChild(P.h("p", { "class": "preview-line" }, [P.h("span", { text: "Your rule: " }), preview]));
+    check = P.btn("Check this rule", "btn", run);
+    P.root.appendChild(P.h("p", { "class": "actions" }, [check]));
+    out = P.h("div", { "class": "out", role: "status" });
+    P.root.appendChild(out);
+    paintPreview();
+  }
+  P.hook(function () {
+    while (i < D.targets.length) {
+      var sol = D.targets[i].solution, k;
+      for (k in sol) { selects[k].value = sol[k]; }
+      check.click();
+      next.click();
+    }
+  });
+  show();
+});
+</script>
+</body>
+</html>

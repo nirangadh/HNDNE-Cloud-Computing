@@ -23,27 +23,45 @@ Console labels below are as they appeared at the time of writing. AWS renames bu
 
 #### Tagging and the ledger
 
-From today, every resource you create carries three tags: `Module=CC`, `Day=2`, `Owner=<student id>`. A tag is a label of a key and a value. It changes nothing about how the resource works. It lets you, and later Cost Explorer, answer "what is this, who made it, and on which day?". Today you will create an instance, two volumes, two snapshots, an image, a security group and a bucket. Without tags, a forgotten one is very hard to find a month later.
+From today, every resource you create carries three tags: `Module=CC`, `Day=2`, `Owner=<student id>`. A [tag](../../glossary.md#tag) is a label of a key and a value. It changes nothing about how the resource works. It lets you, and later Cost Explorer, answer "what is this, who made it, and on which day?". Today you will create an instance, two volumes, two snapshots, an image, a security group and a bucket. Without tags, a forgotten one is very hard to find a month later.
 
 The ledger row for today is written **before** teardown, not after. Once a resource is deleted you can no longer read its id, its size or its start time from the console.
+
+> **Quick check.** You delete the 8 GiB data volume and then start to write its ledger row. What is the problem?
+>
+> - [x] Its id, size and start time can no longer be read from the console
+> - [ ] Its snapshot was deleted with it, so nothing is left to record
+> - [ ] A row can only be written while the resource is still billing
+>
+> **Why:** A deleted resource disappears from the console, and its details go with it. That is why the row comes first. The snapshot is a separate thing and outlives the volume.
 
 #### What you are about to do that is wrong
 
 Read this now, so that step 10 does not surprise you.
 
-In step 10 you will create a **long-lived access key** for your admin user, type it into the instance, and use it to upload a file to S3. This is the insecure method, and you are doing it deliberately.
+In step 10 you will create a **long-lived [access key](../../glossary.md#access-key)** for your admin user, type it into the instance, and use it to upload a file to S3. This is the insecure method, and you are doing it deliberately.
 
 - **What is wrong with it.** The key carries the full power of your admin user. It never expires. It sits in a plain text file on a server. Anyone who gets onto that server, or gets a copy of its disk, holds your whole account. On Day 1 the rule was "access keys on neither user today". Today you break that rule once, on purpose.
 - **Why you do it anyway.** On Day 5 you replace the key with an instance role, which gives the server short-lived credentials that it never stores. You will understand the role far better having felt what it replaces. The contrast is the point.
 - **The fence around it.** You deactivate the key in today's teardown. On Day 4 you switch it on for a few minutes for one test and switch it off again. On Day 5 you delete it. Your ledger records that it exists. The secret never appears in a screenshot, a message or your evidence pack.
 
+![A line through Day 2, Day 4 and Day 5 showing the access key created and used, switched off, switched on for a few minutes, and finally deleted.](img/life-of-the-key.svg "The life of the insecure key. While it is inactive it still exists and can be switched on again. Only Day 5 removes it.")
+
 > **Thara.** A patient once found that her laboratory report link opened for anyone who had it. A leaked access key is how that incident could have been much worse: not one report, but every report, and the power to delete them.
 
 > **Common mistake.** "Deactivating a key deletes it." It does not. A deactivated key is switched off, and anyone with permission can switch it on again. Only deleting it removes it, and that happens on Day 5.
 
+> **Quick check.** After teardown the key shows **Inactive**. The Data Protection Officer asks whether that key could ever be used again. Which answer is honest?
+>
+> - [ ] No: an inactive key has been removed from the account
+> - [x] Yes: anyone with permission can switch it on until Day 5 deletes it
+> - [ ] Only if AWS restores it at the account owner's request
+>
+> **Why:** Inactive means switched off, not gone. The **Activate** button sits beside it. Until the key is deleted, the ledger note is what records that it exists.
+
 ## 1. Objective
 
-At the end of this lab you have a tagged web server `thara-web-1` serving the Thara pilot page, an image of it called `thara-portal-v1`, a snapshot of a data volume, a private bucket `thara-reports-<student id>` holding one file, and a written comparison of a container with a native service on the same machine: components 2 and 3. Day 3 launches the private web tier from your image, Days 4 to 6 use the bucket, and Day 5 repairs the insecure key; together they serve Thara's requirements that the portal can be rebuilt after the next flood and that laboratory reports are stored durably and never publicly listable.
+At the end of this lab you have a tagged web server `thara-web-1` serving the Thara pilot page, an image of it called `thara-portal-v1`, a [snapshot](../../glossary.md#snapshot) of a data volume, a private [bucket](../../glossary.md#bucket) `thara-reports-<student id>` holding one file, and a written comparison of a container with a native service on the same machine: components 2 and 3. Day 3 launches the private web tier from your image, Days 4 to 6 use the bucket, and Day 5 repairs the insecure key; together they serve Thara's requirements that the portal can be rebuilt after the next flood and that laboratory reports are stored durably and never publicly listable.
 
 ## 2. Timed segments
 
@@ -151,7 +169,7 @@ Each step states what to do and what you should see. If you do not see it, stop 
 
 *Segment 5: Reports bucket and the insecure upload*
 
-9. **Create the reports bucket.** Open S3, **Create bucket**. Check the region is ap-south-1. Bucket name `thara-reports-<student id>` (lower case; bucket names are global, so it must not already exist anywhere in AWS). Leave **ACLs disabled** and leave **Block all public access** ticked. Add the three tags. Create the bucket and open its **Permissions** tab. *Expected:* the bucket is listed in Asia Pacific (Mumbai), and **Block public access (bucket settings)** shows **Block all public access: On**.
+9. **Create the reports bucket.** Open S3, **Create bucket**. Check the region is ap-south-1. If the page offers a choice of namespace, leave it on the global one, which is the default. Bucket name `thara-reports-<student id>` (lower case; bucket names are global, so it must not already exist anywhere in AWS). Leave **ACLs disabled** and leave **Block all public access** ticked. Add the three tags. Create the bucket and open its **Permissions** tab. *Expected:* the bucket is listed in Asia Pacific (Mumbai), and **Block public access (bucket settings)** shows **Block all public access: On**.
 
 10. **Insecure method, deliberately: upload with a long-lived key.** Read "What you are about to do that is wrong" in section 0 again. Then open IAM, **Users**, `admin-<student id>`, **Security credentials**, **Access keys**, **Create access key**. Choose **Command Line Interface (CLI)**. Notice that AWS itself recommends an alternative; tick the confirmation and continue. Description `Day 2 insecure key`. Choose **Create access key**, then **Download .csv file**. Keep that file private and off shared drives: Day 4 needs it once more. In the terminal:
 
