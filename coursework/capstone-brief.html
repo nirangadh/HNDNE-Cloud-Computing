@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Group capstone: the Thara Hospitals patient portal pilot | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><p class="eyebrow"><a href="../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Group capstone: the Thara Hospitals patient portal pilot</h1><div class="bars" aria-hidden="true"><i></i><i></i></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<p><strong>Weight:</strong> 30% of the module. <strong>Group size:</strong> three (four where cohort size requires).
+<strong>Available:</strong> from the start of the module; walked through in class on Day 4. <strong>Submission:</strong> after the review session. <strong>Viva:</strong> after submission. Exact dates are announced for your cohort.</p>
+<h2 id="1-the-task">1. The task</h2>
+<p>Thara Hospitals has approved a six-month pilot to move the patient portal and its database to AWS. Your group is the pilot team. Build components 4 to 12 of the canonical architecture (<a href="../scenario/architecture.svg">diagram</a>) in one member's account, to the requirements in <a href="../scenario/organisation.html">the scenario</a>, section 4, inside the CFO's ceiling of USD 150 a month at production scale, and defend the design.</p>
+<h2 id="2-requirements-you-must-meet">2. Requirements you must meet</h2>
+<ol>
+<li>A public portal reachable from the internet through a load balancer across two availability zones, with the web tier in private subnets and an Auto Scaling group of minimum two.</li>
+<li>A patient-records database in private subnets, reachable only from the web tier's security group and the bastion, encrypted with a customer-managed key.</li>
+<li>A laboratory-reports bucket with Block Public Access on, versioning, a lifecycle rule, and a bucket policy that admits only the web tier's role.</li>
+<li>Private administrative access via a bastion whose SSH source is the Colombo IT office address (your current address stands in for it).</li>
+<li>Patching for the private tier without a public address (a bounded NAT gateway window is acceptable; document its hours).</li>
+<li>CloudTrail delivering to an audit bucket; VPC Flow Logs enabled; one CloudWatch alarm with an SNS notification.</li>
+<li>A backup plan for the database and a <strong>tested</strong> restore with a measured RTO against the target of two hours; an RPO of one hour argued from the backup schedule.</li>
+<li>Member access to the host account through IAM users with least-privilege policies per tier (network, security, data), written by the group.</li>
+<li>A Pricing Calculator estimate for production scale (assume 730 hours a month for everything that would run continuously) inside USD 150, and an actual cost ledger for the build.</li>
+</ol>
+<h2 id="3-deliverables">3. Deliverables</h2>
+<ol>
+<li>The running environment, demonstrated live at the viva (a five-minute screen recording is the fallback if the account has expired).</li>
+<li>An architecture diagram using the canonical component numbers.</li>
+<li>A design justification of no more than 2,500 words: network layout, security controls, resilience choices, and cost. Every choice is tied to a requirement in section 2 or to a voice in the scenario.</li>
+<li>The Pricing Calculator estimate (exported) and the build cost ledger.</li>
+<li>A threat table of at least eight threats, each with the control that addresses it and where in the architecture the control sits.</li>
+<li>The three tier IAM policies as JSON and the member sign-in test record from Day 5.</li>
+<li>A contribution statement signed by all members, listing who built and who wrote what.</li>
+</ol>
+<h2 id="4-marking">4. Marking</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Weight</th>
+<th>Distinction looks like</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Architecture correctness</td>
+<td>25%</td>
+<td>Every requirement met; routing and placement right; nothing public that should not be</td>
+</tr>
+<tr>
+<td>Security reasoning</td>
+<td>25%</td>
+<td>Threat table drives the controls; least privilege demonstrated, not asserted; the DPO's questions answered</td>
+</tr>
+<tr>
+<td>Resilience and data management</td>
+<td>20%</td>
+<td>Tested restore with measured RTO; scaling shown to work; backup schedule argued from RPO</td>
+</tr>
+<tr>
+<td>Cost reasoning and evidence</td>
+<td>15%</td>
+<td>Estimate inside the ceiling with the largest lines explained; ledger matches Cost Explorer; bounded windows documented</td>
+</tr>
+<tr>
+<td>Group viva</td>
+<td>15%</td>
+<td>Each member answers on a tier other than their own</td>
+</tr>
+</tbody>
+</table></div>
+<p>A peer-assessment factor of plus or minus 10% may be applied to an individual's share where the contribution statement and viva performance justify it and programme regulations permit.</p>
+<h2 id="5-cost-rules-for-the-build">5. Cost rules for the build</h2>
+<p>The load balancer exists only during testing windows and the demonstration. The NAT gateway exists only while patching. RDS may run continuously during the final week only. Instances are stopped when nobody is working. The ledger shows the hours of each. A host account that runs out of credits may rotate hosting to another member; the rebuild is itself good practice and is not penalised.</p>
+<h2 id="6-what-the-viva-asks">6. What the viva asks</h2>
+<p>Fifteen minutes. Each member is asked about a tier that was not their primary responsibility. Expect: "walk me through a request from a patient to the database", "what happens if AZ a fails", "show me who accessed the audit bucket last week", "what would you cut if the CFO halved the ceiling".</p>
+<nav class="pager" aria-label="Page navigation"><span></span><span><a href="../index.html">All days</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">Niranga Dharmaratna<br>School of Computing &amp; Engineering<br>National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence. See the <a href="../LICENSE-CONTENT.html">licence notes</a>.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../assets/js/site.js" defer></script>
+</body>
+</html>

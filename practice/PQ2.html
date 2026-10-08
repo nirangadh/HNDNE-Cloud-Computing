@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>PQ2: Where the reports and the records should live, and what it costs | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><p class="eyebrow"><a href="../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>PQ2: Where the reports and the records should live, and what it costs</h1><div class="bars" aria-hidden="true"><i></i><i></i></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<p>Posted after Day 2. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.</p>
+<h2 id="scenario">Scenario</h2>
+<p>Dengue season has arrived. For three weeks, Thara Hospitals' laboratories produce three times their usual number of reports, and the patient portal is busier than it has ever been.</p>
+<p>Thara's six-month pilot runs in AWS in Asia Pacific (Mumbai), ap-south-1. Three kinds of data need a home:</p>
+<ul>
+<li><strong>Laboratory report PDFs.</strong> 60 GB are stored today. In a normal month 8 GB are added. Each report is written once, read a few times in its first weeks, and then kept for years. No report may ever be publicly listable.</li>
+<li><strong>The patient records database's data files.</strong> 40 GB, read and written constantly by one database server.</li>
+<li><strong>The portal web server's own disk.</strong> 8 GB: an operating system and the portal software. It holds no patient data.</li>
+</ul>
+<p>Constraints you should notice:</p>
+<ul>
+<li>The CFO has approved <strong>USD 150 a month</strong> for the whole pilot and wants every cost line explained.</li>
+<li>The pilot lasts <strong>six months</strong>. Nobody yet knows whether it will continue.</li>
+<li>After the flood, the Head of IT insists that the web server can be <strong>rebuilt without the original machine</strong>.</li>
+</ul>
+<p>Use these rounded prices. Do not rely on remembered ones.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Price</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EBS gp3 volume</td>
+<td>USD 0.09 per GB per month</td>
+</tr>
+<tr>
+<td>EBS snapshot</td>
+<td>USD 0.05 per GB stored per month</td>
+</tr>
+<tr>
+<td>S3 Standard</td>
+<td>USD 0.025 per GB per month</td>
+</tr>
+<tr>
+<td>S3 Standard-Infrequent Access</td>
+<td>USD 0.0125 per GB per month, plus USD 0.01 per GB read</td>
+</tr>
+<tr>
+<td>An S3 Glacier archive class</td>
+<td>USD 0.004 per GB per month; reading back takes hours and has a fee</td>
+</tr>
+<tr>
+<td><code>t3.micro</code>, on-demand</td>
+<td>USD 0.011 per hour (a month is 730 hours)</td>
+</tr>
+<tr>
+<td><code>t3.micro</code>, one-year commitment</td>
+<td>about one third less per hour, paid for every hour of the year</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="questions">Questions</h2>
+<p><strong>(a) Explain (6 marks).</strong> Explain the difference between block storage (an EBS volume) and object storage (an S3 bucket): how each is reached, where each lives, and what you can do to the data in each. Then explain what an EBS snapshot is and why a second snapshot of the same volume usually costs much less than the first.</p>
+<p><strong>(b) Apply (8 marks).</strong> Choose where each of the three kinds of data should be stored. For each one:</p>
+<ul>
+<li>name the storage and, where it applies, the volume type or storage class;</li>
+<li>state how it is protected against loss, and for the reports, against exposure; and</li>
+<li>work out its storage cost for one <strong>normal</strong> month from the prices given.</li>
+</ul>
+<p>Then state how much the three weeks of dengue season add to the reports' storage bill, and say whether storage is a threat to the CFO's ceiling.</p>
+<p><strong>(c) Evaluate (6 marks).</strong> The CFO makes two proposals to save money: buy a <strong>one-year commitment</strong> for the web server, and move <strong>every report into the archive class on the day it is written</strong>. Evaluate each proposal against the scenario. State what each would save, what it would cost Thara in other ways, and what would change your view.</p>
+<h2 id="answer-guidance">Answer guidance</h2>
+<p>This guidance describes what a strong answer covers. It is not a model answer to memorise; the marks go to reasoning applied to Thara.</p>
+<p><strong>(a)</strong> A strong answer contrasts the two on the same three points. A volume is a virtual disk: it is attached to one instance, formatted with a file system and mounted, lives in one availability zone, and can be changed in place, a block at a time. A bucket holds whole objects under keys, is reached over HTTPS by anything with permission, belongs to a region rather than a zone, and offers put, get and delete rather than editing in place; it has no real directories. A snapshot is a point-in-time copy of a volume's blocks, kept in region-wide storage. The first copies every block in use; later ones are incremental and store only the blocks changed since, which is why they cost less, while any one snapshot can still restore the whole volume.</p>
+<p><strong>(b)</strong> A strong answer matches each kind of data to how it is used. The reports are written once and read by key, so they belong in S3 with Block Public Access left on: 60 GB in Standard is about USD 1.50 a month, and a normal month adds 8 GB, about USD 0.20. A database rewrites small parts of large files constantly, so its files need a gp3 volume: 40 GB is USD 3.60 a month, protected by snapshots, at most USD 2.00 for the first and far less for each later one. The web server's 8 GB disk is USD 0.72 a month and is protected not by a backup but by an image: an AMI is a snapshot plus launch metadata, and it rebuilds the server without the original machine, which is exactly the Head of IT's requirement. Dengue season triples three weeks of uploads: roughly 12 GB more than usual, about USD 0.30 a month. The total is a few dollars against a ceiling of USD 150. Storage is not the threat; a strong answer says so plainly and points at compute and anything billed by the hour instead.</p>
+<p><strong>(c)</strong> A strong answer takes the proposals separately and uses the numbers. On-demand, the web server costs about USD 8 a month; a commitment saves under USD 3 a month. But the commitment is a promise to pay for twelve months and the pilot is approved for six: if the pilot ends, Thara pays about USD 32 for six months of a server it no longer runs, which is more than the commitment saved. The saving is real only if the pilot is certain to continue, and it locks in a size chosen before anyone has seen dengue-season load. The archive proposal would cut the reports' storage from about USD 1.50 to about USD 0.24 a month: a saving of just over a dollar. In return, a report could take hours to open during exactly the weeks when patients and consultants read it most. The better form of the idea is to keep new reports in Standard and move them to a cheaper class once they are old. What would change the view: a confirmed extension of the pilot beyond a year; evidence that reports are almost never read after the first day; or a report archive hundreds of times larger, where the storage price starts to matter.</p>
+<nav class="pager" aria-label="Page navigation"><span></span><span><a href="../index.html">All days</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">Niranga Dharmaratna<br>School of Computing &amp; Engineering<br>National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence. See the <a href="../LICENSE-CONTENT.html">licence notes</a>.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../assets/js/site.js" defer></script>
+</body>
+</html>

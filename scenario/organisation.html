@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Thara Hospitals (Pvt) Ltd | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><p class="eyebrow"><a href="../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Thara Hospitals (Pvt) Ltd</h1><div class="bars" aria-hidden="true"><i></i><i></i></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<p><em>A fictional organisation created for teaching. Any resemblance to a real hospital group is coincidental.</em></p>
+<h2 id="1-profile">1. Profile</h2>
+<p>Thara Hospitals is a private hospital group in Sri Lanka: a flagship hospital in Colombo 5 and four branch hospitals in Kandy, Galle, Negombo and Kurunegala. About 1,400 staff. A shared hospital information system (HIS) runs on two ageing servers in the Colombo basement. Patients book appointments and download laboratory reports through a portal on those servers. Branch hospitals reach the HIS over leased lines that fail in monsoon weather. Backups are nightly tape, taken to a cupboard on the third floor.</p>
+<h2 id="2-what-went-wrong">2. What went wrong</h2>
+<p>During the last south-west monsoon, water entered the basement server room. The portal and the laboratory-reporting system were down for three days. Consultants at the branches worked from paper. Separately, a patient discovered that the laboratory report download link she had been sent by SMS opened for anyone who had the link, with no login.</p>
+<h2 id="3-the-two-voices">3. The two voices</h2>
+<p><strong>Head of IT</strong> wants the patient portal and its database on AWS as a six-month pilot, with the rest of the HIS to follow if the pilot holds. Wants private administrative access from the Colombo IT office, and wants the branches connected to the pilot later without new leased lines.</p>
+<p><strong>Chief Financial Officer</strong> has approved USD 150 a month for the pilot and expects an itemised forecast, a monthly actual against forecast, and an explanation of any line that changes.</p>
+<p>A third voice appears in some scenarios: the <strong>Data Protection Officer</strong>, appointed under the Personal Data Protection Act No. 9 of 2022, who will ask where patient data is stored, who can read it, and how the hospital would know if someone did.</p>
+<h2 id="4-requirements-that-drive-the-baseline">4. Requirements that drive the baseline</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Why it exists in the story</th>
+<th>Component(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public patient portal reachable from anywhere in Sri Lanka</td>
+<td>Appointment booking and report download</td>
+<td>2, 6, 12</td>
+</tr>
+<tr>
+<td>Portal must ride out morning OPD peaks (07:00 to 10:00) and dengue-season surges</td>
+<td>Otherwise the CFO's ceiling buys a bigger server that idles</td>
+<td>12</td>
+</tr>
+<tr>
+<td>Laboratory report PDFs stored durably, never publicly listable, link access time-limited</td>
+<td>The leaked-link incident</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Patient records database reachable only from the web tier and the bastion</td>
+<td>Health data is a special category of personal data</td>
+<td>4, 5, 11</td>
+</tr>
+<tr>
+<td>RPO 1 hour, RTO 2 hours for patient records</td>
+<td>Consultants cannot work from paper again</td>
+<td>11</td>
+</tr>
+<tr>
+<td>Every administrative action attributable to a named person</td>
+<td>The DPO's question "how would we know"</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Encryption at rest for records and reports; TLS at the edge</td>
+<td>PDPA expectations and the DPO</td>
+<td>10, 12</td>
+</tr>
+<tr>
+<td>Private admin access from Colombo IT; no public database</td>
+<td>Head of IT</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Web tier patched without being exposed to the internet</td>
+<td>Security hygiene</td>
+<td>7, 8</td>
+</tr>
+<tr>
+<td>Partner diagnostic laboratory sends results into the system</td>
+<td>Existing clinical workflow</td>
+<td>9</td>
+</tr>
+<tr>
+<td>Branches connected later without leased lines</td>
+<td>Head of IT, future phase</td>
+<td>13</td>
+</tr>
+<tr>
+<td>Monthly cost inside USD 150 with an itemised forecast</td>
+<td>CFO</td>
+<td>1, all</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="5-constraints">5. Constraints</h2>
+<ul>
+<li>Pilot region: ap-south-1 (Mumbai), the nearest region to Colombo.</li>
+<li>Budget ceiling: USD 150 per month for the pilot.</li>
+<li>No new leased lines; branch connectivity must reuse existing internet links.</li>
+<li>The DPO must be able to see who accessed what, when.</li>
+<li>The pilot must be recoverable by the IT team without vendor assistance.</li>
+</ul>
+<h2 id="6-data-classification-used-on-day-6">6. Data classification (used on Day 6)</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Class</th>
+<th>Needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web server OS and application</td>
+<td>Ephemeral, rebuildable from the AMI</td>
+<td>Image, not backup</td>
+</tr>
+<tr>
+<td>Laboratory report PDFs</td>
+<td>Critical, personal, health</td>
+<td>Durable object storage, versioning, encryption, no public access, lifecycle to cheaper classes after 90 days</td>
+</tr>
+<tr>
+<td>Patient records database</td>
+<td>Critical, personal, health</td>
+<td>Private subnet, encryption, hourly RPO, tested restore</td>
+</tr>
+<tr>
+<td>Audit logs and flow logs</td>
+<td>Critical for the DPO, not personal</td>
+<td>Immutable bucket, retention</td>
+</tr>
+<tr>
+<td>Portal session data</td>
+<td>Ephemeral</td>
+<td>None</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="7-the-architecture-you-will-build">7. The architecture you will build</h2>
+<p>Each lab lights up numbered components on the <a href="architecture.svg">architecture diagram</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>No.</th>
+<th>Component</th>
+<th>What it is</th>
+<th>Day</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Guardrails</td>
+<td>root MFA, IAM admin user, Budget excluding credits, home region</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Patient portal web server and image</td>
+<td>EC2 t3.micro with user-data web server, EBS data volume, snapshot, custom AMI</td>
+<td>2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Laboratory reports bucket</td>
+<td>S3 bucket thara-reports; Day 2 create, Day 5 policy and encryption, Day 6 versioning and lifecycle</td>
+<td>2, 5, 6</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Thara VPC</td>
+<td>10.0.0.0/16, two AZs, public and private subnets, IGW, route tables, security groups, NACLs, Flow Logs</td>
+<td>3</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Bastion for Colombo IT</td>
+<td>EC2 in thara-public-a, SSH restricted by security group</td>
+<td>3</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Portal web tier</td>
+<td>web instances in private subnets, launched from the Day 2 AMI; Day 7 wraps them in an Auto Scaling group</td>
+<td>3, 7</td>
+</tr>
+<tr>
+<td>7</td>
+<td>NAT gateway</td>
+<td>bounded-window egress for patching the private tier</td>
+<td>4</td>
+</tr>
+<tr>
+<td>8</td>
+<td>S3 gateway endpoint</td>
+<td>private path from the web tier to the reports bucket</td>
+<td>4</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Partner diagnostic laboratory VPC</td>
+<td>partnerlab-vpc 10.1.0.0/16 peered to thara-vpc, then withdrawn</td>
+<td>4</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Identity, keys and audit</td>
+<td>instance role for S3, least-privilege policies, group member users, KMS key alias/thara-records, CloudTrail to thara-audit</td>
+<td>5</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Patient records database and Backup plan</td>
+<td>RDS thara-records in private subnets, snapshot and restore, AWS Backup plan with measured RTO</td>
+<td>6</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Load balancer and Auto Scaling group</td>
+<td>ALB across public subnets, launch template from the AMI, ASG min 2 across private subnets, CPU alarm, SNS</td>
+<td>7</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Edge and branches</td>
+<td>WAF web ACL on the ALB (demonstrated); CloudFront in front of the portal (concept); branches over Site-to-Site VPN (concept)</td>
+<td>4, 7</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="8-names-used-in-labs">8. Names used in labs</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Thing</th>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VPC</td>
+<td>thara-vpc</td>
+</tr>
+<tr>
+<td>CIDR</td>
+<td>10.0.0.0/16</td>
+</tr>
+<tr>
+<td>Public subnets</td>
+<td>thara-public-a (10.0.1.0/24), thara-public-b (10.0.2.0/24)</td>
+</tr>
+<tr>
+<td>Private subnets</td>
+<td>thara-private-a (10.0.11.0/24), thara-private-b (10.0.12.0/24)</td>
+</tr>
+<tr>
+<td>Bastion</td>
+<td>thara-bastion</td>
+</tr>
+<tr>
+<td>Web instances</td>
+<td>thara-web-1, thara-web-2</td>
+</tr>
+<tr>
+<td>Reports bucket</td>
+<td>thara-reports-&lt;student id&gt;</td>
+</tr>
+<tr>
+<td>Audit bucket</td>
+<td>thara-audit-&lt;student id&gt;</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>thara-records</td>
+</tr>
+<tr>
+<td>Partner VPC</td>
+<td>partnerlab-vpc (10.1.0.0/16)</td>
+</tr>
+<tr>
+<td>KMS key alias</td>
+<td>alias/thara-records</td>
+</tr>
+<tr>
+<td>Tags</td>
+<td>Module=CC, Day=&lt;n&gt;, Owner=&lt;student id&gt;</td>
+</tr>
+</tbody>
+</table></div>
+<nav class="pager" aria-label="Page navigation"><span></span><span><a href="../index.html">All days</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">Niranga Dharmaratna<br>School of Computing &amp; Engineering<br>National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence. See the <a href="../LICENSE-CONTENT.html">licence notes</a>.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../assets/js/site.js" defer></script>
+</body>
+</html>

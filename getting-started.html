@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Getting started | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><p class="eyebrow"><a href="index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Getting started</h1><div class="bars" aria-hidden="true"><i></i><i></i></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<p>Read this three weeks before Day 1.</p>
+<h2 id="1-the-timeline">1. The timeline</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>When</th>
+<th>What you do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Three weeks before Day 1</td>
+<td>Read this page. Start the free AWS Skill Builder course <em>AWS Cloud Practitioner Essentials</em> and complete its first two modules. Tell your lecturer now if you do not have access to a payment card.</td>
+</tr>
+<tr>
+<td>Two weeks before Day 1, not earlier</td>
+<td>Create your AWS account (section 2).</td>
+</tr>
+<tr>
+<td>Before Day 1</td>
+<td>Confirm you can sign in. Install an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, or similar).</td>
+</tr>
+<tr>
+<td>Day 1</td>
+<td>Bring a laptop and your phone. The afternoon lab secures your account.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why not earlier?</strong> A new account runs on the AWS Free Plan for six months. That window has to cover all seven teaching days, the review session, your capstone build and the viva. Creating the account too early means it can close before your coursework is finished.</p>
+<h2 id="2-creating-your-account">2. Creating your account</h2>
+<ol>
+<li>Go to the AWS sign-up page and choose the <strong>Free Plan</strong>.</li>
+<li>Use an email address you will still check in six months. Use a strong, unique password.</li>
+<li>AWS asks for a payment card and verifies your phone number. The card is for verification; on the Free Plan you are not charged unless you choose to upgrade.</li>
+<li>When the account is active, sign in once and stop. <strong>Do not launch anything before Day 1.</strong></li>
+</ol>
+<p><strong>No payment card?</strong> Tell your lecturer. You will be given access to a shared teaching account so you can do every lab. You will still take full part in the group capstone.</p>
+<h2 id="3-how-the-free-plan-works">3. How the Free Plan works</h2>
+<p>At the time of writing, a new account receives USD 100 in credits, and up to USD 100 more for completing some onboarding activities (two of them happen naturally in the Day 1 and Day 2 labs). The plan lasts six months or until the credits run out, whichever comes first. After that the account closes, and you have 90 days to retrieve anything from it. Some purchases, such as reserved capacity and paid support, are blocked on the Free Plan; you will still learn what they are.</p>
+<p>AWS changes these terms from time to time; the AWS Free Tier page has the current version. If you follow the lab sheets and the rules below, the whole module uses a small fraction of your credits.</p>
+<h2 id="4-the-rules">4. The rules</h2>
+<p>These rules protect your credits and your account. They are also marked in your evidence packs.</p>
+<ol>
+<li><strong>Root is for Day 1 only.</strong> On Day 1 you create an admin user with MFA. After Day 1 you never sign in as root again.</li>
+<li><strong>One region.</strong> Every lab uses <strong>Asia Pacific (Mumbai), ap-south-1</strong>. Check the region in the top right corner of the console at the start of every lab. A resource created in the wrong region is invisible from the right one, and still costs money.</li>
+<li><strong>Tag everything.</strong> From Day 2, every resource you create gets three tags: <code>Module=CC</code>, <code>Day=&lt;day number&gt;</code>, <code>Owner=&lt;your student id&gt;</code>.</li>
+<li><strong>Keep a ledger.</strong> Record what you create, when, and when you deleted or stopped it, in the <a href="templates/cost-ledger.csv">cost ledger</a>.</li>
+<li><strong>Some things are built and deleted the same afternoon.</strong> A NAT gateway, a load balancer and a database bill every hour they exist, whether or not anything uses them. The lab sheet tells you when to delete them. Do it before you leave.</li>
+<li><strong>Stop, don't forget.</strong> At the end of every lab, follow the teardown list. Instances you keep are stopped, not left running.</li>
+<li><strong>Watch your budget alerts.</strong> On Day 1 you set up a budget that emails you at USD 10, 25 and 50 of usage. If one arrives unexpectedly, open Cost Explorer, find what is running, and tell your lecturer.</li>
+</ol>
+<h2 id="5-finding-your-way-around-this-repository">5. Finding your way around this repository</h2>
+<ul>
+<li><a href="about.html">README</a>: the module at a glance and the day index.</li>
+<li><a href="scenario/index.html">scenario/</a>: Thara Hospitals and the architecture you build.</li>
+<li><code>days/day-&lt;n&gt;/</code>: slides, notes, the lab sheet and interactive visuals for each day.</li>
+<li><a href="coursework/index.html">coursework/</a>: the portfolio and capstone briefs.</li>
+<li><a href="templates/index.html">templates/</a>: the evidence pack and the cost ledger.</li>
+<li><a href="practice/index.html">practice/</a>: practice questions.</li>
+</ul>
+<nav class="pager" aria-label="Page navigation"><span></span><span><a href="index.html">All days</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">Niranga Dharmaratna<br>School of Computing &amp; Engineering<br>National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence. See the <a href="LICENSE-CONTENT.html">licence notes</a>.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="assets/js/site.js" defer></script>
+</body>
+</html>
