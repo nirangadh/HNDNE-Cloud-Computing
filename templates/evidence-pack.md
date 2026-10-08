@@ -1,5 +1,7 @@
 # Evidence Pack <n>: Day <n>
 
+*This template is also a [PDF form](evidence-pack.pdf) with fields you can fill in on screen.*
+
 **Student id:** <id>
 **Date of lab:** <date>
 **Components built:** <numbers and names from the table in scenario/organisation.md, section 7>
