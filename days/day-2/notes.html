@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Day 2 notes: Instances, images and volumes | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Instances, images and volumes</h1><p class="sub">Day 2, morning notes</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 4">LO4</span><span class="badge" title="Learning outcome 5">LO5</span><span class="badge" title="Learning outcome 6">LO6</span></div>
+<p>These notes go with the morning slides. They build the ideas you need before this afternoon's lab, where you build component 2 (the patient portal web server and its image) and component 3 (the laboratory reports bucket) of the Thara architecture.</p>
+<h2 id="where-you-are-starting">Where you are starting</h2>
+<p>Yesterday you built component 1, the guardrails. Your account has MFA on root, a named admin user with MFA that you now use for everything, a budget called <code>thara-budget</code> that excludes credits so it measures gross usage, the region pinned to Asia Pacific (Mumbai), and the first row of your cost ledger. You also met two ideas on paper only: an EC2 instance is a virtual machine, and a container is a group of processes sharing the host's kernel. And you were told "access keys on neither user today".</p>
+<p>Today those ideas become things you can touch. Inside the locked account you put the first server and the first bucket. The morning explains what they are made of and what they cost; the afternoon has you build them. Watch the demonstration closely: it is the first half of your lab, performed once in front of you.</p>
+<h2 id="1-the-ec2-model">1. The EC2 model</h2>
+<p>Amazon EC2 (Elastic Compute Cloud) rents you virtual machines, called <strong>instances</strong>.</p>
+<p><strong>Families and sizes.</strong> An instance type such as <code>t3.micro</code> reads as family, generation, size. The family says what the hardware is balanced for (general purpose, compute, memory, storage); the size sets how much of it you get. <code>t3.micro</code> has 2 virtual CPUs and 1 GiB of memory, and it is <em>burstable</em>: it is priced for a workload that is mostly quiet with short busy spells. That describes a pilot web server, it is allowed on the Free Plan, and at the time of writing it costs about USD 0.011 an hour in Mumbai. It is this module's workhorse.</p>
+<p><strong>What an instance is launched from.</strong> Four things come together at launch:</p>
+<ul>
+<li>An <strong>AMI</strong> (Amazon Machine Image) is the template for the instance's disk: an operating system, plus whatever was installed when the image was made. Launch ten instances from one AMI and you get ten identical servers. The AMI is the unit of reproducibility.</li>
+<li>A <strong>key pair</strong> is an SSH key. AWS keeps the public half and puts it on the instance; you download the private half once and AWS never shows it again.</li>
+<li><strong>User data</strong> is a script that runs once, as root, the first time the instance boots. It is first-boot automation: install the web server, write the page, start the service, with nobody logged in.</li>
+<li><strong>Instance metadata</strong> is a small web service that only the instance itself can reach, at the address <code>169.254.169.254</code>. It answers questions such as "what is my instance id?" and "which zone am I in?". On current Amazon Linux you must first request a short-lived token and then present it, which stops a careless web application being tricked into reading it.</li>
+</ul>
+<p><strong>Getting in.</strong> There are three ways to reach a shell. <strong>EC2 Instance Connect</strong> opens a terminal in your browser; AWS pushes a temporary key to the instance for sixty seconds, so there is no long-lived key to lose. <strong>Session Manager</strong> reaches the instance through an agent, with no SSH port open at all. Plain <strong>SSH</strong> uses your private key file from your own machine. Key hygiene matters because a private key file is a credential that never expires: whoever holds a copy can log in until someone removes the public half from every server.</p>
+<p><strong>The firewall in front.</strong> Every instance sits behind at least one <strong>security group</strong>: a firewall attached to the instance, with allow rules only. It is <em>stateful</em>, which means that if a request is allowed in, its reply is allowed out automatically. Today you write two or three rules. Day 3 treats security groups properly.</p>
+<p><strong>The life of an instance.</strong> An instance moves between states: pending, running, stopping, stopped, terminated. Stop is "shut down and keep the disk"; terminate is "delete". What you pay for changes with the state. Try each transition in <a href="artefacts/instance-lifecycle.html">instance-lifecycle</a> and watch which meters keep running.</p>
+<div class="box know"><p>A rack server built from a golden image, with a KVM console for when the network is down. The AMI is the golden image, user data is the post-install script, and Instance Connect is the KVM.</p></div>
+<div class="box thara"><p>The portal web server is the first thing Thara will run in the cloud. This afternoon it is one small instance serving one page: "Thara Hospitals portal (pilot)".</p></div>
+<h2 id="2-block-storage-and-images">2. Block storage and images</h2>
+<p><strong>EBS volumes.</strong> Amazon EBS (Elastic Block Store) provides <em>block storage</em>: a virtual disk that you attach to an instance, format with a file system and mount, exactly as you would a physical disk. The default volume type is <strong>gp3</strong>, a general-purpose SSD, and it is the only one you need in this module. A volume lives in <strong>one availability zone</strong> and can only be attached to an instance in that same zone. Its data survives a stop, a start and a reboot.</p>
+<p><strong>Snapshots.</strong> A snapshot is a point-in-time copy of a volume, kept in storage that AWS runs on S3, so it does not depend on the zone the volume was in. Snapshots are <strong>incremental</strong>: the first one copies every block in use, and each later one stores only the blocks that have changed since. You can create a new volume from a snapshot in any zone of the region.</p>
+<p><strong>An AMI is a snapshot plus launch metadata.</strong> When you create an image from an instance, AWS takes a snapshot of its root volume and then registers an AMI that points to it. The AMI adds the facts needed to launch: which snapshot becomes the root disk, how big the disk should be, the architecture, the boot settings. The snapshot holds the bytes; the AMI holds the instructions. Step through it in <a href="artefacts/ami-snapshot-relationship.html">ami-snapshot-relationship</a>.</p>
+<p><strong>Instance store, a warning.</strong> Some instance types also offer <em>instance store</em>: disks physically inside the host machine. They are fast, and they are <strong>ephemeral</strong>: stop the instance, or lose the host, and the data is gone for good. This module does not use instance store. You only need to recognise it and know never to keep anything on it that you cannot afford to lose.</p>
+<div class="box know"><p>A SAN LUN versus a local scratch disk. The LUN is presented to the server over the storage network and outlives the server; the scratch disk dies with the chassis. EBS is the LUN. Instance store is the scratch disk.</p></div>
+<div class="box thara"><p>The flood destroyed the servers and the only copy of how they were built. The portal image must be rebuildable after the next flood: an AMI is a server you can launch again in minutes, in a different zone if need be.</p></div>
+<div class="box mistake"><p>"Stopping an instance stops all billing." It stops the charge for the instance and for its public address. The EBS volumes are still stored, so they still bill, and so do your snapshots.</p></div>
+<div class="box mistake"><p>"A snapshot is a full copy every time." Only the first one is. Each later snapshot stores the changed blocks only, yet any single snapshot can still restore the whole volume.</p></div>
+<h2 id="3-object-storage-first-look">3. Object storage, first look</h2>
+<p><strong>Objects and keys.</strong> Amazon S3 (Simple Storage Service) stores <em>objects</em> in <em>buckets</em>. An object is a blob of data plus a little metadata, stored under a <em>key</em>, which is just its name. A key such as <code>reports/kandy/r-1042.pdf</code> looks like a path, and the console draws folders for you, but there are no directories underneath: the key is one long string. You do not mount a bucket, open a file in it and edit the middle. You put a whole object, get a whole object, or delete it, over HTTPS.</p>
+<p><strong>Global names, regional service.</strong> A bucket name must be unique across all of AWS, because it becomes part of a web address. Yet the bucket itself is created in one region, and its data stays in that region unless you copy it elsewhere. Your reports bucket lives in Mumbai.</p>
+<p><strong>Storage classes.</strong> Every object has a storage class, which trades retrieval speed and cost against storage price. At this stage they are vocabulary:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S3 Standard</td>
+<td>Data read often; the default</td>
+</tr>
+<tr>
+<td>S3 Standard-Infrequent Access</td>
+<td>Data kept for a long time and read rarely; cheaper to store, a fee to read</td>
+</tr>
+<tr>
+<td>S3 Glacier classes</td>
+<td>Archives; cheapest to store, and reading back can take from milliseconds to hours depending on the class</td>
+</tr>
+</tbody>
+</table></div>
+<p>Day 6 moves old reports between classes automatically.</p>
+<p><strong>Block Public Access.</strong> Every new bucket has <strong>Block Public Access</strong> switched on. It is a master switch that overrides any setting that would make the bucket or its objects public. It is on by default, and in this module it stays on.</p>
+<div class="box know"><p>A document management system versus a file share. On a file share you browse folders and edit files in place. In a document management system you check a whole document in under an identifier and fetch it by that identifier. S3 is the document management system.</p></div>
+<div class="box thara"><p>Laboratory report PDFs are objects: written once, read a few times, kept for years. The leaked link, where a report opened for anyone who had the address, is a Block Public Access story: with the switch on, no link can make a report public by accident.</p></div>
+<div class="box mistake"><p>"S3 is a file system." It is a key-value object store with no real directories. Treat it as a disk and you will be surprised by what is slow, what costs money and what cannot be done at all.</p></div>
+<h2 id="4-paying-for-compute">4. Paying for compute</h2>
+<p>The same instance can be paid for in four ways. Each discount is bought with something.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>What you give up</th>
+<th>Typical discount</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>On-demand</strong></td>
+<td>Nothing: pay by the second, stop whenever you like</td>
+<td>None. This is the list price</td>
+</tr>
+<tr>
+<td><strong>Spot</strong></td>
+<td>Certainty: AWS can take the instance back at two minutes' notice</td>
+<td>Often well over half</td>
+</tr>
+<tr>
+<td><strong>Reserved Instances</strong></td>
+<td>Flexibility: a one-year or three-year commitment to a particular instance family in a region</td>
+<td>About a third for one year, more for three</td>
+</tr>
+<tr>
+<td><strong>Savings Plans</strong></td>
+<td>Flexibility: a one-year or three-year commitment to spend a set amount per hour on compute</td>
+<td>Similar to reserved, with more freedom over what you run</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The Free Plan and commitments.</strong> At the time of writing, a Free Plan account cannot buy Reserved Instances or Savings Plans, so you will not buy one in this module. You are still expected to explain what each option trades for its discount and to choose between them for a scenario.</p>
+<p><strong>Tags, from today.</strong> Every resource you create from now on carries <code>Module=CC</code>, <code>Day=&lt;n&gt;</code> and <code>Owner=&lt;student id&gt;</code>. On Day 7 you open Cost Explorer and group your spending by those tags. That only works if the tags were applied when the resources were made.</p>
+<p><strong>Two names for later.</strong> Not all compute is an instance you manage. <strong>Amazon ECS</strong> (Elastic Container Service) runs containers for you across a group of machines. <strong>AWS Lambda</strong> runs a single function when an event happens, with no server for you to see at all, billed by the millisecond. This module asks you to know what they are for, not to use them.</p>
+<div class="box know"><p>A leased line contract versus burstable billing. Commit to 100 Mbps for three years and the monthly price falls, but you pay it whether you use it or not. Pay per gigabyte and you pay only for what flows, at a higher rate.</p></div>
+<div class="box thara"><p>The CFO asks why a one-year commitment would cut the web tier's cost by roughly a third. The answer is that Thara would be promising to pay for that server every hour for a year. For a six-month pilot, that promise is the real question.</p></div>
+<h2 id="before-the-lab">Before the lab</h2>
+<ul>
+<li>You will download a key pair file, <code>thara-key.pem</code>. Know where on your laptop it will live. You need it again on Day 3, and AWS will not give you a second copy.</li>
+<li>You will type Linux commands with <code>sudo</code>. If <code>lsblk</code>, <code>mount</code> and <code>curl</code> are unfamiliar, look them up now.</li>
+<li>You will run one container. Re-read yesterday's table comparing virtual machines and containers, and open <a href="artefacts/container-boundary-live.html">container-boundary-live</a> once before the lab and once after it.</li>
+<li>One step this afternoon is deliberately wrong: you will put a long-lived access key on a server. The lab sheet explains why, and what fences it in. Read that section before you start.</li>
+<li>Open your cost ledger. Today is the first day with real, if small, costs: the estimate is USD 0.60.</li>
+</ul>
+<h2 id="reading">Reading</h2>
+<ul>
+<li>Wittig, A. and Wittig, M. <em>Amazon Web Services in Action</em>, 3rd edition, Manning. The chapters on virtual machines (EC2) and on block storage (EBS and instance store).</li>
+<li>AWS, <em>Amazon EC2 User Guide</em>, "Instance lifecycle" and "Create an Amazon EBS-backed AMI".</li>
+<li>AWS, <em>Amazon S3 User Guide</em>, "Blocking public access to your Amazon S3 storage".</li>
+<li>For tomorrow: AWS, <em>Amazon VPC User Guide</em>, "How Amazon VPC works".</li>
+</ul>
+<p>Self-check: CLF-C02 bank, Domain 3 compute set (15 items) and storage set (10 items), issued separately. Practice question: <a href="../../practice/PQ2.html">PQ2</a>.</p>
+<p>Task for Day 3: on paper, carve <code>10.0.0.0/16</code> into four subnets across two availability zones, <code>thara-public-a</code> and <code>thara-public-b</code>, <code>thara-private-a</code> and <code>thara-private-b</code>, and write one line on why each is public or private. Bring it with you.</p>
+
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this morning</h2><ul><li><a href="slides/day-2-morning.pdf">Slides for this morning (PDF)</a></li><li><a href="artefacts/instance-lifecycle.html">Instance lifecycle: which meters run in each state</a> (visual)</li><li><a href="artefacts/ami-snapshot-relationship.html">An AMI is a snapshot plus launch metadata</a> (visual)</li><li><a href="../../practice/PQ2.html">Practice question 2</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d2m">Mark this morning as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-1/lab.html">Day 1 afternoon</a></span><span><a href="index.html">Day 2</a></span><span>Next: <a href="../../days/day-2/lab.html">Day 2 afternoon</a></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">Niranga Dharmaratna<br>School of Computing &amp; Engineering<br>National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

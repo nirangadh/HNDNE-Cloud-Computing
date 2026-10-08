@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Lab 2: Build, image, containerise | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Build, image, containerise</h1><p class="sub">Day 2, afternoon lab</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 1">LO1</span><span class="badge" title="Learning outcome 5">LO5</span><span class="badge" title="Learning outcome 6">LO6</span><span class="chip">You build: component 2</span><span class="chip">You build: component 3</span><span class="chip cost">Credit use: USD 0.60</span></div>
+<p><strong>Day 2, afternoon session. Duration 3 hours. Builds component 2 (Patient portal web server and image) and component 3 (Laboratory reports bucket) of the Thara Hospitals architecture.</strong></p>
+<div class="table-wrap"><table class="meta-table">
+
+<tbody>
+<tr>
+<td>Learning outcomes</td>
+<td>LO1, LO5, LO6</td>
+</tr>
+<tr>
+<td>Sub-outcomes</td>
+<td>S1.1, S5.1, S5.2, S6.1</td>
+</tr>
+<tr>
+<td>Prerequisites</td>
+<td>Component 1 from Day 1: your admin user with MFA, <code>thara-budget</code>, the region set to ap-south-1, your cost ledger. You have seen this morning's demonstration</td>
+</tr>
+<tr>
+<td>Estimated credit consumption</td>
+<td>USD 0.60</td>
+</tr>
+<tr>
+<td>Evidence pack</td>
+<td>Pack 2, due before the next teaching day</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="0-before-you-start">0. Before you start</h2>
+<ol>
+<li>Region check: the console shows <strong>Asia Pacific (Mumbai) ap-south-1</strong>. If not, change it now.</li>
+<li>You are signed in as your <strong>admin IAM user</strong>, not root.</li>
+<li>Tags for everything today: <code>Module=CC</code>, <code>Day=2</code>, <code>Owner=&lt;student id&gt;</code>.</li>
+<li>Open your cost ledger. Write today's date and the segment names below with a blank cost column.</li>
+</ol>
+<p>Console labels below are as they appeared at the time of writing. AWS renames buttons from time to time; if a label differs, look for the same idea nearby and tell your lecturer.</p>
+<h3 id="the-ideas-behind-todays-lab">The ideas behind today's lab</h3>
+<h4 id="tagging-and-the-ledger">Tagging and the ledger</h4>
+<p>From today, every resource you create carries three tags: <code>Module=CC</code>, <code>Day=2</code>, <code>Owner=&lt;student id&gt;</code>. A tag is a label of a key and a value. It changes nothing about how the resource works. It lets you, and later Cost Explorer, answer "what is this, who made it, and on which day?". Today you will create an instance, two volumes, two snapshots, an image, a security group and a bucket. Without tags, a forgotten one is very hard to find a month later.</p>
+<p>The ledger row for today is written <strong>before</strong> teardown, not after. Once a resource is deleted you can no longer read its id, its size or its start time from the console.</p>
+<h4 id="what-you-are-about-to-do-that-is-wrong">What you are about to do that is wrong</h4>
+<p>Read this now, so that step 10 does not surprise you.</p>
+<p>In step 10 you will create a <strong>long-lived access key</strong> for your admin user, type it into the instance, and use it to upload a file to S3. This is the insecure method, and you are doing it deliberately.</p>
+<ul>
+<li><strong>What is wrong with it.</strong> The key carries the full power of your admin user. It never expires. It sits in a plain text file on a server. Anyone who gets onto that server, or gets a copy of its disk, holds your whole account. On Day 1 the rule was "access keys on neither user today". Today you break that rule once, on purpose.</li>
+<li><strong>Why you do it anyway.</strong> On Day 5 you replace the key with an instance role, which gives the server short-lived credentials that it never stores. You will understand the role far better having felt what it replaces. The contrast is the point.</li>
+<li><strong>The fence around it.</strong> You deactivate the key in today's teardown. On Day 4 you switch it on for a few minutes for one test and switch it off again. On Day 5 you delete it. Your ledger records that it exists. The secret never appears in a screenshot, a message or your evidence pack.</li>
+</ul>
+<div class="box thara"><p>A patient once found that her laboratory report link opened for anyone who had it. A leaked access key is how that incident could have been much worse: not one report, but every report, and the power to delete them.</p></div>
+<div class="box mistake"><p>"Deactivating a key deletes it." It does not. A deactivated key is switched off, and anyone with permission can switch it on again. Only deleting it removes it, and that happens on Day 5.</p></div>
+<h2 id="1-objective">1. Objective</h2>
+<p>At the end of this lab you have a tagged web server <code>thara-web-1</code> serving the Thara pilot page, an image of it called <code>thara-portal-v1</code>, a snapshot of a data volume, a private bucket <code class="long">thara-reports-&lt;student id&gt;</code> holding one file, and a written comparison of a container with a native service on the same machine: components 2 and 3. Day 3 launches the private web tier from your image, Days 4 to 6 use the bucket, and Day 5 repairs the insecure key; together they serve Thara's requirements that the portal can be rebuilt after the next flood and that laboratory reports are stored durably and never publicly listable.</p>
+<h2 id="2-timed-segments">2. Timed segments</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Minutes</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Launch and connect</td>
+<td>30</td>
+<td><code>t3.micro</code> about USD 0.011 per hour, plus USD 0.005 per hour for its public IPv4 address</td>
+</tr>
+<tr>
+<td>EBS attach, format, snapshot</td>
+<td>35</td>
+<td>8 GB gp3: under USD 0.01 for the afternoon</td>
+</tr>
+<tr>
+<td>Create the AMI</td>
+<td>15</td>
+<td>snapshot storage: a few cents a month</td>
+</tr>
+<tr>
+<td>Docker contrast</td>
+<td>35</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Reports bucket and the insecure upload</td>
+<td>25</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Ledger, teardown, evidence</td>
+<td>20</td>
+<td>nil</td>
+</tr>
+</tbody>
+</table></div>
+<p>Segments containing a NAT gateway, a load balancer or a database are created, used and deleted inside the segment. Do not carry them across the break. Today has none of those, but the instance bills by the hour while it runs, so it is stopped before you leave. Prices are for ap-south-1 at the time of writing.</p>
+<h2 id="3-steps">3. Steps</h2>
+<p>Each step states what to do and what you should see. If you do not see it, stop and diagnose before moving on.</p>
+<p class="segment">Segment 1: Launch and connect</p>
+<ol class="steps">
+<li data-n="1">
+<p><strong>Check where and who you are.</strong> Confirm the region selector shows <strong>Asia Pacific (Mumbai) ap-south-1</strong> and the top bar shows <code>admin-&lt;student id&gt;</code>. <span class="expect"><b class="expect-label">You should see</b> both are correct. If the top bar shows your root email address, sign out and sign in with your IAM sign-in URL.</span></p>
+</li>
+<li data-n="2">
+<p><strong>Launch the web server.</strong> On Console Home, in <strong>Explore AWS</strong>, open the activity <strong>Launch an instance using Amazon EC2</strong> (it counts towards your onboarding credits). It takes you to EC2, <strong>Launch an instance</strong>. Set:</p>
+<ul>
+<li><strong>Name:</strong> <code>thara-web-1</code>. Choose <strong>Add additional tags</strong> and add <code>Module=CC</code>, <code>Day=2</code>, <code>Owner=&lt;student id&gt;</code>, each with resource types <strong>Instances</strong> and <strong>Volumes</strong>.</li>
+<li><strong>Application and OS Images:</strong> Amazon Linux, the default Amazon Linux AMI (the current release is AL2023), 64-bit (x86).</li>
+<li><strong>Instance type:</strong> <code>t3.micro</code>.</li>
+<li><strong>Key pair:</strong> <strong>Create new key pair</strong>, name <code>thara-key</code>, type RSA, format <code>.pem</code>. The file downloads once. Keep it somewhere safe and private: you need it on Day 3.</li>
+<li><strong>Network settings:</strong> leave the default VPC and <strong>Auto-assign public IP</strong> enabled. <strong>Create security group</strong>, tick <strong>Allow SSH traffic from</strong> and choose <strong>My IP</strong>, and tick <strong>Allow HTTP traffic from the internet</strong>.</li>
+<li><strong>Configure storage:</strong> leave 8 GiB gp3.</li>
+<li><strong>Advanced details, User data:</strong> paste the script below.</li>
+</ul>
+<pre tabindex="0"><code class="language-bash">#!/bin/bash
+dnf install -y httpd
+echo "&lt;h1&gt;Thara Hospitals portal (pilot)&lt;/h1&gt;" &gt; /var/www/html/index.html
+systemctl enable --now httpd
+</code></pre>
+<p>Choose <strong>Launch instance</strong>. <span class="expect"><b class="expect-label">You should see</b> the instance moves from <strong>Pending</strong> to <strong>Running</strong>, and after about two minutes its status check reads <strong>2/2 checks passed</strong>. Note its <strong>Availability Zone</strong> (for example <code>ap-south-1a</code>) and its <strong>Public IPv4 address</strong>.</span></p>
+</li>
+<li data-n="3">
+<p><strong>Connect, and load the page.</strong> The browser-based connection does not come from your computer: it comes from the EC2 Instance Connect service. So first open the instance's <strong>Security</strong> tab, choose its security group, <strong>Edit inbound rules</strong>, <strong>Add rule</strong>: type <strong>SSH</strong>, source <strong>Custom</strong>, and in the search box choose the prefix list whose name ends <code>ec2-instance-connect</code> (<code class="long">com.amazonaws.ap-south-1.ec2-instance-connect</code>). Save. Tag the security group with the three tags. Then select the instance, choose <strong>Connect</strong>, the <strong>EC2 Instance Connect</strong> tab, user name <code>ec2-user</code>, <strong>Connect</strong>. In a new browser tab open <code class="long">http://&lt;public IPv4 address&gt;</code> (type <code>http://</code> yourself; the server does not answer on <code>https://</code>). <span class="expect"><b class="expect-label">You should see</b> a terminal opens with the prompt <code>[ec2-user@ip-... ~]$</code>, and the browser shows <strong>Thara Hospitals portal (pilot)</strong>.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 2: EBS attach, format, snapshot</p>
+<ol class="steps" start="4">
+<li data-n="4">
+<p><strong>Add a data volume.</strong> In EC2 choose <strong>Volumes</strong>, <strong>Create volume</strong>: type <strong>gp3</strong>, size <strong>8</strong> GiB, the <strong>same Availability Zone</strong> as the instance, and the three tags. When it shows <strong>Available</strong>, select it, <strong>Actions</strong>, <strong>Attach volume</strong>, choose <code>thara-web-1</code>, device name <code>/dev/sdf</code>. Then, in the terminal:</p>
+<pre tabindex="0"><code class="language-bash">lsblk
+sudo mkfs -t xfs /dev/nvme1n1
+sudo mkdir /data
+sudo mount /dev/nvme1n1 /data
+echo "Thara Hospitals laboratory reports index" | sudo tee /data/reports-index.txt
+df -h /data
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> <code>lsblk</code> lists a new 8G disk, <code>nvme1n1</code>, with no mount point (the console's <code>/dev/sdf</code> appears inside the instance under this name). After the commands, <code>df -h /data</code> shows an 8.0G file system mounted on <code>/data</code>, and <code class="long">cat /data/reports-index.txt</code> prints your line. Only run <code>mkfs</code> on the empty 8G disk, never on <code>nvme0n1</code>, which is the root volume.</span></p>
+</li>
+<li data-n="5">
+<p><strong>Snapshot the data volume.</strong> Select the 8 GiB volume, <strong>Actions</strong>, <strong>Create snapshot</strong>, description <code>Day 2 data volume</code>, and add the three tags. Open <strong>Snapshots</strong>. <span class="expect"><b class="expect-label">You should see</b> a snapshot of 8 GiB moves from <strong>Pending</strong> to <strong>Completed</strong> within a minute or two. Write its snapshot id in your ledger: Day 5 and Day 6 restore from it.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 3: Create the AMI</p>
+<ol class="steps" start="6">
+<li data-n="6">
+<p><strong>Create the image.</strong> Select <code>thara-web-1</code>, <strong>Actions</strong>, <strong>Image and templates</strong>, <strong>Create image</strong>. Image name <code>thara-portal-v1</code>. Leave <strong>Reboot instance</strong> ticked, so the file system is consistent. Under <strong>Instance volumes</strong> you will see two volumes: <strong>remove the 8 GiB data volume</strong> (<code>/dev/sdf</code>), so the image holds the root volume only. If you leave it in, every server launched from this image on Day 3 and Day 7 gets an extra 8 GiB disk that you pay for. Choose <strong>Tag image and snapshots together</strong> and add the three tags. Choose <strong>Create image</strong>. Your terminal disconnects because the instance reboots. Open <strong>AMIs</strong>. When the instance is running again, reconnect as in step 3 and mount the data volume again:</p>
+<pre tabindex="0"><code class="language-bash">lsblk
+sudo mount /dev/nvme1n1 /data
+cat /data/reports-index.txt
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the AMI <code>thara-portal-v1</code> moves from <strong>Pending</strong> to <strong>Available</strong> (a few minutes; carry on with step 7 while it finishes). <strong>Snapshots</strong> now lists a second snapshot, created for the image. After the remount, your file is still there: a reboot does not erase an EBS volume, but the mount has to be repeated because you did not make it permanent. The public IPv4 address is unchanged, because a reboot is not a stop.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 4: Docker contrast</p>
+<ol class="steps" start="7">
+<li data-n="7">
+<p><strong>Run a container beside the native web server.</strong> In the terminal:</p>
+<pre tabindex="0"><code class="language-bash">sudo dnf install -y docker
+sudo systemctl enable --now docker
+sudo docker run -d --name web8080 -p 8080:80 nginx
+sudo docker ps
+</code></pre>
+<p>Then add one more inbound rule to the security group: <strong>Custom TCP</strong>, port <strong>8080</strong>, source <strong>My IP</strong>. Open <code class="long">http://&lt;public IPv4 address&gt;:8080</code> in a second tab, beside the first. <span class="expect"><b class="expect-label">You should see</b> <code>docker ps</code> shows one container, <code>web8080</code>, with <code>0.0.0.0:8080-&gt;80/tcp</code>. Port 80 still shows the Thara pilot page (the native Apache server, <code>httpd</code>). Port 8080 shows <strong>Welcome to nginx!</strong> (the container). If your network blocks port 8080, use <code class="long">curl http://localhost:8080</code> in the terminal instead and say so in your evidence.</span></p>
+</li>
+<li data-n="8">
+<p><strong>Compare the container with the native service.</strong> Run each pair and read the output carefully:</p>
+<pre tabindex="0"><code class="language-bash"># 1. processes: the host can see the container's processes
+ps -ef | grep -E "httpd|nginx" | grep -v grep
+sudo docker top web8080
+sudo docker exec web8080 ls /proc | grep -E "^[0-9]+$" | wc -l
+
+# 2. memory: the container versus the host service
+sudo docker stats --no-stream web8080
+systemctl status httpd | grep -i memory
+
+# 3. file system: what each can see
+cat /etc/os-release | head -2
+sudo docker exec web8080 cat /etc/os-release | head -2
+ls /data
+sudo docker exec web8080 ls /data
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> (1) on the host, <code>nginx</code> appears in the same process list as <code>httpd</code>, as ordinary host processes, while inside the container only a handful of process ids exist; (2) the container and the native service each use a few megabytes, and no second operating system is consuming memory; (3) the host is Amazon Linux and the container believes it is a different Linux distribution, and the container cannot see <code>/data</code> at all. <strong>Record three differences</strong> in your own words in your evidence pack.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 5: Reports bucket and the insecure upload</p>
+<ol class="steps" start="9">
+<li data-n="9">
+<p><strong>Create the reports bucket.</strong> Open S3, <strong>Create bucket</strong>. Check the region is ap-south-1. Bucket name <code class="long">thara-reports-&lt;student id&gt;</code> (lower case; bucket names are global, so it must not already exist anywhere in AWS). Leave <strong>ACLs disabled</strong> and leave <strong>Block all public access</strong> ticked. Add the three tags. Create the bucket and open its <strong>Permissions</strong> tab. <span class="expect"><b class="expect-label">You should see</b> the bucket is listed in Asia Pacific (Mumbai), and <strong>Block public access (bucket settings)</strong> shows <strong>Block all public access: On</strong>.</span></p>
+</li>
+<li data-n="10">
+<p><strong>Insecure method, deliberately: upload with a long-lived key.</strong> Read "What you are about to do that is wrong" in section 0 again. Then open IAM, <strong>Users</strong>, <code>admin-&lt;student id&gt;</code>, <strong>Security credentials</strong>, <strong>Access keys</strong>, <strong>Create access key</strong>. Choose <strong>Command Line Interface (CLI)</strong>. Notice that AWS itself recommends an alternative; tick the confirmation and continue. Description <code>Day 2 insecure key</code>. Choose <strong>Create access key</strong>, then <strong>Download .csv file</strong>. Keep that file private and off shared drives: Day 4 needs it once more. In the terminal:</p>
+<pre tabindex="0"><code class="language-bash">aws configure
+# AWS Access Key ID: paste the key id
+# AWS Secret Access Key: paste the secret
+# Default region name: ap-south-1
+# Default output format: json
+aws s3 cp /data/reports-index.txt s3://thara-reports-&lt;student id&gt;/
+cat ~/.aws/credentials
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the upload prints <code class="long">upload: ../../data/reports-index.txt to s3://thara-reports-&lt;student id&gt;/reports-index.txt</code>. The last command prints your secret in plain text: that is the problem, on screen. Clear the terminal (<code>clear</code>) before any screenshot. Write in your ledger note: "long-lived admin access key on thara-web-1; deactivated in teardown; delete on Day 5".</span></p>
+</li>
+</ol>
+<p class="segment">Segment 6: Ledger, teardown, evidence</p>
+<p>Write the ledger rows first (section 7), then do sections 4 and 5, then tear down (section 6), then collect the evidence (section 8).</p>
+<section class="mark prove"><h2 id="4-prove-it"><span class="mark-chip">PROVE IT</span> 4. Prove it</h2>
+<p>Paste the output of each into your evidence pack.</p>
+<ul>
+<li>In the terminal, <code>curl http://localhost</code> returns the line containing <strong>Thara Hospitals portal (pilot)</strong>, and <code class="long">curl http://localhost:8080</code> returns the page containing <strong>Welcome to nginx!</strong>. Two web servers answer on one machine: one native, one in a container.</li>
+<li>In the terminal, <code class="long">aws s3 ls s3://thara-reports-&lt;student id&gt;</code> lists <code>reports-index.txt</code>. The file has left the instance and lives in the bucket.</li>
+<li>In EC2, <strong>AMIs</strong>, <code>thara-portal-v1</code> shows status <strong>Available</strong>, and its <strong>Block devices</strong> line lists one volume only. The image is ready for Day 3.</li>
+</ul>
+</section><section class="mark break"><h2 id="5-break-it"><span class="mark-chip">BREAK IT</span> 5. Break it</h2>
+<p><strong>Fault:</strong> the web server stops answering from the internet.</p>
+<ol>
+<li>Open the instance's security group, <strong>Edit inbound rules</strong>, and delete the <strong>HTTP</strong> (port 80) rule. Save.</li>
+<li>Reload <code class="long">http://&lt;public IPv4 address&gt;</code> in the browser. <strong>Symptom:</strong> the page does not load; the browser waits and then times out.</li>
+<li><strong>Locate it</strong> with what you already know. In the terminal run <code>curl http://localhost</code> and <code class="long">sudo systemctl status httpd</code>. Both are healthy: the web server is running and answers on the machine itself. So the fault is not in the application or the operating system. It is at the security group, the firewall in front of the instance. Notice the symptom is a timeout, not a "connection refused": a security group drops the packet silently.</li>
+<li><strong>Fix:</strong> add the rule again (type <strong>HTTP</strong>, source <strong>Anywhere-IPv4</strong>), save, and reload the page.</li>
+</ol>
+<p>Record the fault, the symptom, the evidence that located it and the fix in the table in section 4 of your evidence pack. Write which layer the failure happened at.</p>
+</section><section class="mark teardown"><h2 id="6-teardown"><span class="mark-chip">TEARDOWN</span> 6. Teardown</h2>
+<p>Do these in order. Check your ledger rows are written first.</p>
+<ol>
+<li><strong>Remove the temporary 8080 rule</strong> from the security group. Nothing after today uses it.</li>
+<li><strong>Stop <code>thara-web-1</code></strong>: <strong>Instance state</strong>, <strong>Stop instance</strong>. Do not terminate it. <span class="expect"><b class="expect-label">You should see</b> state <strong>Stopped</strong>, and the public IPv4 address disappears.</span></li>
+<li><strong>Detach and delete the 8 GiB data volume</strong>: <strong>Volumes</strong>, select it, <strong>Actions</strong>, <strong>Detach volume</strong>, then <strong>Delete volume</strong>. Leave the root volume alone.</li>
+<li><strong>Deactivate the access key</strong>: IAM, your admin user, <strong>Security credentials</strong>, the key's <strong>Actions</strong>, <strong>Deactivate</strong>. Do not delete it. <span class="expect"><b class="expect-label">You should see</b> status <strong>Inactive</strong>.</span></li>
+</ol>
+<p>What you keep, and why:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thara-web-1</code>, stopped</td>
+<td>Your fallback until Day 3 proves the image. Day 3 then retires it</td>
+</tr>
+<tr>
+<td>AMI <code>thara-portal-v1</code> and its snapshot</td>
+<td>Day 3 launches the private web server from it; Day 7 uses it again</td>
+</tr>
+<tr>
+<td>The data volume's snapshot</td>
+<td>Day 5 and Day 6 restore <code>reports-index.txt</code> from it. This is why the volume itself can go</td>
+</tr>
+<tr>
+<td>Bucket <code class="long">thara-reports-&lt;student id&gt;</code> and its file</td>
+<td>Used on Days 4, 5 and 6</td>
+</tr>
+<tr>
+<td>The access key, inactive</td>
+<td>Switched on briefly on Day 4, deleted on Day 5</td>
+</tr>
+<tr>
+<td><code>thara-key.pem</code> and the key <code>.csv</code> file, on your computer</td>
+<td>Day 3 needs the key pair; Day 4 needs the <code>.csv</code> once</td>
+</tr>
+</tbody>
+</table></div>
+<p>A stopped instance is not free. Its 8 GiB root volume and your two snapshots are still stored, at about USD 0.03 a day in total at the time of writing. That is inside today's estimate, and it is the first thing this morning's notes warned you about.</p>
+</section><section class="mark cost"><h2 id="7-cost-line"><span class="mark-chip">COST</span> 7. Cost line</h2>
+<p>Estimate for today: <strong>USD 0.60</strong>. That covers about three hours of <code>t3.micro</code> with a public IPv4 address (about USD 0.05), the two volumes for the day (about USD 0.05), and roughly two weeks of the storage you keep. Add one ledger row for each of: the instance (with start and stop times), the data volume (created and deleted), the snapshot, the AMI, the bucket, and the access key (cost 0.00, with the note from step 10). Write the day's total against the estimate. If it is higher than the estimate, write why in one line.</p>
+</section><h2 id="8-evidence-required">8. Evidence required</h2>
+<ol>
+<li>One screenshot showing the pilot page (port 80) and the nginx page (port 8080) side by side.</li>
+<li>Your three recorded differences between the container and the native service, in your own words.</li>
+<li>The AMI id and the data snapshot id, and the bucket name with <strong>Block all public access: On</strong> visible.</li>
+<li>Your ledger rows, including the note about the access key.</li>
+<li>Your break-it row from section 5, naming the layer.</li>
+</ol>
+<p>Check every screenshot before you submit it: no secret access key, and the middle digits of your account id masked.</p>
+<h2 id="9-thara-connection">9. Thara connection</h2>
+<p>This lab starts two requirements. The portal must be rebuildable after the next flood: <code>thara-portal-v1</code> is that rebuild, and Day 3 proves it by launching a new server from it. Laboratory reports must be stored durably and never be publicly listable: the bucket is private from its first minute, with Block Public Access left on. The Head of IT would ask how long a rebuild takes and whether anyone has tested it. The CFO would ask why a stopped server still appears on the bill: the answer is its disk and the snapshots. The Data Protection Officer would ask who can read the reports today, and the honest answer is uncomfortable: anyone holding that access key. That answer is what Day 5 fixes.</p>
+
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this afternoon</h2><ul><li><a href="slides/day-2-afternoon.pdf">Slides for this afternoon (PDF)</a></li><li><a href="artefacts/container-boundary-live.html">The container boundary: the same processes seen from outside and inside</a> (visual)</li><li><a href="../../templates/cost-ledger.csv">Cost ledger template</a> and <a href="../../templates/evidence-pack.html">evidence pack template</a></li><li><a href="../../practice/PQ2.html">Practice question 2</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d2a">Mark this afternoon as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-2/notes.html">Day 2 morning</a></span><span><a href="index.html">Day 2</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">Niranga Dharmaratna<br>School of Computing &amp; Engineering<br>National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

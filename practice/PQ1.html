@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>PQ1: VM image or container image, and what the monsoon changes | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><p class="eyebrow"><a href="../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>PQ1: VM image or container image, and what the monsoon changes</h1><div class="bars" aria-hidden="true"><i></i><i></i></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<p>Posted after Day 1. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.</p>
+<h2 id="scenario">Scenario</h2>
+<p>The south-west monsoon has returned. A substation fault leaves Colombo, including Thara Hospitals' flagship hospital and its IT office, without mains power for six hours. The basement server room is dry this time, but its generator runs for only two hours.</p>
+<p>Thara's six-month pilot is being built in AWS in Asia Pacific (Mumbai), ap-south-1. The Head of IT must choose how the patient portal's web tier is packaged: as a <strong>virtual machine image</strong> (an image of a whole EC2 instance, operating system included) or as a <strong>container image</strong> (the portal and its libraries, run by a container runtime on an EC2 instance). He also proposes running the pilot in a single availability zone "to keep us inside the budget".</p>
+<p>Constraints you should notice:</p>
+<ul>
+<li>The CFO has approved <strong>USD 150 a month</strong> for the pilot, and wants every cost line explained.</li>
+<li>The Data Protection Officer requires that patient data stay in a known location and that Thara can say <strong>who can read it</strong> at every layer.</li>
+<li>The hospital information system (HIS) and the Colombo IT office are <strong>not</strong> part of the pilot; they remain on the premises.</li>
+</ul>
+<h2 id="questions">Questions</h2>
+<p><strong>(a) Explain (6 marks).</strong> Explain the difference in isolation boundary between a virtual machine running on a Type 1 hypervisor such as the AWS Nitro System, and a container running on a shared kernel using namespaces and cgroups. State what follows from that difference for start-up time and for attack surface.</p>
+<p><strong>(b) Apply (8 marks).</strong> Recommend whether Thara should package the portal's web tier as a virtual machine image or as a container image for the pilot, and justify your recommendation against the scenario. In your answer:</p>
+<ul>
+<li>describe where the portal runs so that the six-hour Colombo outage does not take the portal offline; and</li>
+<li>using the Shared Responsibility Model, state which layers of your chosen design Thara must secure and which AWS secures.</li>
+</ul>
+<p><strong>(c) Evaluate (6 marks).</strong> Evaluate the Head of IT's proposal to run the pilot in a single availability zone. Consider what does and does not fail during the Colombo outage, what a single-AZ design risks that the outage does not, and the cost argument. State what would change your view.</p>
+<h2 id="answer-guidance">Answer guidance</h2>
+<p>This guidance describes what a strong answer covers. It is not a model answer to memorise; the marks go to reasoning applied to Thara.</p>
+<p><strong>(a)</strong> A strong answer places the boundaries precisely. A VM has its own guest kernel, and isolation is enforced by the hypervisor (on EC2, a thin hypervisor with networking, storage and security offloaded to Nitro hardware). A container is a group of processes on the host's kernel, isolated by namespaces (what it can see) and limited by cgroups (what it can use). It then draws the consequences: containers start faster because no kernel boots, and pack more densely; but every container on a host depends on the one shared kernel, so a kernel flaw exposes all of them, whereas a VM escape must defeat the hypervisor. Answers that call a container "a lightweight VM" miss the point of the question.</p>
+<p><strong>(b)</strong> Either recommendation can earn full marks if it is argued from the scenario. A strong answer notices that both options run on EC2 in ap-south-1, so neither is affected by a power failure in Colombo: the outage is a question of <em>where</em> the portal runs, not <em>how</em> it is packaged. It then chooses on the real differences for a small team in a pilot. For example, a VM image is closer to what the IT team already runs and is rebuildable after a failure; a container image is smaller, starts faster and is easier to reproduce exactly, but adds a runtime to learn and patch. The shared responsibility part should be specific: with the portal on EC2, Thara patches the operating system, and with containers also the runtime and the images; Thara controls access, security group rules and the data; AWS secures the facilities, hardware, network and hypervisor. Strong answers link this to the DPO: patient data stays in ap-south-1, and Thara can name who reads it at each layer.</p>
+<p><strong>(c)</strong> A strong answer separates two different failures. The Colombo outage does not touch AWS: the portal keeps serving patients over the internet. What fails is on Thara's side: the on-premises HIS once the generator runs out, and administrative access from the IT office, so staff may need another way in. A single AZ, however, is exposed to a failure <em>inside</em> AWS: if that AZ has a problem, the whole pilot stops, which is exactly the "one basement" risk the move was meant to end. The cost argument should be weighed, not assumed: a second AZ matters most for the parts that must stay up, and the pilot's budget is an argument for sizing carefully, not automatically for giving up the AZ. Strong answers say what would change their view, for example if the pilot's recovery targets were relaxed, or if a second AZ pushed a stated cost line beyond the USD 150 ceiling.</p>
+<nav class="pager" aria-label="Page navigation"><span></span><span><a href="../index.html">All days</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">Niranga Dharmaratna<br>School of Computing &amp; Engineering<br>National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence. See the <a href="../LICENSE-CONTENT.html">licence notes</a>.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../assets/js/site.js" defer></script>
+</body>
+</html>

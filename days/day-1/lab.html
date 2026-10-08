@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Lab 1: Account guardrails lab | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Account guardrails lab</h1><p class="sub">Day 1, afternoon lab</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 2">LO2</span><span class="badge" title="Learning outcome 4">LO4</span><span class="badge" title="Learning outcome 8">LO8</span><span class="chip">You build: component 1</span><span class="chip cost">Credit use: none</span></div>
+<p><strong>Day 1, afternoon session. Duration 3 hours. Builds component 1 (Guardrails) of the Thara Hospitals architecture.</strong></p>
+<div class="table-wrap"><table class="meta-table">
+
+<tbody>
+<tr>
+<td>Learning outcomes</td>
+<td>LO2, LO4, LO8</td>
+</tr>
+<tr>
+<td>Sub-outcomes</td>
+<td>K2.4, K4.3, S4.1, K8.1</td>
+</tr>
+<tr>
+<td>Prerequisites</td>
+<td>Your AWS account is active (or your lecturer has issued you a fallback IAM user); the <a href="../../templates/cost-ledger.csv">cost ledger</a> is downloaded; your phone has an authenticator app</td>
+</tr>
+<tr>
+<td>Estimated credit consumption</td>
+<td>USD 0.00</td>
+</tr>
+<tr>
+<td>Evidence pack</td>
+<td>Pack 1, due before the next teaching day</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="0-before-you-start">0. Before you start</h2>
+<ol>
+<li>Region check: today you will set the console to <strong>Asia Pacific (Mumbai) ap-south-1</strong> in step 6. Until then you are working in IAM and billing pages, which have no region.</li>
+<li>Today is the one day you sign in as <strong>root</strong>. From step 6 onwards you work as your <strong>admin IAM user</strong>, and you never use root again in this module.</li>
+<li>Tags: nothing you create today can be tagged in a way that matters for cost, so tags start on Day 2 (<code>Module=CC</code>, <code>Day=&lt;n&gt;</code>, <code>Owner=&lt;student id&gt;</code>).</li>
+<li>Open your cost ledger. Write today's date and the segment names below with a blank cost column.</li>
+</ol>
+<p>Console labels below are as they appeared at the time of writing. AWS renames buttons from time to time; if a label differs, look for the same idea nearby and tell your lecturer.</p>
+<h3 id="the-ideas-behind-todays-lab">The ideas behind today's lab</h3>
+<h4 id="root-admin-and-why-they-differ">Root, admin, and why they differ</h4>
+<p>The <strong>root user</strong> is the identity that owns the account: the email address and password you signed up with. No policy can restrict it. An <strong>IAM admin user</strong> is a named identity you create inside the account; it does the daily work, and root is kept for the handful of tasks only root can do, such as the billing-access setting in step 3. Both get MFA today. Neither gets access keys today.</p>
+<div class="box know"><p>Root is the <code>enable secret</code> on a core switch; the admin user is a named operator account in your AAA server. You would never let the whole team share the enable secret.</p></div>
+<div class="box thara"><p>The Head of IT's personal login must not be the account's root. If he leaves, or his phone is stolen, the hospital must still own its account.</p></div>
+<div class="box mistake"><p>"MFA on root is enough." The admin user needs MFA too, because that is the identity you use every day, so it is the one most likely to be phished.</p></div>
+<h4 id="budgets-credits-and-the-ceiling">Budgets, credits and the ceiling</h4>
+<p>Your Free Plan account started with USD 100 in credits. Credits pay your bill, so a budget that <strong>includes</strong> credits sees your spending cancelled out and reads zero until the credits are gone. It never warns you. You will configure the budget to <strong>exclude</strong> credits, so it measures gross usage: what the resources would cost without the credits. Alerts at USD 10, USD 25 and USD 50 are early warnings, not a spending limit. Every account includes the Basic support plan at no cost, and Basic unlocks a small set of free Trusted Advisor checks. At the time of writing AWS is reorganising its paid support plans; Basic remains free.</p>
+<div class="box know"><p>A bandwidth alert on a leased line: it emails you when utilisation crosses 80 percent. It does not shape the traffic.</p></div>
+<div class="box thara"><p>The CFO's monthly report of actual against forecast starts with a budget like this one. A budget that reads zero because credits hide the spend would make that report meaningless.</p></div>
+<div class="box mistake"><p>"The budget stops spending." It does not. It sends an email. Nothing in AWS stops spending except you.</p></div>
+<p>Open <a href="artefacts/budget-credit-trap.html">budget-credit-trap</a> now and flip the "include credits" switch. You will need it again in section 5.</p>
+<h4 id="shared-responsibility-applied">Shared responsibility, applied</h4>
+<p>This morning you met the Shared Responsibility Model. This afternoon you do the first piece of Thara's share. IAM is the first customer responsibility: nothing AWS does protects a weak root password or a shared admin login. Choosing the region is also yours, because it decides where data lives. This module pins every lab to ap-south-1.</p>
+<div class="box thara"><p>The Data Protection Officer will ask where patient data is. The answer is a region, "Asia Pacific (Mumbai)", not "the cloud".</p></div>
+<h2 id="1-objective">1. Objective</h2>
+<p>At the end of this lab your account has root MFA, a named admin user with MFA, a budget that measures gross usage with three email alerts, Cost Explorer switched on, and the first row of your cost ledger: component 1, the guardrails. Every later lab depends on it, because from Day 2 you build only as the admin user, in ap-south-1, with the budget watching; it serves Thara's requirement that monthly cost stays inside USD 150 with an itemised record.</p>
+<h2 id="2-timed-segments">2. Timed segments</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Minutes</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Activation triage</td>
+<td>20</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Root MFA and IAM admin user</td>
+<td>35</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Budget and Cost Explorer</td>
+<td>35</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Trusted Advisor and ledger</td>
+<td>25</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Evidence capture</td>
+<td>20</td>
+<td>nil</td>
+</tr>
+</tbody>
+</table></div>
+<p>Segments containing a NAT gateway, a load balancer or a database are created, used and deleted inside the segment. Do not carry them across the break. Nothing today bills by the hour.</p>
+<h2 id="3-steps">3. Steps</h2>
+<p>Each step states what to do and what you should see. If you do not see it, stop and diagnose before moving on.</p>
+<p class="segment">Segment 1: Activation triage</p>
+<ol class="steps">
+<li data-n="1"><strong>Confirm the account is active.</strong> Sign in at the AWS console with your root email and password. <span class="expect"><b class="expect-label">You should see</b> Console Home opens and shows the <strong>Explore AWS</strong> widget and a <strong>Cost and Usage</strong> widget with your credit balance and the days left on your plan. If AWS says the account is still being activated, tell your lecturer: you will do today's steps with the fallback IAM user you are issued, and repeat them in your own account when it activates.</span></li>
+</ol>
+<p class="segment">Segment 2: Root MFA and IAM admin user</p>
+<ol class="steps" start="2">
+<li data-n="2"><strong>Secure root with MFA.</strong> Choose your account name (top right), then <strong>Security credentials</strong>. In <strong>Multi-factor authentication (MFA)</strong>: if a device is already listed, AWS asked you to register one at first sign-in, so check it is yours and move on. Otherwise choose <strong>Assign MFA device</strong>, give it a name, choose <strong>Authenticator app</strong>, scan the QR code with your phone, enter <strong>MFA code 1</strong> and <strong>MFA code 2</strong>, and choose <strong>Add MFA</strong>. Sign out. <span class="expect"><b class="expect-label">You should see</b> the MFA section lists one device; when you sign in as root again you are asked for a six-digit code.</span></li>
+<li data-n="3"><strong>Let IAM users see billing.</strong> Sign in as root again (with MFA). Choose your account name, then <strong>Account</strong>. Scroll to <strong>IAM user and role access to Billing information</strong>, choose <strong>Edit</strong>, tick <strong>Activate IAM Access</strong>, and choose <strong>Update</strong>. <span class="expect"><b class="expect-label">You should see</b> a message confirms that IAM user and role access to billing information is activated. Without this, your admin user will get "access denied" in Budgets and Cost Explorer, however many permissions it has.</span></li>
+<li data-n="4"><strong>Create the admin user.</strong> Open IAM (notice it has no region selector). Choose <strong>Users</strong>, then <strong>Create user</strong>. User name <code>admin-&lt;student id&gt;</code>. Tick <strong>Provide user access to the AWS Management Console</strong>, choose <strong>I want to create an IAM user</strong>, set a custom password you have not used anywhere else. Under <strong>Set permissions</strong> choose <strong>Attach policies directly</strong> and tick <code>AdministratorAccess</code>. Create the user. On the IAM <strong>Dashboard</strong>, copy the <strong>sign-in URL for IAM users</strong> into your ledger notes. <span class="expect"><b class="expect-label">You should see</b> <code>admin-&lt;student id&gt;</code> appears in the Users list.</span></li>
+<li data-n="5"><strong>Give the admin user MFA.</strong> Open <code>admin-&lt;student id&gt;</code>, then the <strong>Security credentials</strong> tab, then <strong>Assign MFA device</strong>, and repeat the authenticator steps with a second entry in your app. Then sign out of root. From now on, do not sign in as root again in this module. <span class="expect"><b class="expect-label">You should see</b> the user's MFA shows one assigned device.</span></li>
+</ol>
+<p class="segment">Segment 3: Budget and Cost Explorer</p>
+<ol class="steps" start="6">
+<li data-n="6"><strong>Sign in as the admin user.</strong> Open the IAM sign-in URL you copied, sign in as <code>admin-&lt;student id&gt;</code>, and enter the MFA code. In the region selector choose <strong>Asia Pacific (Mumbai) ap-south-1</strong>. <span class="expect"><b class="expect-label">You should see</b> the top bar shows <code>admin-&lt;student id&gt;</code> and the region shows Mumbai.</span></li>
+<li data-n="7"><strong>Create the budget.</strong> On Console Home, in <strong>Explore AWS</strong>, choose the activity <strong>Set up a cost budget using AWS Budgets</strong> (completing it earns you onboarding credits). In Budgets choose <strong>Create budget</strong>, then <strong>Customize (advanced)</strong> and <strong>Cost budget</strong>. Name it <code>thara-budget</code>. Period <strong>Monthly</strong>, <strong>Recurring budget</strong>, budgeting method <strong>Fixed</strong>, amount <strong>50.00</strong>. Under <strong>Budget scope</strong>, <strong>Filters</strong>, choose <strong>Add filter</strong>, then <strong>Charge type</strong>, set it to <strong>exclude</strong> and tick <strong>Credit</strong>. Choose <strong>Next</strong>, then add three alert thresholds, each an <strong>Absolute value</strong> on <strong>Actual</strong> spend: 10, 25 and 50, all to your email. Create the budget. <span class="expect"><b class="expect-label">You should see</b> <code>thara-budget</code> is listed with USD 50.00 budgeted and USD 0.00 actual. Forecast alerts are not used: AWS needs several weeks of usage before it can forecast a new account.</span></li>
+<li data-n="8"><strong>Switch on Cost Explorer.</strong> In Billing and Cost Management choose <strong>Cost Explorer</strong>, then <strong>Launch Cost Explorer</strong>. Then open the <strong>Free Tier</strong> page and the <strong>Credits</strong> page. <span class="expect"><b class="expect-label">You should see</b> Cost Explorer tells you your data is being prepared (it can take about 24 hours); the Credits page lists your sign-up credit, and the budget activity's credit may appear within about ten minutes.</span></li>
+</ol>
+<p class="segment">Segment 4: Trusted Advisor and ledger</p>
+<ol class="steps" start="9">
+<li data-n="9"><strong>Read Trusted Advisor.</strong> Open Trusted Advisor, open the <strong>Security</strong> category and choose <strong>Refresh</strong> (on the Basic plan checks are refreshed by hand). Note which checks are available to you. <span class="expect"><b class="expect-label">You should see</b> the free checks are all of <strong>Service limits</strong> plus a short list including <strong>MFA on root account</strong>, which shows no problem because of step 2.</span></li>
+<li data-n="10"><strong>Write the first ledger row.</strong> In your cost ledger, fill today's row for <code>thara-budget</code>: date, day 1, segment Guardrails, the region, and a note "credits excluded; alerts 10/25/50". Write your account id in the note with the middle digits masked (for example <code>1234****9012</code>). <span class="expect"><b class="expect-label">You should see</b> one complete row with an estimated cost of 0.00.</span></li>
+</ol>
+<p class="segment">Segment 5: Evidence capture</p>
+<p>Take the screenshots listed in section 8 now, while everything is open.</p>
+<section class="mark prove"><h2 id="4-prove-it"><span class="mark-chip">PROVE IT</span> 4. Prove it</h2>
+<p>Paste the evidence of each into your evidence pack.</p>
+<ul>
+<li>Open a private browser window and sign in with the IAM sign-in URL as <code>admin-&lt;student id&gt;</code>: you are asked for an MFA code.</li>
+<li>Open <code>thara-budget</code>: its details show a <strong>Charge type</strong> filter excluding <strong>Credit</strong>, and the three alert thresholds.</li>
+<li>Open Cost Explorer again: it opens directly, not on its welcome page.</li>
+<li>Trusted Advisor's <strong>MFA on root account</strong> check shows no problem. This proves step 2 from outside your own memory of doing it.</li>
+</ul>
+</section><section class="mark break"><h2 id="5-break-it"><span class="mark-chip">BREAK IT</span> 5. Break it</h2>
+<p><strong>Fault:</strong> your budget includes credits.</p>
+<ol>
+<li>Edit <code>thara-budget</code> and remove the Charge type filter (or untick <strong>Credit</strong> in it). Save.</li>
+<li>Open the budget's details. <strong>Symptom today:</strong> the filter line has gone, and actual spend still reads USD 0.00. It read USD 0.00 before as well, because a new account has no usage yet. That is the trap: the fault is invisible until you spend.</li>
+<li><strong>Predict:</strong> in your break-it table, write what the budget's actual line would read on the day a forgotten resource had used USD 12 of gross usage, with credits included and with credits excluded, and which alerts would fire in each case.</li>
+<li><strong>Check your prediction</strong> in <a href="artefacts/budget-credit-trap.html">budget-credit-trap</a>.</li>
+<li><strong>Fix:</strong> add the Charge type filter excluding Credit again, save, and confirm it appears in the budget's details.</li>
+</ol>
+<p>Record the fault, symptom, evidence and fix in the table in section 4 of your evidence pack.</p>
+</section><section class="mark teardown"><h2 id="6-teardown"><span class="mark-chip">TEARDOWN</span> 6. Teardown</h2>
+<p>Nothing to delete today. Confirm that nothing exists yet that could bill:</p>
+<ol>
+<li>In EC2, region ap-south-1: <strong>Instances (running)</strong> is 0.</li>
+<li>In the VPC console, region ap-south-1: only the <strong>default VPC</strong> is listed. Every region has one; leave it.</li>
+<li>In S3: there are no buckets.</li>
+</ol>
+<p>Kept: the admin user, both MFA devices, <code>thara-budget</code> and Cost Explorer. They persist for the whole module.</p>
+</section><section class="mark cost"><h2 id="7-cost-line"><span class="mark-chip">COST</span> 7. Cost line</h2>
+<p>Estimate for today: <strong>USD 0.00</strong>. Write the day's total against the estimate in your ledger. If it is higher than the estimate, write why in one line.</p>
+</section><h2 id="8-evidence-required">8. Evidence required</h2>
+<ol>
+<li>Screenshot of <code>admin-&lt;student id&gt;</code> in IAM with MFA assigned (mask the middle digits of the account id).</li>
+<li>Screenshot of the budget filter showing Credit excluded and the three alert thresholds.</li>
+<li>Your first cost ledger row.</li>
+<li>Your break-it row from section 5, including your prediction.</li>
+</ol>
+<h2 id="9-thara-connection">9. Thara connection</h2>
+<p>This lab satisfies the requirement that every administrative action is attributable to a named person, and starts the one that keeps monthly cost inside USD 150 with an itemised forecast. The Head of IT would ask who can still sign in as root and how you know MFA is on: your answer is the Trusted Advisor check, not your word. The CFO would ask why the budget shows usage when the bill shows nothing: because it excludes credits, it measures what Thara would pay once the credits are gone. The Data Protection Officer would ask where the data will live: in Asia Pacific (Mumbai), ap-south-1, and nowhere else.</p>
+
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this afternoon</h2><ul><li><a href="slides/day-1-afternoon.pdf">Slides for this afternoon (PDF)</a></li><li><a href="artefacts/budget-credit-trap.html">The budget credit trap: why a budget that includes credits stays silent</a> (visual)</li><li><a href="../../templates/cost-ledger.csv">Cost ledger template</a> and <a href="../../templates/evidence-pack.html">evidence pack template</a></li><li><a href="../../practice/PQ1.html">Practice question 1</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d1a">Mark this afternoon as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-1/notes.html">Day 1 morning</a></span><span><a href="index.html">Day 1</a></span><span>Next: <a href="../../days/day-2/notes.html">Day 2 morning</a></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">Niranga Dharmaratna<br>School of Computing &amp; Engineering<br>National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>
