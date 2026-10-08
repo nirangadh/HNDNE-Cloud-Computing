@@ -2,7 +2,14 @@
 
 ## Materials
 
-Files appear here before the teaching day.
+- [Morning slides: Instances, images and volumes](slides/day-2-morning.pdf) (PDF)
+- [Afternoon slides: Build, image, containerise](slides/day-2-afternoon.pdf) (PDF)
+- [Notes](notes.md): read before the lab
+- [Lab sheet](lab.md): steps, prove it, break it, teardown and cost line
+- Interactive visuals. They run in the browser: open them from the [course website](https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-2/), because GitHub shows them as code.
+  - [Instance lifecycle: which meters run in each state](artefacts/instance-lifecycle.html)
+  - [An AMI is a snapshot plus launch metadata](artefacts/ami-snapshot-relationship.html)
+  - [The container boundary: the same processes seen from outside and inside](artefacts/container-boundary-live.html)
 
 ## Morning: Instances, images and volumes
 
@@ -26,7 +33,7 @@ Files appear here before the teaching day.
 
 **Self-check (issued separately):** Domain 3 compute set (15 items); Domain 3 storage set (10 items).
 
-**Practice question:** PQ2, posted in [practice](../../practice/).
+**Practice question:** [PQ2](../../practice/PQ2.md), posted in [practice](../../practice/).
 
 **Tasks:**
 
