@@ -12,7 +12,7 @@
 
 ## 0. Before you start
 
-1. Region check: today you will set the console to **Asia Pacific (Mumbai) ap-south-1** in step 6. Until then you are working in IAM and billing pages, which have no region.
+1. [Region](../../glossary.md#region) check: today you will set the console to **Asia Pacific (Mumbai) ap-south-1** in step 6. Until then you are working in IAM and billing pages, which have no region.
 2. Today is the one day you sign in as **root**. From step 6 onwards you work as your **admin IAM user**, and you never use root again in this module.
 3. Tags: nothing you create today can be tagged in a way that matters for cost, so tags start on Day 2 (`Module=CC`, `Day=<n>`, `Owner=<student id>`).
 4. Open your cost ledger. Write today's date and the segment names below with a blank cost column.
@@ -23,7 +23,9 @@ Console labels below are as they appeared at the time of writing. AWS renames bu
 
 #### Root, admin, and why they differ
 
-The **root user** is the identity that owns the account: the email address and password you signed up with. No policy can restrict it. An **IAM admin user** is a named identity you create inside the account; it does the daily work, and root is kept for the handful of tasks only root can do, such as the billing-access setting in step 3. Both get MFA today. Neither gets access keys today.
+The **[root user](../../glossary.md#root-user)** is the identity that owns the account: the email address and password you signed up with. No policy can restrict it. An **IAM admin user** is a named identity you create inside the account; it does the daily work, and root is kept for the handful of tasks only root can do, such as the billing-access setting in step 3. Both get [MFA](../../glossary.md#mfa) today. Neither gets access keys today.
+
+![Two lanes for today's ten steps: the root user does steps 1 to 5 and is then put away, and the admin user does steps 6 to 10.](img/root-then-admin.svg "Today is the one day you sign in as root. After step 5 the root user is put away, and every later step is done as the admin user.")
 
 > **You already know this.** Root is the `enable secret` on a core switch; the admin user is a named operator account in your AAA server. You would never let the whole team share the enable secret.
 
@@ -31,9 +33,17 @@ The **root user** is the identity that owns the account: the email address and p
 
 > **Common mistake.** "MFA on root is enough." The admin user needs MFA too, because that is the identity you use every day, so it is the one most likely to be phished.
 
+> **Quick check.** Root has MFA. `admin-<student id>` has a strong password and no MFA. Which is the likelier way into the account?
+>
+> - [ ] Root, because no policy can restrict what it does
+> - [ ] Neither, because MFA on root protects the account
+> - [x] The admin user, because it is the one used every day
+>
+> **Why:** The identity used daily is the one most likely to be phished, so it needs MFA too. Root's power is real, but root is now behind MFA and put away.
+
 #### Budgets, credits and the ceiling
 
-Your Free Plan account started with USD 100 in credits. Credits pay your bill, so a budget that **includes** credits sees your spending cancelled out and reads zero until the credits are gone. It never warns you. You will configure the budget to **exclude** credits, so it measures gross usage: what the resources would cost without the credits. Alerts at USD 10, USD 25 and USD 50 are early warnings, not a spending limit. Every account includes the Basic support plan at no cost, and Basic unlocks a small set of free Trusted Advisor checks. At the time of writing AWS is reorganising its paid support plans; Basic remains free.
+Your Free Plan account started with USD 100 in credits. Credits pay your bill, so a [budget](../../glossary.md#budget) that **includes** credits sees your spending cancelled out and reads zero until the credits are gone. It never warns you. You will configure the budget to **exclude** credits, so it measures gross usage: what the resources would cost without the credits. Alerts at USD 10, USD 25 and USD 50 are early warnings, not a spending limit. Every account includes the Basic support plan at no cost, and Basic unlocks a small set of free Trusted Advisor checks. At the time of writing AWS is reorganising its paid support plans; Basic remains free.
 
 > **You already know this.** A bandwidth alert on a leased line: it emails you when utilisation crosses 80 percent. It does not shape the traffic.
 
@@ -43,9 +53,17 @@ Your Free Plan account started with USD 100 in credits. Credits pay your bill, s
 
 Open [budget-credit-trap](artefacts/budget-credit-trap.html) now and flip the "include credits" switch. You will need it again in section 5.
 
+> **Quick check.** `thara-budget` excludes credits, and gross usage reaches USD 26. What has happened?
+>
+> - [x] Two alert emails have been sent, and everything is still running
+> - [ ] Two alert emails have been sent, and the resources were stopped
+> - [ ] Nothing: credits covered the cost, so the budget reads USD 0.00
+>
+> **Why:** The USD 10 and USD 25 alerts fire, and nothing else happens: a budget warns, and only you stop spending. The third option is what a budget that includes credits would show.
+
 #### Shared responsibility, applied
 
-This morning you met the Shared Responsibility Model. This afternoon you do the first piece of Thara's share. IAM is the first customer responsibility: nothing AWS does protects a weak root password or a shared admin login. Choosing the region is also yours, because it decides where data lives. This module pins every lab to ap-south-1.
+This morning you met the [Shared Responsibility Model](../../glossary.md#shared-responsibility-model). This afternoon you do the first piece of Thara's share. IAM is the first customer responsibility: nothing AWS does protects a weak root password or a shared admin login. Choosing the region is also yours, because it decides where data lives. This module pins every lab to ap-south-1.
 
 > **Thara.** The Data Protection Officer will ask where patient data is. The answer is a region, "Asia Pacific (Mumbai)", not "the cloud".
 
