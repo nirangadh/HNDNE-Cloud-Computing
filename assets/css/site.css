@@ -211,7 +211,7 @@ figure.art .full{white-space:nowrap}
 /* Footer */
 .site-footer{border-top:1px solid var(--hairline);color:var(--ink-muted);font-size:.85rem;padding:1.4rem 0 2.2rem;text-align:center}
 .site-footer p{margin:.35rem 0}
-.site-footer .author{color:var(--navy);font-weight:600}
+.site-footer .author{color:var(--ink-muted)}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 
