@@ -14,4 +14,8 @@ Three hours, after Day 7.
 
 ## Materials
 
-Files appear here before the session.
+- [Review slides: Exam preparation and review](slides/review.pdf) (PDF)
+- [Notes](notes.md)
+- Interactive visuals. They run in the browser: open them from the [course website](https://nirangadh.github.io/HNDNE-Cloud-Computing/days/review/), because GitHub shows them as code.
+  - [Anatomy of a composite question: one worked question, part by part](artefacts/composite-question-anatomy.html)
+  - [Misconception cards: seven beliefs to turn over and sort](artefacts/misconception-cards.html)

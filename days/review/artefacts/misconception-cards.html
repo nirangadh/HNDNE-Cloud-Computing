@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Misconception cards: seven beliefs to turn over and sort</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 .5rem; }
+  h3 { font-size: 1rem; margin: 0 0 .3rem; }
+  p { margin: .4rem 0; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); max-width: 52rem; }
+  a { color: var(--navy); }
+  .count { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .7rem 1rem; margin: 0 0 1rem; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(18.5rem, 1fr)); gap: 1rem; padding: 0; margin: 0; list-style: none; }
+  .card { background: var(--white); border: 2px solid var(--navy); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; min-height: 19rem; }
+  .card.turned { background: var(--turquoise-wash); }
+  .card.had { border-style: double; border-width: 6px; border-color: var(--signal-coral); }
+  .card.hadnot { border-color: var(--turquoise-deep); border-width: 4px; }
+  .topic { font-size: .8rem; font-weight: 700; letter-spacing: .04em; color: var(--ink-muted); margin: 0 0 .5rem; }
+  .side { flex: 1; }
+  .label { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .04em; border-radius: 4px; padding: 0 .45rem; border: 1px solid var(--navy); margin: 0 0 .4rem; }
+  .label.wrong { background: var(--white); border: 2px solid var(--signal-coral); }
+  .label.right { background: var(--turquoise-tint); }
+  .belief { font-size: 1.15rem; font-weight: 600; margin: .2rem 0 .6rem; }
+  .seen { font-size: .9rem; color: var(--ink-muted); border-top: 1px solid var(--silver); padding-top: .5rem; margin-top: .6rem; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .5rem .9rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.turn { background: var(--turquoise); }
+  button[aria-pressed=true] { background: var(--navy); color: var(--white); }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .piles { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.25rem; }
+  @media (max-width: 44rem) { .piles { grid-template-columns: 1fr; } }
+  .pile { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem; }
+  .pile.p-had { border-left: 6px double var(--signal-coral); }
+  .pile.p-not { border-left: 6px solid var(--turquoise-deep); }
+  .pile ul { margin: .3rem 0 0 1.1rem; padding: 0; }
+  .pile .none { color: var(--ink-muted); }
+  .next { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .7rem .9rem; margin: 1rem 0 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Misconception cards</h1>
+  <p class="lede">Seven beliefs, each of them wrong. Read a card and ask yourself, before you turn it, whether you would have agreed. Turn it, read the mechanism, and then sort it. Nobody sees your piles, and nothing is saved.</p>
+
+  <p class="count" id="count" role="status" aria-live="polite">0 of 7 cards sorted.</p>
+  <ul class="grid" id="grid"></ul>
+
+  <div class="piles">
+    <section class="pile p-had" aria-labelledby="h-had"><h2 id="h-had">I had this one</h2><ul id="pHad"><li class="none">Nothing here yet.</li></ul></section>
+    <section class="pile p-not" aria-labelledby="h-not"><h2 id="h-not">I did not</h2><ul id="pNot"><li class="none">Nothing here yet.</li></ul></section>
+  </div>
+  <p class="next" id="next" hidden tabindex="-1"></p>
+
+  <footer>Six of the beliefs, and every mechanism, are given as the teaching days gave them. The belief about Reserved Instances and Savings Plans is put together from the Day 2 table. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+(function () {
+  var CARDS = [
+    { topic: "SECURITY GROUP OR NETWORK ACL", day: 3,
+      wrong: "“Security groups can deny.” “Network ACLs are stateful.”",
+      right: "They cannot, and they are not. A security group has allow rules only, and the absence of an allow is the deny. If you need to block one specific range, that is a job for a network ACL. And allowing a request in through a network ACL says nothing about its reply, which needs its own rule in the other direction.",
+      seen: "<code>thara-strict-nacl</code> broke SSH to the bastion until an outbound rule allowed the reply." },
+    { topic: "WHAT MAKES A SUBNET PUBLIC", day: 3,
+      wrong: "“A subnet named public is public.”",
+      right: "A name is a label for people. Only a route to the internet gateway, plus a public address on the instance, makes anything reachable.",
+      seen: "Name a subnet <code>thara-public-b</code>, forget to associate it with the public route table, and it is private." },
+    { topic: "PEERING", day: 4,
+      wrong: "“Peering is transitive.”",
+      right: "It is not. A peering carries only traffic that starts in one of its two VPCs and ends in the other. It will not forward for a third. Each pair that must talk needs its own peering, or a hub.",
+      seen: "Reaching the partner laboratory does not let Thara reach the partner's own partners, and it does not let them reach Thara." },
+    { topic: "MULTI-AZ OR READ REPLICA", day: 6,
+      wrong: "“Multi-AZ improves read performance.”",
+      right: "It does not; replicas do. A standby is a spare that waits. If the problem is that the database is too busy with reads, a second copy that answers nothing does not make it less busy.",
+      seen: "On OPD mornings the report look-ups are slow. The option built for that is a read replica, and neither option is a backup." },
+    { topic: "RPO OR RTO", day: 6,
+      wrong: "“RPO and RTO are the same number.”",
+      right: "One is data loss, the other is downtime. A system can come back in ten minutes with a day of work missing, or lose nothing at all and still be down until tomorrow.",
+      seen: "Patient records have an RPO of one hour and an RTO of two hours. You measured the second with a clock when you deleted <code>thara-records</code> and restored it." },
+    { topic: "RESERVED INSTANCES OR SAVINGS PLANS", day: 2,
+      wrong: "“Reserved Instances and Savings Plans are two names for one thing.”",
+      right: "Both trade flexibility for a discount, with a commitment of one year or three, and they commit you to different things. A Reserved Instance is a commitment to a particular instance family in a region. A Savings Plan is a commitment to spend a set amount per hour on compute, with more freedom over what you run.",
+      seen: "A one-year commitment would cut the web tier's cost by roughly a third, but the pilot is approved for six months." },
+    { topic: "EXPLICIT DENY", day: 5,
+      wrong: "“An explicit allow wins.”",
+      right: "It does not. An explicit deny always wins. If one policy allows an action and another denies it, the answer is no, however specific the allow is and whichever was attached last.",
+      seen: "<code>thara-deny-test</code> stopped the bucket listing although <code>thara-reports-read</code> still allowed it." }
+  ];
+  var grid = document.getElementById("grid"), count = document.getElementById("count");
+  var pHad = document.getElementById("pHad"), pNot = document.getElementById("pNot"), next = document.getElementById("next");
+  var state = CARDS.map(function () { return { turned: false, pile: null }; });
+
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) { e.className = cls; } if (html != null) { e.innerHTML = html; } return e; }
+  var NAMES = ["Security group or network ACL", "What makes a subnet public", "Peering", "Multi-AZ or read replica", "RPO or RTO", "Reserved Instances or Savings Plans", "Explicit deny"];
+  function short(c) { return NAMES[CARDS.indexOf(c)]; }
+
+  CARDS.forEach(function (c, i) {
+    var li = el("li", "card");
+    li.appendChild(el("p", "topic", c.topic));
+    var front = el("div", "side");
+    front.appendChild(el("span", "label wrong", "THE BELIEF"));
+    front.appendChild(el("p", "belief", c.wrong));
+    front.appendChild(el("p", "", "Would you have agreed? Answer before you turn the card."));
+    var back = el("div", "side");
+    back.hidden = true; back.tabIndex = -1;
+    back.appendChild(el("span", "label right", "THE MECHANISM"));
+    back.appendChild(el("p", "", c.right));
+    back.appendChild(el("p", "seen", "<b>At Thara:</b> " + c.seen + ' <a href="../../day-' + c.day + '/notes.html">Day ' + c.day + " notes</a>"));
+    var row = el("div", "row");
+    var turn = el("button", "turn", "Turn the card"); turn.type = "button"; turn.setAttribute("aria-expanded", "false");
+    var had = el("button", "", "I had this one"); had.type = "button"; had.hidden = true; had.setAttribute("aria-pressed", "false");
+    var not = el("button", "", "I did not"); not.type = "button"; not.hidden = true; not.setAttribute("aria-pressed", "false");
+    turn.addEventListener("click", function () {
+      var s = state[i]; s.turned = !s.turned;
+      front.hidden = s.turned; back.hidden = !s.turned;
+      had.hidden = not.hidden = !s.turned && !s.pile;
+      li.classList.toggle("turned", s.turned);
+      turn.textContent = s.turned ? "Turn it back" : "Turn the card";
+      turn.setAttribute("aria-expanded", s.turned ? "true" : "false");
+      if (s.turned) { back.focus(); }
+    });
+    function sort(p) {
+      state[i].pile = p;
+      had.setAttribute("aria-pressed", p === "had" ? "true" : "false");
+      not.setAttribute("aria-pressed", p === "not" ? "true" : "false");
+      li.classList.toggle("had", p === "had"); li.classList.toggle("hadnot", p === "not");
+      render();
+    }
+    had.addEventListener("click", function () { sort("had"); });
+    not.addEventListener("click", function () { sort("not"); });
+    row.appendChild(turn); row.appendChild(had); row.appendChild(not);
+    li.appendChild(front); li.appendChild(back); li.appendChild(row);
+    grid.appendChild(li);
+  });
+
+  function render() {
+    var had = [], not = [];
+    state.forEach(function (s, i) { if (s.pile === "had") { had.push(CARDS[i]); } else if (s.pile === "not") { not.push(CARDS[i]); } });
+    function fill(ul, list) {
+      ul.innerHTML = "";
+      if (!list.length) { ul.appendChild(el("li", "none", "Nothing here yet.")); return; }
+      list.forEach(function (c) { ul.appendChild(el("li", "", short(c) + ' (<a href="../../day-' + c.day + '/notes.html">Day ' + c.day + "</a>)")); });
+    }
+    fill(pHad, had); fill(pNot, not);
+    var n = had.length + not.length;
+    count.textContent = n + " of 7 cards sorted.";
+    if (n === CARDS.length) {
+      var days = []; had.forEach(function (c) { if (days.indexOf(c.day) < 0) { days.push(c.day); } }); days.sort();
+      next.innerHTML = had.length
+        ? "<b>All seven sorted.</b> You held " + had.length + " of these beliefs. Put Day" + (days.length > 1 ? "s " : " ") + days.join(", ").replace(/, (\d)$/, " and $1") + " first in your revision plan, and say each mechanism aloud without the card."
+        : "<b>All seven sorted, and none of them caught you.</b> Check that by explaining each mechanism to someone else without the card.";
+      next.hidden = false;
+    } else { next.hidden = true; }
+  }
+})();
+</script>
+</body>
+</html>
