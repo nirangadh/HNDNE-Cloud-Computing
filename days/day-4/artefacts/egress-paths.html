@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egress paths: three ways out of the private web tier</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .5rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  .sr { position: absolute; left: -9999px; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  fieldset { border: 1px solid var(--silver); border-radius: 6px; background: var(--white); margin: 0 0 1rem; padding: .6rem 1rem .8rem; }
+  legend { font-weight: 700; padding: 0 .4rem; }
+  label.opt { display: flex; gap: .6rem; align-items: center; min-height: 44px; font-weight: 600; }
+  label.opt input { width: 1.3rem; height: 1.3rem; accent-color: var(--navy); flex: none; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 50rem) { .controls, .cols { grid-template-columns: 1fr !important; } }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1.2rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--navy); color: var(--white); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .frame { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .5rem; overflow-x: auto; margin: 1rem 0; }
+  .frame svg { display: block; width: 100%; min-width: 44rem; height: auto; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--silver); font-size: .93rem; }
+  th { color: var(--ink-muted); font-weight: 600; }
+  tr.hit td { background: var(--turquoise); font-weight: 700; }
+  tr.none td { color: var(--ink-muted); font-style: italic; }
+  .verdict { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .7rem 1rem; margin: 0 0 1rem; }
+  .verdict.bad { border-left-color: var(--signal-coral); background: var(--white); outline: 1px solid var(--silver); }
+  .verdict b { display: block; }
+  .meter { display: grid; gap: .5rem; }
+  .meter label { display: grid; gap: .15rem; font-weight: 600; }
+  .meter input[type=range] { width: 100%; min-height: 44px; accent-color: var(--navy); }
+  .bill { font-size: 1.5rem; font-weight: 800; }
+  .bill small { display: block; font-size: .85rem; font-weight: 400; color: var(--ink-muted); }
+  .box { fill: var(--white); stroke: var(--navy); stroke-width: 1.4; }
+  .vpc { fill: none; stroke: var(--turquoise); stroke-width: 2.5; }
+  .pub { fill: var(--turquoise-wash); stroke: var(--turquoise-deep); stroke-width: 1.3; stroke-dasharray: 6 4; }
+  .priv { fill: var(--paper); stroke: var(--navy); stroke-width: 1.3; stroke-dasharray: 6 4; }
+  .lbl { font-size: 13px; fill: var(--navy); }
+  .small { font-size: 12px; fill: var(--ink-muted); }
+  .route { fill: none; stroke: var(--silver); stroke-width: 2; stroke-dasharray: 4 5; }
+  .route.on { stroke: var(--turquoise-deep); stroke-width: 4; stroke-dasharray: none; }
+  .route.cut { stroke: var(--signal-coral); stroke-width: 4; stroke-dasharray: none; }
+  .off { opacity: .25; }
+  #dot { fill: var(--navy); }
+  #stop line { stroke: var(--signal-coral); stroke-width: 5; stroke-linecap: round; }
+  .fine { font-size: .85rem; color: var(--ink-muted); margin: .6rem 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Three ways out of the private web tier</h1>
+  <p class="lede"><code>thara-web-1</code> sits in a private subnet with no public address. Choose where it wants to send a packet, decide what exists in the network, and send. Watch which route is used, where the packet goes, and what the path costs.</p>
+
+  <div class="controls">
+    <fieldset>
+      <legend>Where is the packet going?</legend>
+      <label class="opt"><input type="radio" name="dest" value="net" checked> To the internet, for a package update</label>
+      <label class="opt"><input type="radio" name="dest" value="s3"> To the reports bucket in S3</label>
+      <label class="opt"><input type="radio" name="dest" value="direct"> Straight to the internet gateway, skipping everything else</label>
+    </fieldset>
+    <fieldset>
+      <legend>What exists right now?</legend>
+      <label class="opt"><input type="checkbox" id="nat" checked> <span>A NAT gateway, with a default route to it in <code>thara-private-rt</code></span></label>
+      <label class="opt"><input type="checkbox" id="ep"> <span>An S3 gateway endpoint, associated with <code>thara-private-rt</code></span></label>
+      <button type="button" id="send">Send the packet</button>
+    </fieldset>
+  </div>
+
+  <div class="frame">
+  <svg viewBox="0 0 760 360" role="img" aria-labelledby="dT dD" font-family="'Open Sans', Arial, sans-serif">
+    <title id="dT">The paths out of the private subnet</title>
+    <desc id="dD">thara-vpc with a public subnet holding a NAT gateway and a private subnet holding thara-web-1. The internet gateway and the S3 gateway endpoint sit on the edge of the VPC. The internet and the S3 bucket are outside.</desc>
+    <rect x="20" y="20" width="520" height="320" rx="12" class="vpc"/>
+    <text x="36" y="42" class="lbl">thara-vpc 10.0.0.0/16</text>
+    <rect x="40" y="56" width="480" height="110" rx="6" class="pub"/>
+    <text x="508" y="76" class="small" text-anchor="end">thara-public-a: default route to the internet gateway</text>
+    <rect x="40" y="200" width="480" height="120" rx="6" class="priv"/>
+    <text x="508" y="220" class="small" text-anchor="end">thara-private-a: uses thara-private-rt</text>
+    <g id="gNat"><rect x="250" y="94" width="140" height="52" rx="6" class="box"/><text x="320" y="116" class="lbl" text-anchor="middle">NAT gateway</text><text x="320" y="134" class="small" text-anchor="middle">holds an Elastic IP</text></g>
+    <rect x="60" y="238" width="196" height="56" rx="6" class="box"/><text x="158" y="262" class="lbl" text-anchor="middle">thara-web-1</text><text x="158" y="280" class="small" text-anchor="middle">10.0.11.x, no public address</text>
+    <rect x="596" y="30" width="144" height="66" rx="33" class="box"/><text x="668" y="60" class="lbl" text-anchor="middle">The internet</text><text x="668" y="78" class="small" text-anchor="middle">package repositories</text>
+    <rect x="596" y="236" width="144" height="70" rx="6" class="box"/><text x="668" y="262" class="lbl" text-anchor="middle">Amazon S3</text><text x="668" y="280" class="small" text-anchor="middle">thara-reports bucket</text><text x="668" y="296" class="small" text-anchor="middle">a public service</text>
+    <polyline id="pNatA" class="route" points="158,238 158,184 320,184 320,146"/>
+    <polyline id="pNatB" class="route" points="390,120 540,120 596,74"/>
+    <polyline id="pNatS3" class="route" points="540,120 668,170 668,236"/>
+    <polyline id="pEp" class="route" points="256,270 540,270 596,270"/>
+    <polyline id="pDirect" class="route" points="100,238 100,120"/>
+    <circle cx="540" cy="120" r="17" class="box"/><text x="540" y="125" class="small" text-anchor="middle">IGW</text>
+    <g id="gEp"><circle cx="540" cy="270" r="17" class="box"/><text x="540" y="275" class="small" text-anchor="middle">EP</text></g>
+    <g id="stop" visibility="hidden"><line x1="-9" y1="-9" x2="9" y2="9"/><line x1="-9" y1="9" x2="9" y2="-9"/></g>
+    <circle id="dot" r="8" cx="158" cy="238" visibility="hidden"/>
+  </svg>
+  </div>
+
+  <div class="verdict" id="verdict" role="status" aria-live="polite"><b>Nothing sent yet.</b> Choose a destination and send the packet.</div>
+
+  <div class="cols">
+    <section class="panel" aria-labelledby="rtT">
+      <h2 id="rtT">The routes of <code>thara-private-rt</code></h2>
+      <table><thead><tr><th>Destination</th><th>Target</th></tr></thead><tbody id="rt"></tbody></table>
+      <p class="fine">The most specific route that matches the destination wins. The row that was used is marked.</p>
+    </section>
+    <section class="panel" aria-labelledby="mT">
+      <h2 id="mT">The meter</h2>
+      <div class="meter">
+        <label>Hours the NAT gateway exists: <span id="hv">1</span><input type="range" id="hours" min="1" max="730" value="1" aria-describedby="mnote"></label>
+        <label>Gigabytes sent along the chosen path: <span id="gv">2</span><input type="range" id="gb" min="0" max="100" value="2"></label>
+        <p class="bill"><span id="bill">USD 0.00</span><small id="bnote"></small></p>
+        <p id="mnote" class="fine">Prices for ap-south-1 at the time of writing: the NAT gateway about USD 0.056 an hour and USD 0.056 a gigabyte, its public address USD 0.005 an hour. A gateway endpoint has no charge. A month is 730 hours.</p>
+      </div>
+    </section>
+  </div>
+  <footer>Thara Hospitals is fictional. This is a model of the route table's choice, not a network simulator: security groups and network ACLs are assumed to allow the traffic.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const PATHS = { pNatA: [[158,238],[158,184],[320,184],[320,146]], pNatB: [[390,120],[540,120],[596,74]], pNatS3: [[540,120],[668,170],[668,236]],
+                  pEp: [[256,270],[540,270],[596,270]], pDirect: [[100,238],[100,206]] };
+  let last = null, timer = null;
+  const dest = () => document.querySelector('input[name=dest]:checked').value;
+  function routes() {
+    const r = [['10.0.0.0/16', 'local', 'local']];
+    if ($('ep').checked) r.push(['pl-... (the address ranges of S3 in Mumbai)', 'vpce-... (the gateway endpoint)', 'ep']);
+    if ($('nat').checked) r.push(['0.0.0.0/0', 'nat-... (the NAT gateway)', 'nat']);
+    return r;
+  }
+  function decide() {
+    const d = dest(), nat = $('nat').checked, ep = $('ep').checked;
+    if (d === 'direct') return { ok: false, used: null, legs: ['pDirect'], cut: true, paid: 'none',
+      head: 'Stopped at the route table.', text: 'There is no route from this subnet to the internet gateway, and the instance has no public address for the gateway to translate. A private subnet cannot use the internet gateway directly, in either direction. That is what makes it private.' };
+    if (d === 'net') {
+      if (nat) return { ok: true, used: 'nat', legs: ['pNatA', 'pNatB'], paid: 'nat',
+        head: 'Delivered, through the NAT gateway.', text: 'The default route sends the packet to the NAT gateway, which swaps the private source address for its own Elastic IP and passes it to the internet gateway. The reply comes back the same way. Nothing on the internet can start a connection in the other direction.' };
+      return { ok: false, used: null, legs: ['pDirect'], cut: true, paid: 'none',
+        head: 'Dropped: no route.', text: 'The only route is the local one, and the destination is not inside the VPC. The packet has nowhere to go, so the sender sees a timeout. This is where the Day 3 lab ended.' };
+    }
+    if (ep) return { ok: true, used: 'ep', legs: ['pEp'], paid: 'ep',
+      head: 'Delivered, through the gateway endpoint.', text: 'The destination is one of S3\'s addresses, so the prefix list route matches. It is more specific than a default route, so it wins even while a NAT gateway exists. The packet never leaves the AWS network, and the path costs nothing.' };
+    if (nat) return { ok: true, used: 'nat', legs: ['pNatA', 'pNatS3'], paid: 'nat',
+      head: 'Delivered, the expensive way.', text: 'With no endpoint, S3 is just another public address, so the default route sends the packet through the NAT gateway and out by the internet gateway. It works, the reports travel to S3\'s public address, and every gigabyte pays the NAT gateway\'s charge.' };
+    return { ok: false, used: null, legs: ['pDirect'], cut: true, paid: 'none',
+      head: 'Dropped: no route.', text: 'S3 is a public service, outside the VPC. With no endpoint and no NAT gateway the private subnet has no path to it. The access key is fine and the bucket exists; the request never arrives.' };
+  }
+  function drawState() {
+    $('gNat').classList.toggle('off', !$('nat').checked);
+    $('gEp').classList.toggle('off', !$('ep').checked);
+    $('rt').innerHTML = routes().map(r => '<tr data-k="' + r[2] + '"><td><code>' + r[0] + '</code></td><td><code>' + r[1] + '</code></td></tr>').join('');
+    meter();
+  }
+  function clearRun() {
+    clearInterval(timer); timer = null;
+    document.querySelectorAll('.route').forEach(p => p.classList.remove('on', 'cut'));
+    $('dot').setAttribute('visibility', 'hidden'); $('stop').setAttribute('visibility', 'hidden');
+  }
+  function meter() {
+    const h = +$('hours').value, g = +$('gb').value; $('hv').textContent = h; $('gv').textContent = g;
+    const nat = $('nat').checked, res = last;
+    let cost = 0, note = '';
+    if (nat) { cost += h * (0.056 + 0.005); note = 'The NAT gateway bills for every hour it exists, used or not. '; }
+    else note = 'No NAT gateway exists, so nothing bills by the hour. ';
+    if (res && res.paid === 'nat' && nat) { cost += g * 0.056; note += 'This path also pays for each gigabyte.'; }
+    else if (res && res.paid === 'ep') note += 'The endpoint path carries the gigabytes at no charge.';
+    $('bill').textContent = 'USD ' + cost.toFixed(2); $('bnote').textContent = note;
+  }
+  function finish(res) {
+    const v = $('verdict'); v.className = 'verdict' + (res.ok ? '' : ' bad');
+    v.innerHTML = '<b>' + (res.ok ? '✓ ' : '✗ ') + res.head + '</b>' + res.text;
+    document.querySelectorAll('#rt tr').forEach(tr => tr.classList.toggle('hit', tr.dataset.k === res.used));
+    if (!res.used) $('rt').insertAdjacentHTML('beforeend', '<tr class="none"><td colspan="2">No route matched this destination.</td></tr>');
+    if (res.cut) { const p = PATHS[res.legs[0]].slice(-1)[0]; $('stop').setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ')'); $('stop').setAttribute('visibility', 'visible'); }
+    meter();
+  }
+  function send() {
+    clearRun(); drawState();
+    const res = decide(); last = res;
+    res.legs.forEach(id => $(id).classList.add(res.cut ? 'cut' : 'on'));
+    const pts = res.legs.flatMap(id => PATHS[id]);
+    if (reduce) { finish(res); return; }
+    const dot = $('dot'); dot.setAttribute('visibility', 'visible');
+    let seg = 0, t = 0;
+    timer = setInterval(() => {
+      const a = pts[seg], b = pts[seg + 1];
+      if (!b) { clearInterval(timer); timer = null; if (res.cut) dot.setAttribute('visibility', 'hidden'); finish(res); return; }
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; t += 9 / len;
+      if (t >= 1) { t = 0; seg++; dot.setAttribute('cx', b[0]); dot.setAttribute('cy', b[1]); return; }
+      dot.setAttribute('cx', a[0] + (b[0] - a[0]) * t); dot.setAttribute('cy', a[1] + (b[1] - a[1]) * t);
+    }, 30);
+  }
+  function reset() { clearRun(); last = null; drawState(); const v = $('verdict'); v.className = 'verdict'; v.innerHTML = '<b>Nothing sent yet.</b> Choose a destination and send the packet.'; }
+  $('send').addEventListener('click', send);
+  ['nat', 'ep'].forEach(id => $(id).addEventListener('change', reset));
+  document.querySelectorAll('input[name=dest]').forEach(r => r.addEventListener('change', reset));
+  ['hours', 'gb'].forEach(id => $(id).addEventListener('input', meter));
+  drawState();
+</script>
+</body>
+</html>

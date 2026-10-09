@@ -172,3 +172,60 @@ A record of the traffic at the network interfaces of a VPC: who talked to whom, 
 The one server that administrators connect to from outside, and from which they reach everything else. It is the only administrative door into the network.
 
 *Thara example:* `thara-bastion` accepts SSH from the IT office's address only, and `thara-web-1` accepts SSH only from the bastion's group.
+
+## Day 4
+
+### NAT gateway
+A managed service in a public subnet that lets instances in private subnets start connections to the internet and receive the replies. Nothing outside can start a connection through it. It bills for every hour it exists.
+
+*Thara example:* the pilot creates one to patch the web tier, and deletes it inside the same lab segment.
+
+### Gateway endpoint
+A private path from a VPC to Amazon S3 that never crosses the internet. It is a route, placed in the route tables you choose, and it has no charge.
+
+*Thara example:* `thara-web-1` lists `thara-reports-<student id>` through the endpoint on `thara-private-rt`, with no default route.
+
+### VPC peering
+A private link between exactly two VPCs. It is not transitive: it carries only traffic between its own two networks. Each side needs a route to the other, and the two address ranges must not overlap.
+
+*Thara example:* `thara-vpc` is peered with `partnerlab-vpc`, `10.1.0.0/16`, so that the partner laboratory can send results in.
+
+### Transit Gateway
+A regional hub that many networks attach to once each, and that routes between them. It removes the need to peer every pair, and it is a charged service.
+
+*Thara example:* one partner needs only a peering; a fifth site to connect is what would raise the question of a hub.
+
+### Site-to-Site VPN
+Encrypted tunnels over the internet between AWS and a customer gateway device at a site. It is cheap and quick to set up, and its bandwidth and latency depend on the internet link.
+
+*Thara example:* the four branches are to reach the pilot this way, over the internet links they already have.
+
+### Direct Connect
+A dedicated physical link from a site into AWS, provided through a carrier. It gives steady latency and large bandwidth, costs far more than a VPN, and takes weeks to provision.
+
+*Thara example:* ruled out for the branches, which may not have new leased lines.
+
+### Hosted zone
+The container in Route 53 that holds the DNS records for one domain. A private hosted zone answers only inside the VPCs it is associated with.
+
+*Thara example:* the demonstration's private zone, thara.internal, gives the web server a name that means nothing outside the VPC.
+
+### Alias record
+A Route 53 record that maps a name to an AWS resource, such as a load balancer, and follows it when its addresses change. Unlike a CNAME record, it can sit at the top of a domain.
+
+*Thara example:* the portal's one name will be an alias for the load balancer that Day 7 builds.
+
+### Application Load Balancer
+A managed service that receives web requests and spreads them across targets in more than one availability zone. It has its own DNS name, and it is not a server that you log in to.
+
+*Thara example:* built on Day 7 in front of the web tier, so that patients have one way in.
+
+### Health check
+A request that a load balancer sends to each target every few seconds. A target that fails it receives no more requests until it passes again.
+
+*Thara example:* if one web server fails, patients are sent to the other, and the portal's name does not change.
+
+### CloudFront
+A service that caches content at edge locations close to users, so that requests are answered nearby and the origin servers are asked less often.
+
+*Thara example:* in a later phase the portal sits behind it, so that a patient in Galle is answered from nearby.

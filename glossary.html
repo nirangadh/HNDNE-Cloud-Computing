@@ -134,6 +134,40 @@
 <h3 id="bastion">Bastion</h3>
 <p>The one server that administrators connect to from outside, and from which they reach everything else. It is the only administrative door into the network.</p>
 <p><em>Thara example:</em> <code>thara-bastion</code> accepts SSH from the IT office's address only, and <code>thara-web-1</code> accepts SSH only from the bastion's group.</p>
+<h2 id="day-4">Day 4</h2>
+<h3 id="nat-gateway">NAT gateway</h3>
+<p>A managed service in a public subnet that lets instances in private subnets start connections to the internet and receive the replies. Nothing outside can start a connection through it. It bills for every hour it exists.</p>
+<p><em>Thara example:</em> the pilot creates one to patch the web tier, and deletes it inside the same lab segment.</p>
+<h3 id="gateway-endpoint">Gateway endpoint</h3>
+<p>A private path from a VPC to Amazon S3 that never crosses the internet. It is a route, placed in the route tables you choose, and it has no charge.</p>
+<p><em>Thara example:</em> <code>thara-web-1</code> lists <code class="long">thara-reports-&lt;student id&gt;</code> through the endpoint on <code>thara-private-rt</code>, with no default route.</p>
+<h3 id="vpc-peering">VPC peering</h3>
+<p>A private link between exactly two VPCs. It is not transitive: it carries only traffic between its own two networks. Each side needs a route to the other, and the two address ranges must not overlap.</p>
+<p><em>Thara example:</em> <code>thara-vpc</code> is peered with <code>partnerlab-vpc</code>, <code>10.1.0.0/16</code>, so that the partner laboratory can send results in.</p>
+<h3 id="transit-gateway">Transit Gateway</h3>
+<p>A regional hub that many networks attach to once each, and that routes between them. It removes the need to peer every pair, and it is a charged service.</p>
+<p><em>Thara example:</em> one partner needs only a peering; a fifth site to connect is what would raise the question of a hub.</p>
+<h3 id="site-to-site-vpn">Site-to-Site VPN</h3>
+<p>Encrypted tunnels over the internet between AWS and a customer gateway device at a site. It is cheap and quick to set up, and its bandwidth and latency depend on the internet link.</p>
+<p><em>Thara example:</em> the four branches are to reach the pilot this way, over the internet links they already have.</p>
+<h3 id="direct-connect">Direct Connect</h3>
+<p>A dedicated physical link from a site into AWS, provided through a carrier. It gives steady latency and large bandwidth, costs far more than a VPN, and takes weeks to provision.</p>
+<p><em>Thara example:</em> ruled out for the branches, which may not have new leased lines.</p>
+<h3 id="hosted-zone">Hosted zone</h3>
+<p>The container in Route 53 that holds the DNS records for one domain. A private hosted zone answers only inside the VPCs it is associated with.</p>
+<p><em>Thara example:</em> the demonstration's private zone, thara.internal, gives the web server a name that means nothing outside the VPC.</p>
+<h3 id="alias-record">Alias record</h3>
+<p>A Route 53 record that maps a name to an AWS resource, such as a load balancer, and follows it when its addresses change. Unlike a CNAME record, it can sit at the top of a domain.</p>
+<p><em>Thara example:</em> the portal's one name will be an alias for the load balancer that Day 7 builds.</p>
+<h3 id="application-load-balancer">Application Load Balancer</h3>
+<p>A managed service that receives web requests and spreads them across targets in more than one availability zone. It has its own DNS name, and it is not a server that you log in to.</p>
+<p><em>Thara example:</em> built on Day 7 in front of the web tier, so that patients have one way in.</p>
+<h3 id="health-check">Health check</h3>
+<p>A request that a load balancer sends to each target every few seconds. A target that fails it receives no more requests until it passes again.</p>
+<p><em>Thara example:</em> if one web server fails, patients are sent to the other, and the portal's name does not change.</p>
+<h3 id="cloudfront">CloudFront</h3>
+<p>A service that caches content at edge locations close to users, so that requests are answered nearby and the origin servers are asked less often.</p>
+<p><em>Thara example:</em> in a later phase the portal sits behind it, so that a patient in Galle is answered from nearby.</p>
 <nav class="pager" aria-label="Page navigation"><span></span><span><a href="index.html">All days</a></span><span></span></nav>
 </div>
 </main>
