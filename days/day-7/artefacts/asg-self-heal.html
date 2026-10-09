@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A group that heals itself: fail a server, add load, and watch the cost meter</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 74rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .4rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); max-width: 54rem; }
+  .tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.main { background: var(--navy); color: var(--white); }
+  button[aria-pressed=true] { background: var(--signal-amber); color: var(--navy); }
+  button:disabled { border-color: var(--ink-muted); color: var(--ink-muted); background: var(--white); cursor: not-allowed; }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
+  @media (max-width: 62rem) { .cols { grid-template-columns: minmax(0, 1fr); } }
+  .draw { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .5rem; overflow-x: auto; }
+  svg { display: block; width: 100%; min-width: 540px; height: auto; }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .9rem 1rem; margin-bottom: 1rem; }
+  .nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+  .num { border: 2px solid var(--navy); border-radius: 6px; padding: .35rem .5rem; text-align: center; }
+  .num b { display: block; font-weight: 800; font-size: 1.4rem; line-height: 1.2; }
+  .num span { font-size: .8rem; }
+  .num.now { background: var(--turquoise-tint); }
+  dl { margin: .7rem 0 0; display: grid; grid-template-columns: auto 1fr; gap: .25rem .8rem; }
+  dt { font-weight: 700; }
+  dd { margin: 0; }
+  .tag { display: inline-block; font-weight: 700; font-size: .85rem; border-radius: 4px; padding: .05rem .5rem; border: 1px solid var(--navy); background: var(--turquoise-tint); }
+  .tag.hot { background: var(--signal-amber); }
+  .meter .big { font-weight: 800; font-size: 1.6rem; line-height: 1.2; }
+  .meter p { margin: .3rem 0 0; font-size: .95rem; }
+  ol.log { margin: 0; padding: 0; list-style: none; max-height: 15rem; overflow-y: auto; }
+  ol.log li { padding: .3rem 0; border-bottom: 1px solid var(--hairline); font-size: .95rem; }
+  ol.log li b { display: inline-block; min-width: 4.6rem; }
+  .say { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .8rem 1rem; margin: 1rem 0 0; }
+  .t { font-family: "Open Sans", Arial, sans-serif; font-size: 13px; fill: var(--navy); }
+  .t.s { font-size: 12px; fill: var(--ink-muted); }
+  .t.b { font-weight: 700; }
+  .t.w { fill: var(--white); }
+</style>
+</head>
+<body>
+<main>
+  <h1>A group that heals itself</h1>
+  <p class="lede">Thara's web tier as you build it this morning: a load balancer across two public subnets, and a group that keeps two web servers in two private subnets and may grow to three. Fail a server, or add load, and watch what the group does without being asked. One second on your clock is one minute here, and the meter counts what it costs.</p>
+
+  <div class="tools" role="group" aria-label="Controls">
+    <button type="button" class="main" id="fail">Fail a server</button>
+    <button type="button" class="main" id="load" aria-pressed="false">Add load</button>
+    <button type="button" id="step">Advance one minute</button>
+    <button type="button" id="run" aria-pressed="false">Pause the clock</button>
+    <button type="button" id="reset">Start again</button>
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="draw"><svg viewBox="0 0 720 400" role="img" aria-labelledby="dT" id="dia"><title id="dT">The load balancer in two public subnets, and the group's web servers in two private subnets</title><g id="g"></g></svg></div>
+      <div class="say" id="say" role="status" aria-live="polite"></div>
+    </div>
+    <div>
+      <section class="panel" aria-labelledby="hG">
+        <h2 id="hG">The group, <code>thara-web-asg</code></h2>
+        <div class="nums">
+          <div class="num"><b>2</b><span>minimum</span></div>
+          <div class="num now"><b id="des">2</b><span>desired</span></div>
+          <div class="num"><b>3</b><span>maximum</span></div>
+        </div>
+        <dl>
+          <dt>Healthy servers</dt><dd id="hl"></dd>
+          <dt>Average CPU</dt><dd id="cpu"></dd>
+          <dt>Alarm</dt><dd id="al"></dd>
+          <dt>Cooldown</dt><dd id="cd"></dd>
+        </dl>
+      </section>
+      <section class="panel meter" aria-labelledby="hM">
+        <h2 id="hM">The cost meter</h2>
+        <div class="big" id="usd"></div>
+        <p id="rate"></p>
+      </section>
+      <section class="panel" aria-labelledby="hL">
+        <h2 id="hL">Activity history</h2>
+        <ol class="log" id="log" aria-live="polite"></ol>
+      </section>
+    </div>
+  </div>
+
+  <footer>The meter uses about USD 0.025 an hour for the load balancer and about USD 0.01 an hour for each <code>t3.micro</code>, the rounded figures for ap-south-1 at the time of writing. The timings are close to the lab's: a new server takes about three minutes to pass its health checks. The group here has a rule for growing and none for shrinking, as in the lab. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const MIN = 2, MAX = 3, LB = 0.025, EC2 = 0.01, WARM = 3, COOL = 5;
+  let st, timer = null, seq = 0;
+  const newId = () => 'i-0' + ((seq++ * 7919 + 2749) % 65536).toString(16).padStart(4, '0');
+  function init() {
+    seq = 0;
+    st = { t: 0, desired: MIN, load: false, hot: 0, alarm: false, cool: 0, usd: 0, hours: 0, log: [],
+      servers: [{ id: newId(), zone: 'a', state: 'healthy', age: 9 }, { id: newId(), zone: 'b', state: 'healthy', age: 9 }] };
+    note('The group starts with two healthy servers, one in each zone.');
+    say('<b>Nothing is wrong.</b> Two servers, two zones, one name. Fail a server, or add load.');
+    render();
+  }
+  const live = () => st.servers.filter(s => s.state !== 'gone');
+  const healthy = () => st.servers.filter(s => s.state === 'healthy');
+  function note(text) { st.log.unshift({ t: st.t, text }); }
+  function say(html) { $('say').innerHTML = html; }
+  function cpuNow() { const h = healthy().length; return h ? Math.min(100, Math.round((st.load ? 150 : 20) / h)) : 0; }
+  function tick() {
+    st.t++;
+    const run = live().length;
+    st.usd += (LB + EC2 * run) / 60; st.hours += run / 60;
+    st.servers.forEach(s => {
+      s.age++;
+      if (s.state === 'starting' && s.age >= WARM) { s.state = 'healthy'; note('Server ' + s.id + ' passed its health checks and now receives requests.'); }
+      else if (s.state === 'failed' && s.age >= 1) { s.state = 'gone'; note('The group terminated ' + s.id + ', which the load balancer had reported unhealthy.'); }
+    });
+    if (st.cool > 0) st.cool--;
+    const c = cpuNow();
+    st.hot = c > 50 ? st.hot + 1 : 0;
+    const was = st.alarm; st.alarm = st.hot >= 2;
+    if (st.alarm && !was) note('Alarm: average CPU above 50% for two minutes. A message goes to thara-alerts.');
+    if (!st.alarm && was) note('The alarm returned to OK.');
+    if (st.alarm && st.cool === 0) {
+      if (st.desired < MAX) { st.desired++; st.cool = COOL; note('Scaling policy: desired raised to ' + st.desired + '. The cooldown of five minutes begins.'); say('<b>Scale-out.</b> The alarm fired, so the policy raised the desired number. The group then did what it always does: it had fewer servers than desired, so it started one.'); }
+      else if (st.hot === 2) { note('The alarm fired, and the group is already at its maximum of ' + MAX + '.'); say('<b>At the maximum.</b> The alarm is in alarm and the group will not grow past three. The maximum is the ceiling the CFO agreed to.'); }
+    }
+    while (live().length < st.desired) {
+      const a = live().filter(s => s.zone === 'a').length, b = live().filter(s => s.zone === 'b').length;
+      const s = { id: newId(), zone: a <= b ? 'a' : 'b', state: 'starting', age: 0 };
+      st.servers.push(s); note('The group launched ' + s.id + ' in zone ' + s.zone + ', because it had fewer servers than desired.');
+    }
+    render();
+  }
+  function fail() {
+    const h = healthy(); if (!h.length) return;
+    const s = h[h.length - 1]; s.state = 'failed'; s.age = 0;
+    note('Server ' + s.id + ' stopped answering. The load balancer sends it no more requests.');
+    say('<b>A server has failed.</b> Patients are sent to what remains. Nobody repairs the failed server: the group replaces it. Count the minutes until the new one is healthy.');
+    render();
+  }
+  function render() {
+    const h = healthy().length, c = cpuNow();
+    $('des').textContent = st.desired;
+    $('hl').textContent = h + ' of ' + live().length + ' running';
+    $('cpu').textContent = c + '%' + (st.load ? ', under load' : '');
+    $('al').innerHTML = st.alarm ? '<span class="tag hot">In alarm</span>' : '<span class="tag">OK</span>';
+    $('cd').textContent = st.cool ? st.cool + (st.cool === 1 ? ' minute left' : ' minutes left') : 'not running';
+    $('usd').textContent = 'USD ' + st.usd.toFixed(3);
+    $('rate').textContent = 'After ' + st.t + ' minutes: one load balancer and ' + live().length + ' servers, which is about USD ' + (LB + EC2 * live().length).toFixed(3) + ' an hour at this moment.';
+    $('fail').disabled = h === 0;
+    $('load').setAttribute('aria-pressed', st.load); $('load').textContent = st.load ? 'Remove the load' : 'Add load';
+    $('log').innerHTML = st.log.slice(0, 40).map(l => '<li><b>Minute ' + l.t + '</b> ' + l.text + '</li>').join('');
+    // drawing
+    const N = '#0D2B45', T = '#48C9B0', W = '#FFFFFF', C = '#E86A5B', M = '#546472', TW = '#EDFAF7', TD = '#2A7A7A', A = '#F4B942';
+    let g = '<rect x="10" y="44" width="700" height="346" rx="8" fill="none" stroke="' + T + '" stroke-width="3"/><text class="t b" x="24" y="64">thara-vpc</text>';
+    g += '<text class="t b" x="360" y="24" text-anchor="middle">Patients, by one name</text><path d="M360 30 L360 94" stroke="' + N + '" stroke-width="2.5"/><path d="M353 88 L360 100 L367 88 Z" fill="' + N + '"/>';
+    [['a', 30], ['b', 370]].forEach(([z, x]) => {
+      g += '<rect x="' + x + '" y="72" width="320" height="84" rx="6" fill="' + TW + '" stroke="' + TD + '" stroke-width="1.5" stroke-dasharray="6 4"/><text class="t s" x="' + (x + 10) + '" y="90">thara-public-' + z + '</text>';
+      g += '<rect x="' + x + '" y="186" width="320" height="190" rx="6" fill="' + TW + '" stroke="' + TD + '" stroke-width="1.5" stroke-dasharray="6 4"/><text class="t s" x="' + (x + 10) + '" y="368">thara-private-' + z + ', availability zone ' + z + '</text>';
+    });
+    g += '<rect x="90" y="100" width="540" height="40" rx="6" fill="' + N + '"/><text class="t b w" x="360" y="125" text-anchor="middle">Load balancer thara-alb: one name, both zones</text>';
+    g += '<circle cx="112" cy="120" r="13" fill="' + T + '" stroke="' + W + '" stroke-width="1.5"/><text class="t b" x="112" y="125" text-anchor="middle">12</text>';
+    ['a', 'b'].forEach((z, zi) => {
+      live().filter(s => s.zone === z).forEach((s, i) => {
+        const x = (zi ? 370 : 30) + 22 + i * 148, y = 214, ok = s.state === 'healthy', bad = s.state === 'failed';
+        if (ok) g += '<path d="M' + (x + 62) + ' 140 L' + (x + 62) + ' ' + (y - 4) + '" stroke="' + N + '" stroke-width="2"/><path d="M' + (x + 56) + ' ' + (y - 12) + ' L' + (x + 62) + ' ' + (y - 2) + ' L' + (x + 68) + ' ' + (y - 12) + ' Z" fill="' + N + '"/>';
+        g += '<rect x="' + x + '" y="' + y + '" width="124" height="104" rx="6" fill="' + (ok ? T : W) + '" stroke="' + (bad ? C : N) + '" stroke-width="' + (bad ? 4 : 2) + '"' + (s.state === 'starting' ? ' stroke-dasharray="7 5"' : '') + '/>';
+        g += '<text class="t b" x="' + (x + 62) + '" y="' + (y + 28) + '" text-anchor="middle">Web server</text><text class="t" x="' + (x + 62) + '" y="' + (y + 50) + '" text-anchor="middle" font-family="Courier New, monospace">' + s.id + '</text>';
+        g += '<text class="t b" x="' + (x + 62) + '" y="' + (y + 76) + '" text-anchor="middle">' + (ok ? 'Healthy' : bad ? 'Failed' : 'Starting') + '</text>';
+        g += '<text class="t s" x="' + (x + 62) + '" y="' + (y + 94) + '" text-anchor="middle">' + (ok ? 'CPU ' + c + '%' : bad ? 'no requests sent' : 'minute ' + s.age + ' of ' + WARM) + '</text>';
+      });
+    });
+    g += '<circle cx="46" cy="202" r="13" fill="' + T + '" stroke="' + N + '" stroke-width="1.5"/><text class="t b" x="46" y="207" text-anchor="middle">6</text>';
+    if (st.alarm) g += '<rect x="566" y="14" width="136" height="22" rx="4" fill="' + A + '" stroke="' + N + '"/><text class="t b" x="634" y="30" text-anchor="middle">Alarm: In alarm</text>';
+    $('g').innerHTML = g;
+  }
+  function setRun(on) {
+    clearInterval(timer); timer = on ? setInterval(tick, 1000) : null;
+    $('run').setAttribute('aria-pressed', !on); $('run').textContent = on ? 'Pause the clock' : 'Start the clock';
+  }
+  $('fail').addEventListener('click', fail);
+  $('load').addEventListener('click', () => {
+    st.load = !st.load; note(st.load ? 'Load arrives: the OPD queue opens.' : 'The load has gone.');
+    say(st.load ? '<b>Load.</b> Two servers cannot carry this below 50% CPU. Watch the alarm: it needs two minutes above the threshold before it fires.' : '<b>The load has gone, and the group stays as large as it was.</b> It was given a rule for growing and none for shrinking. Read the meter: the third server is still being paid for.');
+    render();
+  });
+  $('step').addEventListener('click', tick);
+  $('run').addEventListener('click', () => setRun(!timer));
+  $('reset').addEventListener('click', init);
+  init();
+  setRun(!window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+</script>
+</body>
+</html>

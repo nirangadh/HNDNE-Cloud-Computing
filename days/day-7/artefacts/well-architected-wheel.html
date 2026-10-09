@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Well-Architected wheel: six pillars as review questions for your capstone design</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 74rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 .3rem; }
+  .lede { max-width: 48rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); max-width: 54rem; }
+  .cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 1rem; align-items: start; }
+  @media (max-width: 62rem) { .cols { grid-template-columns: minmax(0, 1fr); } }
+  .wheel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .5rem; }
+  svg { display: block; width: 100%; max-width: 26rem; margin: 0 auto; height: auto; }
+  .seg { cursor: pointer; }
+  .seg path { fill: var(--white); stroke: var(--navy); stroke-width: 2; }
+  .seg.done path { fill: var(--turquoise-tint); }
+  .seg.risk path { fill: var(--signal-amber); }
+  .seg.on path { stroke-width: 5; }
+  .seg:focus-visible { outline: none; }
+  .seg:focus-visible path { stroke: var(--turquoise-deep); stroke-width: 6; }
+  .t { font-family: "Open Sans", Arial, sans-serif; font-size: 13px; font-weight: 700; fill: var(--navy); pointer-events: none; }
+  .t.s { font-size: 12px; font-weight: 400; }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; margin-bottom: 1rem; }
+  .ask { font-style: italic; margin: 0 0 .6rem; color: var(--ink-muted); }
+  fieldset { border: 0; border-top: 1px solid var(--hairline); margin: 0; padding: .7rem 0 .5rem; }
+  legend { font-weight: 700; padding: 0; float: left; width: 100%; margin-bottom: .4rem; }
+  .opts { display: flex; flex-wrap: wrap; gap: .4rem; clear: both; }
+  .opts label { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; padding: .25rem .7rem; border: 2px solid var(--ink-muted); border-radius: 6px; cursor: pointer; background: var(--white); }
+  .opts input { width: 1.05rem; height: 1.05rem; accent-color: var(--navy); }
+  .opts label:has(input:checked) { border-color: var(--navy); background: var(--turquoise-tint); font-weight: 600; }
+  .opts label.no:has(input:checked), .opts label.part:has(input:checked) { background: var(--signal-amber); }
+  .opts label:has(input:focus-visible) { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.main { background: var(--navy); color: var(--white); }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .nav { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+  .count { font-weight: 800; font-size: 1.2rem; }
+  ol.changes { margin: .5rem 0 0; padding-left: 1.3rem; }
+  ol.changes li { margin-bottom: .6rem; }
+  ol.changes .from { display: block; font-size: .85rem; color: var(--ink-muted); }
+  textarea { font: inherit; width: 100%; min-height: 3.4rem; border: 2px solid var(--ink-muted); border-radius: 6px; padding: .4rem .6rem; color: var(--navy); background: var(--white); }
+  textarea:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 2px; }
+  @media print { .wheel, .nav, .tools, .lede, #qPanel { display: none; } body { background: var(--white); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>The Well-Architected wheel</h1>
+  <p class="lede">Six pillars, each as questions and not as an adjective. Answer every question for your group's capstone design, honestly: "we think so" is a no. The questions you could not answer with a plain yes become your three changes before submission.</p>
+
+  <div class="cols">
+    <div>
+      <div class="wheel"><svg viewBox="0 0 360 360" id="wheel" role="group" aria-label="The six pillars. Choose one to see its questions."></svg></div>
+      <section class="panel" aria-labelledby="hC" style="margin-top:1rem">
+        <h2 id="hC">Your three changes</h2>
+        <p class="count" id="count" role="status" aria-live="polite"></p>
+        <ol class="changes" id="changes"></ol>
+        <p id="hint" style="margin:.4rem 0 0"></p>
+        <div class="nav tools"><button type="button" id="print">Print the list</button><button type="button" id="reset">Start again</button></div>
+      </section>
+    </div>
+    <section class="panel" id="qPanel" aria-labelledby="hP">
+      <h2 id="hP"></h2>
+      <p class="ask" id="ask"></p>
+      <div id="qs"></div>
+      <div class="nav"><button type="button" class="main" id="next">Next pillar</button></div>
+    </section>
+  </div>
+
+  <footer>The six pillar names are those of the AWS Well-Architected Framework. The questions are written for a design in two tiers, like your capstone, and each one comes from the capstone's own requirements. Nothing you type leaves this page, and nothing is saved: print the list or copy it into your group's notes. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const PILLARS = [
+    { id: 'ops', name: 'Operational excellence', short: ['Operational', 'excellence'], ask: 'Not "is it well run?" but: what happens when nobody is watching?', qs: [
+      ['If a web server fails at night, is it replaced without a person?', 'Show the replacement in the group\'s activity history, with its time.'],
+      ['Does an alarm reach a named person by a route you have tested?', 'Create the alarm and the topic, confirm the subscription, and make the alarm fire once.'],
+      ['Could another member rebuild the environment from your diagram and your ledger?', 'Have a member who did not build a tier rebuild it from the diagram alone, and fix what was missing.'] ] },
+    { id: 'sec', name: 'Security', short: ['Security'], ask: 'Not "is it secure?" but: who can, and how would we know?', qs: [
+      ['Can you show who may read the records and the reports, by policy and not by promise?', 'Read each policy aloud as a sentence, and remove any action or resource nobody can justify.'],
+      ['Is every administrative action attributable to a named person?', 'Give each member a user of their own, share no sign-in, and check that the trail delivers to the audit bucket.'],
+      ['Is anything reachable from the internet that should not be?', 'Check the database, the bucket and the web tier in turn: route, public address, security group, Block Public Access.'] ] },
+    { id: 'rel', name: 'Reliability', short: ['Reliability'], ask: 'Not "is it reliable?" but: what fails, and what happens then?', qs: [
+      ['Does the portal survive the loss of one availability zone?', 'Put the load balancer and the group across both zones, and say what happens to the database.'],
+      ['Has the database restore been tested, with a measured RTO against two hours?', 'Restore from the snapshot with a clock running, and write the minutes down.'],
+      ['Is the RPO of one hour argued from a backup schedule?', 'State how often the records are backed up, and show that the interval is an hour or less.'] ] },
+    { id: 'perf', name: 'Performance efficiency', short: ['Performance', 'efficiency'], ask: 'Not "is it fast?" but: is each part the right kind and the right size?', qs: [
+      ['Does the web tier grow under load, and can you show that it did?', 'Run the load test and keep the activity history that shows the scale-out.'],
+      ['Is each server the smallest type that does the job?', 'Name the instance type of every tier and the reason for it.'],
+      ['Would any part be better as a container, and what would that change?', 'Decide it for the web tier, and say what would happen to the image, the launch template and the group.'] ] },
+    { id: 'cost', name: 'Cost optimization', short: ['Cost', 'optimization'], ask: 'Not "is it cheap?" but: can every line be explained to the person who pays?', qs: [
+      ['Is the estimate inside USD 150 a month at 730 hours, with its largest lines explained?', 'Open the estimate, sort it by cost, and write one sentence for each of the three largest lines.'],
+      ['Do the things that bill by the hour exist only in windows you have written down?', 'List the hours of the load balancer, the NAT gateway and the database in the ledger.'],
+      ['Does the ledger agree with Cost Explorer, with every difference explained?', 'Put the two totals side by side and account for the gap: timing, credits, or something left running.'] ] },
+    { id: 'sus', name: 'Sustainability', short: ['Sustainability'], ask: 'Not "is it green?" but: is anything running or stored that nobody uses?', qs: [
+      ['Is everything stopped or deleted when nobody is working?', 'Walk the console at the end of a working day and stop what is still running.'],
+      ['Do old reports move to a cheaper class of storage by rule?', 'Add the lifecycle rule to the reports bucket and check that it is enabled.'] ] }
+  ];
+  const ANS = [['yes', 'Yes, and we can show it'], ['part', 'Partly'], ['no', 'No, or not sure']];
+  let cur = 0, answers = {}, texts = {};
+  const key = (p, i) => PILLARS[p].id + i;
+  function wedge(i) {
+    const a0 = (i * 60 - 90) * Math.PI / 180, a1 = ((i + 1) * 60 - 90) * Math.PI / 180, R = 168, r = 52, cx = 180, cy = 180;
+    const p = (rad, ang) => (cx + rad * Math.cos(ang)).toFixed(1) + ' ' + (cy + rad * Math.sin(ang)).toFixed(1);
+    return 'M' + p(r, a0) + ' L' + p(R, a0) + ' A' + R + ' ' + R + ' 0 0 1 ' + p(R, a1) + ' L' + p(r, a1) + ' A' + r + ' ' + r + ' 0 0 0 ' + p(r, a0) + ' Z';
+  }
+  function state(p) {
+    const got = PILLARS[p].qs.map((_, i) => answers[key(p, i)]);
+    if (got.some(a => !a)) return got.some(a => a) ? 'some' : 'none';
+    return got.every(a => a === 'yes') ? 'done' : 'risk';
+  }
+  function drawWheel() {
+    const order = PILLARS.map((_, i) => i).filter(i => i !== cur).concat([cur]);
+    $('wheel').innerHTML = order.map(i => { const pl = PILLARS[i];
+      const mid = (i * 60 - 60) * Math.PI / 180, x = 180 + 112 * Math.cos(mid), y = 180 + 112 * Math.sin(mid), s = state(i);
+      const word = s === 'done' ? 'all yes' : s === 'risk' ? 'a change here' : s === 'some' ? 'in progress' : 'not answered';
+      const lines = pl.short.map((w, k) => '<text class="t" x="' + x.toFixed(1) + '" y="' + (y - 8 + k * 16 - (pl.short.length - 1) * 8).toFixed(1) + '" text-anchor="middle">' + w + '</text>').join('');
+      return '<g class="seg' + (s === 'done' ? ' done' : s === 'risk' ? ' risk' : '') + (i === cur ? ' on' : '') + '" data-p="' + i + '" tabindex="0" role="button" aria-pressed="' + (i === cur) + '" aria-label="' + pl.name + ': ' + word + '"><path d="' + wedge(i) + '"/>' + lines
+        + '<text class="t s" x="' + x.toFixed(1) + '" y="' + (y + 12 + (pl.short.length - 1) * 8).toFixed(1) + '" text-anchor="middle">' + word + '</text></g>';
+    }).join('') + '<circle cx="180" cy="180" r="46" fill="#0D2B45"/><text class="t" x="180" y="176" text-anchor="middle" style="fill:#FFFFFF">Six</text><text class="t" x="180" y="193" text-anchor="middle" style="fill:#FFFFFF">pillars</text>';
+  }
+  function drawQs() {
+    const pl = PILLARS[cur];
+    $('hP').textContent = pl.name; $('ask').textContent = pl.ask;
+    $('qs').innerHTML = pl.qs.map((q, i) => '<fieldset><legend>' + q[0] + '</legend><div class="opts">' + ANS.map(a =>
+      '<label class="' + a[0] + '"><input type="radio" name="' + key(cur, i) + '" value="' + a[0] + '"' + (answers[key(cur, i)] === a[0] ? ' checked' : '') + '>' + a[1] + '</label>').join('') + '</div></fieldset>').join('');
+    $('next').textContent = cur === PILLARS.length - 1 ? 'Back to the first pillar' : 'Next pillar: ' + PILLARS[cur + 1].name;
+  }
+  function drawChanges() {
+    const all = [];
+    PILLARS.forEach((pl, p) => pl.qs.forEach((q, i) => { const a = answers[key(p, i)]; if (a === 'no' || a === 'part') all.push({ k: key(p, i), pl: pl.name, q: q[0], todo: q[1], w: a === 'no' ? 0 : 1 }); }));
+    all.sort((x, y) => x.w - y.w);
+    const total = PILLARS.reduce((n, pl) => n + pl.qs.length, 0), done = Object.keys(answers).length;
+    $('count').textContent = done + ' of ' + total + ' questions answered';
+    const top = all.slice(0, 3);
+    $('changes').innerHTML = top.map(c => '<li><span class="from">' + c.pl + ': ' + c.q + '</span><label><span class="from">Your change, in your own words</span><textarea data-k="' + c.k + '">' + (texts[c.k] !== undefined ? texts[c.k] : c.todo).replace(/</g, '&lt;') + '</textarea></label></li>').join('');
+    $('hint').textContent = !done ? 'Choose a pillar on the wheel and answer its questions.'
+      : !all.length ? (done === total ? 'Every answer is a plain yes. Ask the group that reviews you whether they agree, and have the proof ready for each.' : 'No changes yet. Keep going round the wheel.')
+      : all.length > 3 ? 'You have ' + all.length + ' answers that are not a plain yes. The list shows the three weakest, with every "no" before any "partly". Rewrite each as your own change.'
+      : 'Rewrite each as your own change, and say who will make it.';
+  }
+  function render() { drawWheel(); drawQs(); drawChanges(); }
+  function pick(p) { cur = p; render(); $('hP').scrollIntoView({ block: 'nearest' }); }
+  $('wheel').addEventListener('click', e => { const g = e.target.closest('.seg'); if (g) { pick(+g.dataset.p); $('wheel').querySelector('[data-p="' + cur + '"]').focus(); } });
+  $('wheel').addEventListener('keydown', e => { const g = e.target.closest('.seg'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(+g.dataset.p); $('wheel').querySelector('[data-p="' + cur + '"]').focus(); } });
+  $('qs').addEventListener('change', e => { answers[e.target.name] = e.target.value; drawWheel(); drawChanges(); });
+  $('changes').addEventListener('input', e => { if (e.target.dataset.k) texts[e.target.dataset.k] = e.target.value; });
+  $('next').addEventListener('click', () => { pick((cur + 1) % PILLARS.length); $('next').focus(); });
+  $('print').addEventListener('click', () => window.print());
+  $('reset').addEventListener('click', () => { answers = {}; texts = {}; cur = 0; render(); });
+  render();
+</script>
+</body>
+</html>

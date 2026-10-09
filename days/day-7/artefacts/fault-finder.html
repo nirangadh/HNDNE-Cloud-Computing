@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fault finder: five faults hidden in the Thara environment, and the evidence that locates each</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 76rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .4rem; }
+  .lede { max-width: 48rem; margin: 0 0 1rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); max-width: 54rem; }
+  button { font: inherit; border-radius: 6px; cursor: pointer; color: var(--navy); }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 2px; }
+  .tools { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1rem; }
+  .tools button { font-weight: 600; padding: .55rem 1rem; min-height: 44px; border: 2px solid var(--navy); background: var(--white); }
+  .tools button[aria-pressed=true] { background: var(--navy); color: var(--white); }
+  .cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 1rem; align-items: start; }
+  @media (max-width: 64rem) { .cols { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .9rem 1rem; margin-bottom: 1rem; }
+  .draw { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .5rem; overflow-x: auto; margin-bottom: 1rem; }
+  svg { display: block; width: 100%; min-width: 480px; height: auto; }
+  .notice { margin: 0; padding-left: 1.2rem; }
+  .notice li { margin: .2rem 0; }
+  .rows { display: grid; gap: .4rem; margin-top: .6rem; }
+  .rows button { display: block; width: 100%; text-align: left; min-height: 44px; padding: .5rem .7rem; border: 2px solid var(--ink-muted); background: var(--white); font-family: var(--font-code); font-size: .92rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .rows button.hit { border: 3px solid var(--signal-coral); background: var(--white); }
+  .rows button.ok { border-color: var(--turquoise-deep); background: var(--turquoise-wash); }
+  .rows button .mk { font-family: var(--font-body); font-weight: 700; display: block; font-size: .85rem; }
+  .why { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .7rem .9rem; margin-top: .8rem; min-height: 3.2rem; }
+  .score { font-weight: 800; font-size: 1.3rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; vertical-align: top; padding: .35rem .6rem .35rem 0; border-bottom: 1px solid var(--hairline); font-size: .93rem; }
+  .table-wrap { overflow-x: auto; }
+  .t { font-family: "Open Sans", Arial, sans-serif; font-size: 13px; fill: var(--navy); }
+  .t.s { font-size: 12px; fill: var(--ink-muted); }
+  .t.b { font-weight: 700; }
+  .t.w { fill: var(--white); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Fault finder</h1>
+  <p class="lede">A warm-up for this afternoon's drill. Someone has put five faults into the Thara environment, and you know only what you notice. Open an evidence source and choose the line that shows a fault. Some lines are innocent, and some sources stay silent: each tells you why.</p>
+
+  <div class="cols">
+    <div>
+      <div class="draw"><svg viewBox="0 0 600 390" role="img" aria-labelledby="dT" id="dia"><title id="dT">The Thara environment, with a marker at each place where a fault has been found</title><g id="g"></g></svg></div>
+      <section class="panel" aria-labelledby="hN">
+        <h2 id="hN">What you notice</h2>
+        <ul class="notice">
+          <li>SSH from your laptop to <code>thara-bastion</code> waits and times out.</li>
+          <li>Once you are on the bastion again, SSH to <code>thara-web-1</code> times out as well.</li>
+          <li>On <code>thara-web-1</code>, <code>aws s3 ls</code> lists every bucket in the account. This morning it was refused.</li>
+          <li>Nothing else looks different.</li>
+        </ul>
+      </section>
+      <section class="panel" aria-labelledby="hS">
+        <h2 id="hS">Your record</h2>
+        <p class="score" id="score" role="status" aria-live="polite"></p>
+        <div class="table-wrap"><table><thead><tr><th scope="col">Fault</th><th scope="col">Located by</th><th scope="col">Fix</th></tr></thead><tbody id="rec"></tbody></table></div>
+        <p id="end"></p>
+        <div class="tools" style="margin:.6rem 0 0"><button type="button" id="reset">Start again</button></div>
+      </section>
+    </div>
+    <div>
+      <div class="tools" id="tools" role="group" aria-label="Evidence sources"></div>
+      <section class="panel" aria-labelledby="hE">
+        <h2 id="hE"></h2>
+        <p id="intro" style="margin:0"></p>
+        <div class="rows" id="rows"></div>
+        <div class="why" id="why" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>The five faults are the ones on the drill's controlled list, and every one is safe and can be put right. The addresses are examples: the bastion is <code>10.0.1.25</code> and <code>thara-web-1</code> is <code>10.0.11.40</code>. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const FAULTS = {
+    1: { name: 'The default route is missing from thara-public-rt', fix: 'Add 0.0.0.0/0 to the internet gateway again.' },
+    2: { name: 'thara-web-sg has no inbound rules', fix: 'Add HTTP from thara-alb-sg and SSH from thara-bastion-sg again.' },
+    3: { name: 'thara-private-rt has a default route to the internet gateway', fix: 'Remove the route. The private subnets are private again.' },
+    4: { name: 'Block Public Access is off on the reports bucket', fix: 'Switch Block all public access on again.' },
+    5: { name: 'thara-web-role has an inline policy that allows everything', fix: 'Delete the inline policy. thara-reports-read remains.' }
+  };
+  const SOURCES = [
+    { id: 'rt', label: 'Route tables', intro: 'The Routes tab of the two route tables, read against what you built on Days 3 and 4.', rows: [
+      { t: 'thara-public-rt    10.0.0.0/16 -> local', why: 'Every route table has the local route. It belongs.' },
+      { t: 'thara-public-rt    no other route', f: 1, why: 'A public subnet is public because of one route, and it is gone. The bastion still shows a public address, and nothing can reach it.' },
+      { t: 'thara-private-rt   10.0.0.0/16 -> local', why: 'The local route. It belongs.' },
+      { t: 'thara-private-rt   S3 prefix list -> gateway endpoint', why: 'This is the Day 4 endpoint, the private path to the reports bucket. It belongs.' },
+      { t: 'thara-private-rt   0.0.0.0/0 -> internet gateway', f: 3, why: 'This fault has no symptom. Nothing in the private subnets has a public address, so nothing changed today. By the Day 3 definition both private subnets are now public.' } ] },
+    { id: 'fl', label: 'Flow log', intro: 'thara-flow-logs, searched for the last hour. A record means a packet arrived. No record means it never did.', rows: [
+      { t: '10.0.1.25 -> 10.0.11.40  port 22   REJECT', f: 2, why: 'The packet from the bastion reached the network interface of thara-web-1 and was refused there. Only a security group or a network ACL refuses, and the group is the one that was changed.' },
+      { t: '10.0.11.40 -> S3         port 443  ACCEPT', why: 'The web tier reading the reports bucket through the endpoint. This is the portal working.' },
+      { t: '(no record of your SSH attempts to the bastion)', why: 'A silence is a clue, not a location. The packets never arrived, so no firewall was ever asked. That rules out the security group and points at routing: read the route tables.' } ] },
+    { id: 'ct', label: 'CloudTrail event history', intro: 'Event history for this region, the last hour, with Read-only set to false. Every line names admin-<student id>: your partner worked in your session.', rows: [
+      { t: 'StartInstances                 thara-bastion, thara-web-1', why: 'You did this yourself, to begin the drill.' },
+      { t: 'AuthorizeSecurityGroupIngress  thara-bastion-sg', why: 'Your own refresh of the My IP rule. It belongs.' },
+      { t: 'DeleteRoute                    thara-public-rt', f: 1, why: 'The trail gives what the route table cannot: who removed the route, and at what minute.' },
+      { t: 'RevokeSecurityGroupIngress     thara-web-sg', f: 2, why: 'Inbound rules were removed from the web tier. The event lists the rules that went, which is also how you know what to put back.' },
+      { t: 'CreateRoute                    thara-private-rt', f: 3, why: 'A route was added to the private table. Without the trail this fault is found only by someone who reads the table.' },
+      { t: 'PutBucketPublicAccessBlock     thara-reports-<student id>', f: 4, why: 'The guard on the reports bucket was changed. Open the event: all four settings read false.' },
+      { t: '(no event names thara-web-role)', why: 'IAM is a global service, and its events are not recorded in this region\'s event history. The change to the role happened, and this list does not show it. Your trail still delivers it to the audit bucket. Read the role itself.' } ] },
+    { id: 'aa', label: 'Access Analyzer', intro: 'The findings of the analyzer you created on Day 5.', rows: [
+      { t: 'Active findings: none', why: 'Silence is not safety. The analyzer reports a bucket when a policy or an access control list grants public access. Removing the guard grants nothing, so there is nothing to report, and the guard is still gone. Write the silence in your record.' } ] },
+    { id: 'co', label: 'The console', intro: 'Three pages that you can simply read: the bucket, the security groups and the role.', rows: [
+      { t: 'thara-reports      Block all public access: Off', f: 4, why: 'Nothing warned you. The bucket is not public, because its policy still names one role, but the switch that would refuse a public policy has gone.' },
+      { t: 'thara-reports      bucket policy: allows thara-web-role to list and read', why: 'This is the Day 6 policy. It names one role in your own account. It belongs.' },
+      { t: 'thara-bastion-sg   inbound: SSH from My IP', why: 'As you left it. It belongs.' },
+      { t: 'thara-web-sg       inbound: no rules', f: 2, why: 'A security group with no inbound rule allows nothing in, so the bastion can no longer reach the web tier.' },
+      { t: 'thara-web-role     thara-reports-read (managed policy)', why: 'The Day 5 policy: two actions on one bucket. It belongs.' },
+      { t: 'thara-web-role     inline policy: Allow * on *', f: 5, why: 'This explains why thara-web-1 can now list every bucket. A web server that is broken into would hold the whole account. Nobody has used it yet, and that is not the same as harmless.' } ] }
+  ];
+  let found, cur, misses;
+  function start() { found = {}; misses = 0; cur = 'rt'; $('why').textContent = 'Choose a line.'; render(); }
+  function render() {
+    const src = SOURCES.find(s => s.id === cur);
+    $('tools').innerHTML = SOURCES.map(s => '<button type="button" data-s="' + s.id + '" aria-pressed="' + (s.id === cur) + '">' + s.label + '</button>').join('');
+    $('hE').textContent = src.label; $('intro').textContent = src.intro;
+    $('rows').innerHTML = src.rows.map((r, i) => {
+      const seen = r.seen, cls = !seen ? '' : r.f ? 'hit' : 'ok';
+      return '<button type="button" data-i="' + i + '" class="' + cls + '">' + r.t.replace(/</g, '&lt;') + (seen ? '<span class="mk">' + (r.f ? 'Fault ' + r.f + ' is here' : 'Not a fault') + '</span>' : '') + '</button>';
+    }).join('');
+    const n = Object.keys(found).length;
+    $('score').textContent = n + ' of 5 faults located' + (misses ? ', ' + misses + (misses === 1 ? ' innocent line opened' : ' innocent lines opened') : '');
+    $('rec').innerHTML = [1, 2, 3, 4, 5].map(k => '<tr><td>' + (found[k] ? k + '. ' + FAULTS[k].name : k + '. not yet found') + '</td><td>' + (found[k] ? found[k].join(', then ') : '') + '</td><td>' + (found[k] ? FAULTS[k].fix : '') + '</td></tr>').join('');
+    $('end').innerHTML = n === 5 ? '<b>All five.</b> Two had a symptom and three had none. Now the debrief: for each fault, which source would have found it fastest? And which of the five would the Data Protection Officer care about most?' : '';
+    draw();
+  }
+  function draw() {
+    const N = '#0D2B45', T = '#48C9B0', W = '#FFFFFF', C = '#E86A5B', TW = '#EDFAF7', TD = '#2A7A7A', P = '#F7F7F7';
+    const mark = (k, x, y) => found[k]
+      ? '<circle cx="' + x + '" cy="' + y + '" r="15" fill="' + C + '" stroke="' + N + '" stroke-width="2"/><text class="t b" x="' + x + '" y="' + (y + 5) + '" text-anchor="middle">' + k + '</text>'
+      : '<circle cx="' + x + '" cy="' + y + '" r="15" fill="' + W + '" stroke="' + N + '" stroke-width="2" stroke-dasharray="4 3"/><text class="t b" x="' + x + '" y="' + (y + 5) + '" text-anchor="middle">?</text>';
+    let g = '<rect x="10" y="40" width="400" height="340" rx="8" fill="none" stroke="' + T + '" stroke-width="3"/><text class="t b" x="24" y="62">thara-vpc</text>';
+    g += '<text class="t b" x="210" y="22" text-anchor="middle">Internet gateway</text><path d="M210 28 L210 40" stroke="' + N + '" stroke-width="2.5"/>';
+    g += '<rect x="26" y="74" width="368" height="118" rx="6" fill="' + TW + '" stroke="' + TD + '" stroke-width="1.5" stroke-dasharray="6 4"/><text class="t s" x="36" y="184">thara-public-a, with thara-public-rt</text>';
+    g += '<rect x="44" y="92" width="150" height="60" rx="6" fill="' + N + '"/><text class="t b w" x="119" y="118" text-anchor="middle">thara-bastion</text><text class="t w" x="119" y="138" text-anchor="middle">10.0.1.25</text>';
+    g += '<rect x="230" y="92" width="150" height="60" rx="6" fill="' + W + '" stroke="' + N + '" stroke-width="2"/><text class="t b" x="305" y="118" text-anchor="middle">Route table</text><text class="t" x="305" y="138" text-anchor="middle">thara-public-rt</text>';
+    g += '<rect x="26" y="208" width="368" height="158" rx="6" fill="' + TW + '" stroke="' + TD + '" stroke-width="1.5" stroke-dasharray="6 4"/><text class="t s" x="36" y="358">thara-private-a, with thara-private-rt</text>';
+    g += '<rect x="44" y="226" width="150" height="78" rx="6" fill="' + N + '"/><text class="t b w" x="119" y="252" text-anchor="middle">thara-web-1</text><text class="t w" x="119" y="272" text-anchor="middle">10.0.11.40</text><text class="t w" x="119" y="292" text-anchor="middle">thara-web-sg</text>';
+    g += '<rect x="230" y="226" width="150" height="60" rx="6" fill="' + W + '" stroke="' + N + '" stroke-width="2"/><text class="t b" x="305" y="252" text-anchor="middle">Route table</text><text class="t" x="305" y="272" text-anchor="middle">thara-private-rt</text>';
+    g += '<path d="M119 152 L119 226" stroke="' + N + '" stroke-width="2"/>';
+    g += '<rect x="436" y="74" width="154" height="78" rx="6" fill="' + P + '" stroke="' + N + '" stroke-width="2"/><text class="t b" x="513" y="102" text-anchor="middle">Reports bucket</text><text class="t" x="513" y="122" text-anchor="middle">thara-reports</text><text class="t s" x="513" y="140" text-anchor="middle">in S3</text>';
+    g += '<rect x="436" y="226" width="154" height="78" rx="6" fill="' + P + '" stroke="' + N + '" stroke-width="2"/><text class="t b" x="513" y="254" text-anchor="middle">Role</text><text class="t" x="513" y="274" text-anchor="middle">thara-web-role</text><text class="t s" x="513" y="292" text-anchor="middle">in IAM</text>';
+    g += '<path d="M194 296 L436 296" stroke="' + N + '" stroke-width="1.5" stroke-dasharray="5 4"/>';
+    g += mark(1, 380, 92) + mark(2, 194, 226) + mark(3, 380, 226) + mark(4, 578, 74) + mark(5, 578, 226);
+    $('g').innerHTML = g;
+  }
+  $('tools').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; cur = b.dataset.s; $('why').textContent = 'Choose a line.'; render(); const again = $('tools').querySelector('[data-s="' + cur + '"]'); if (again) again.focus(); });
+  $('rows').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const src = SOURCES.find(s => s.id === cur), r = src.rows[+b.dataset.i], i = b.dataset.i;
+    if (!r.seen) { r.seen = true; if (r.f) { (found[r.f] = found[r.f] || []).push(src.label); } else misses++; }
+    $('why').innerHTML = (r.f ? '<b>Fault ' + r.f + ': ' + FAULTS[r.f].name + '.</b> ' : '<b>Not a fault.</b> ') + r.why;
+    render(); const again = $('rows').querySelector('[data-i="' + i + '"]'); if (again) again.focus();
+  });
+  $('reset').addEventListener('click', () => { SOURCES.forEach(s => s.rows.forEach(r => delete r.seen)); start(); });
+  start();
+</script>
+</body>
+</html>

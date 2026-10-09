@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Availability arithmetic: nines into minutes a month, and what a chain of parts does to them</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .4rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); max-width: 52rem; }
+  fieldset { border: 1px solid var(--silver); border-radius: 6px; background: var(--white); padding: .8rem 1rem 1rem; margin: 0 0 1rem; }
+  legend { font-weight: 700; padding: 0 .4rem; }
+  .targets { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .targets label { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: .3rem .8rem; border: 2px solid var(--ink-muted); border-radius: 6px; cursor: pointer; font-weight: 600; background: var(--white); }
+  .targets input { width: 1.1rem; height: 1.1rem; accent-color: var(--navy); }
+  .targets label:has(input:checked) { border-color: var(--navy); background: var(--turquoise-tint); }
+  .targets label:has(input:focus-visible) { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button:disabled { border-color: var(--ink-muted); color: var(--ink-muted); cursor: not-allowed; }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: .35rem; margin-top: .9rem; }
+  .part { flex: 1 1 8.5rem; min-width: 8.5rem; background: var(--navy); color: var(--white); border-radius: 6px; padding: .6rem .7rem; }
+  .part b { display: block; font-size: .95rem; }
+  .part span { font-size: .85rem; }
+  .arrow { align-self: center; font-weight: 800; color: var(--ink-muted); }
+  .results { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem; }
+  @media (max-width: 52rem) { .results { grid-template-columns: 1fr; } }
+  .card { background: var(--white); border: 2px solid var(--navy); border-radius: 6px; padding: .8rem 1rem; }
+  .card.whole { border: 3px solid var(--signal-coral); }
+  .card.whole.same { border: 2px solid var(--navy); }
+  .card .big { font-weight: 800; font-size: 1.6rem; line-height: 1.2; }
+  .card p { margin: .4rem 0 0; }
+  .bars { margin-top: .7rem; }
+  .bar { display: grid; grid-template-columns: 7.5rem 1fr; gap: .6rem; align-items: center; font-size: .9rem; margin-top: .3rem; }
+  .track { background: var(--paper); border: 1px solid var(--silver); border-radius: 4px; height: 1.1rem; overflow: hidden; }
+  .fill { height: 100%; background: var(--signal-amber); border-right: 2px solid var(--navy); }
+  .fill.one { background: var(--turquoise); }
+  .say { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .8rem 1rem; margin: 1rem 0 0; }
+  table { border-collapse: collapse; margin-top: .6rem; width: 100%; max-width: 34rem; }
+  th, td { text-align: left; padding: .3rem .6rem .3rem 0; border-bottom: 1px solid var(--silver); font-size: .95rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Availability arithmetic</h1>
+  <p class="lede">A percentage hides how much downtime it allows. Choose a target and read it as minutes in a month of 730 hours. Then add parts to the chain that a patient's request passes through, and watch what the chain does to the number.</p>
+
+  <fieldset>
+    <legend>1. Choose the target of each part</legend>
+    <div class="targets" id="targets"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>2. Put parts in a chain</legend>
+    <div class="row">
+      <button type="button" id="add">Add a part to the chain</button>
+      <button type="button" id="del">Take the last part away</button>
+      <span id="count" aria-hidden="true"></span>
+    </div>
+    <div class="chain" id="chain" aria-hidden="true"></div>
+  </fieldset>
+
+  <div class="results" role="status" aria-live="polite">
+    <section class="card" aria-labelledby="hOne">
+      <h2 id="hOne">One part by itself</h2>
+      <div class="big" id="vOne"></div>
+      <p id="xOne"></p>
+    </section>
+    <section class="card whole" id="cAll" aria-labelledby="hAll">
+      <h2 id="hAll">The whole chain</h2>
+      <div class="big" id="vAll"></div>
+      <p id="xAll"></p>
+    </section>
+  </div>
+
+  <div class="bars" aria-hidden="true">
+    <div class="bar"><span>One part</span><div class="track"><div class="fill one" id="bOne"></div></div></div>
+    <div class="bar"><span>The chain</span><div class="track"><div class="fill" id="bAll"></div></div></div>
+  </div>
+
+  <div class="say" id="say"></div>
+
+  <h2 style="margin-top:1.5rem">The table to remember</h2>
+  <table>
+    <thead><tr><th scope="col">Target</th><th scope="col">Downtime allowed in a month</th></tr></thead>
+    <tbody id="tbl"></tbody>
+  </table>
+
+  <footer>A month is 730 hours, which is 43,800 minutes, as everywhere in this module. The sum assumes that the parts fail independently of each other. The first three parts are named for the path of a request to the Thara portal; Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const MONTH = 43800, TARGETS = [99, 99.5, 99.9, 99.95, 99.99];
+  const NAMES = ['Load balancer', 'Web tier', 'Records database', 'Another part', 'Another part', 'Another part'];
+  const $ = id => document.getElementById(id);
+  let n = 1, target = 99.9;
+  const mins = m => m >= 120 ? (m / 60).toFixed(1).replace(/\.0$/, '') + ' hours' : m >= 10 ? Math.round(m) + ' minutes' : m.toFixed(1) + ' minutes';
+  const pct = a => (a * 100).toFixed(a > 0.9999 ? 3 : a >= 0.999 ? 2 : 1) + '%';
+  $('targets').innerHTML = TARGETS.map(t => '<label><input type="radio" name="t" value="' + t + '"' + (t === target ? ' checked' : '') + '>' + t + '%</label>').join('');
+  $('tbl').innerHTML = TARGETS.map(t => '<tr><td>' + t + '%</td><td>' + mins(MONTH * (100 - t) / 100) + '</td></tr>').join('');
+  function draw() {
+    const a = target / 100, all = Math.pow(a, n), dOne = MONTH * (1 - a), dAll = MONTH * (1 - all);
+    $('chain').innerHTML = Array.from({ length: n }, (_, i) => (i ? '<span class="arrow">then</span>' : '') + '<div class="part"><b>' + NAMES[i] + '</b><span>' + target + '%</span></div>').join('');
+    $('count').textContent = n + (n === 1 ? ' part' : ' parts') + ' in the chain';
+    $('add').disabled = n >= NAMES.length; $('del').disabled = n <= 1;
+    $('vOne').textContent = mins(dOne) + ' a month';
+    $('xOne').textContent = 'A target of ' + target + '% allows ' + mins(dOne) + ' of downtime in a month. ' + (dOne > 240 ? 'A person with a runbook can meet that.' : dOne > 20 ? 'Recovery has to start by itself to meet that.' : 'Nothing may have to recover at all to meet that.');
+    $('vAll').textContent = pct(all) + ', ' + mins(dAll) + ' a month';
+    $('cAll').className = 'card whole' + (n === 1 ? ' same' : '');
+    $('xAll').textContent = n === 1 ? 'With one part, the chain is the part.'
+      : n + ' parts at ' + target + '% each multiply to ' + pct(all) + '. The request needs every part, so the chain allows itself about ' + (dAll / dOne).toFixed(1) + ' times the downtime of one part.';
+    const scale = Math.max(dAll, 1);
+    $('bOne').style.width = (100 * dOne / scale).toFixed(1) + '%'; $('bAll').style.width = '100%';
+    $('say').innerHTML = n === 1 ? '<b>Read the percentage as minutes.</b> Change the target and see how each extra nine cuts the allowance to a tenth. Then add a part.'
+      : '<b>A chain is always worse than its weakest link.</b> To promise ' + target + '% for the whole path, every part must do better than ' + target + '%. This is why a design is counted part by part, and why the parts that can be doubled, such as the web tier, are doubled.';
+  }
+  $('targets').addEventListener('change', e => { target = +e.target.value; draw(); });
+  $('add').addEventListener('click', () => { if (n < NAMES.length) { n++; draw(); } });
+  $('del').addEventListener('click', () => { if (n > 1) { n--; draw(); } });
+  draw();
+</script>
+</body>
+</html>
