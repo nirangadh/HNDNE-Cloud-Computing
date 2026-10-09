@@ -242,6 +242,43 @@
 <h3 id="backup-vault">Backup vault</h3>
 <p>The container in AWS Backup that holds the backups a plan creates, with access controls of its own.</p>
 <p><em>Thara example:</em> the backups made by <code>thara-daily</code> are kept in a vault, apart from the volume they protect.</p>
+<h2 id="day-7">Day 7</h2>
+<h3 id="availability-target">Availability target</h3>
+<p>The share of time for which a service is meant to work, written as a percentage. It is best read the other way round, as the minutes of downtime it allows in a month.</p>
+<p><em>Thara example:</em> a target of 99.9% would allow the portal about 44 minutes of downtime in a month of 730 hours.</p>
+<h3 id="high-availability">High availability</h3>
+<p>A design that recovers from a failure quickly and by itself, after a brief interruption. It needs more than one of everything that can fail, in more than one place.</p>
+<p><em>Thara example:</em> two web servers in two zones behind <code>thara-alb</code>: when one fails, a few requests fail, and then the other answers.</p>
+<h3 id="fault-tolerance">Fault tolerance</h3>
+<p>A design in which a failure causes no interruption at all, because spare capacity is already running and already carrying the load. It costs far more than high availability.</p>
+<p><em>Thara example:</em> the pilot buys high availability, which its ceiling of USD 150 a month can afford, and not fault tolerance.</p>
+<h3 id="horizontal-scaling">Horizontal scaling</h3>
+<p>Adding more servers of the same size to share the work, as opposed to vertical scaling, which makes one server larger. It needs servers that can stand in for one another.</p>
+<p><em>Thara example:</em> a third <code>t3.micro</code> joins the web tier for the OPD peak, and leaves when the peak is over.</p>
+<h3 id="launch-template">Launch template</h3>
+<p>A saved set of launch settings, such as the image, the instance type, the security group and the role, from which identical instances can be started without a person.</p>
+<p><em>Thara example:</em> <code>thara-web-lt</code> starts every web server from the image <code>thara-portal-v1</code>, with <code>thara-web-role</code>.</p>
+<h3 id="target-group">Target group</h3>
+<p>The list of servers to which a load balancer sends requests, together with the health check it runs on each of them.</p>
+<p><em>Thara example:</em> <code>thara-web-tg</code> holds the web servers and checks the path <code>/</code> on port 80 of each.</p>
+<h3 id="auto-scaling-group">Auto Scaling group</h3>
+<p>A service that keeps a set number of instances running from a launch template, across the subnets it is given, and replaces any instance that fails.</p>
+<p><em>Thara example:</em> <code>thara-web-asg</code> keeps two web servers, one in <code>thara-private-a</code> and one in <code>thara-private-b</code>, and may grow to three.</p>
+<h3 id="scaling-policy">Scaling policy</h3>
+<p>A rule attached to an Auto Scaling group that changes the number of instances it keeps when an alarm fires.</p>
+<p><em>Thara example:</em> the policy on <code>thara-web-asg</code> adds one server when the group's average CPU stays above 50%.</p>
+<h3 id="cooldown">Cooldown</h3>
+<p>A pause after a scaling action, during which the group ignores further alarms, so that a new instance can take its share of the load before anything else is added.</p>
+<p><em>Thara example:</em> after adding the third web server, <code>thara-web-asg</code> waits 300 seconds before it will act again.</p>
+<h3 id="alarm">Alarm</h3>
+<p>A watch on one metric in CloudWatch. It changes state when the metric stays past a threshold for a set time, and it can then trigger an action and send a notification.</p>
+<p><em>Thara example:</em> the alarm <code>thara-web-asg</code> triggers the scale-out and publishes to <code>thara-alerts</code>, which emails you.</p>
+<h3 id="web-acl">Web ACL</h3>
+<p>A list of rules in AWS WAF that inspects each web request and allows or blocks it. It is attached to a resource such as a load balancer.</p>
+<p><em>Thara example:</em> demonstrated on a load balancer, where it blocks a request shaped like a SQL injection before it reaches a web server.</p>
+<h3 id="well-architected-framework">Well-Architected Framework</h3>
+<p>The set of review questions that AWS publishes for judging a design, grouped under six pillars. It is a method for finding risks, not a mark.</p>
+<p><em>Thara example:</em> the Head of IT uses its questions to defend the pilot to the board, and your group uses them on its capstone design.</p>
 <nav class="pager" aria-label="Page navigation"><span></span><span><a href="index.html">All days</a></span><span></span></nav>
 </div>
 </main>

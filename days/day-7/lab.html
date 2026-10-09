@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Lab 7: Build component 12, then the break/fix drill | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Day 7 afternoon lab sheet: Build component 12, then the. Day 7, both sessions. One sheet for two labs: in the morning you build component 12 (Load balancer and Auto...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-7/lab.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Lab 7: Build component 12, then the break/fix drill">
+<meta property="og:description" content="Day 7 afternoon lab sheet: Build component 12, then the. Day 7, both sessions. One sheet for two labs: in the morning you build component 12 (Load balancer and Auto...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-7/lab.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"Day 7 afternoon lab sheet: Build component 12, then the. Day 7, both sessions. One sheet for two labs: in the morning you build component 12 (Load balancer and Auto...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Lab sheet","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Lab 7: Build component 12, then the break/fix drill","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-7/lab.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-7/","name":"Day 7","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-7/lab.html","name":"Lab 7: Build component 12, then the break/fix drill","position":3}]}</script>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Build component 12, then the break/fix drill</h1><p class="sub">Day 7, afternoon lab</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 5">LO5</span><span class="badge" title="Learning outcome 7">LO7</span><span class="badge" title="Learning outcome 8">LO8</span><span class="chip cost">Credit use: USD 0.30</span></div>
+<p><strong>Day 7, both sessions. One sheet for two labs: in the morning you build component 12 (Load balancer and Auto Scaling group) round component 6 (Portal web tier) of the Thara Hospitals architecture, and in the afternoon you find and repair five faults that a partner has put into your environment. The afternoon builds no new component.</strong></p>
+<div class="table-wrap"><table class="meta-table">
+
+<tbody>
+<tr>
+<td>Learning outcomes</td>
+<td>LO2, LO3, LO4, LO5, LO7, LO8</td>
+</tr>
+<tr>
+<td>Sub-outcomes</td>
+<td>S3.1, S5.5 (morning); S5.4, S7.3, S8.3 (afternoon)</td>
+</tr>
+<tr>
+<td>Prerequisites</td>
+<td>From Day 6: <code>thara-bastion</code> and <code>thara-web-1</code>, both stopped, <code>thara-web-role</code>, the S3 gateway endpoint on <code>thara-private-rt</code>, and the flow log <code>thara-flow-logs</code>. From Day 5: <code>thara-trail</code>, GuardDuty and the Access Analyzer analyzer. From Day 2: the image <code>thara-portal-v1</code>. On your computer: <code>thara-key.pem</code>. For the afternoon: your group's capstone diagram</td>
+</tr>
+<tr>
+<td>Estimated credit consumption</td>
+<td>USD 1.50 for the morning lab and USD 0.30 for the afternoon drill: USD 1.80 for the day</td>
+</tr>
+<tr>
+<td>Evidence pack</td>
+<td>None for Day 7. The portfolio has six packs, for Days 1 to 6. Today's records are for you and for your capstone</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="0-before-you-start">0. Before you start</h2>
+<ol>
+<li>Region check: the console shows <strong>Asia Pacific (Mumbai) ap-south-1</strong>. If not, change it now.</li>
+<li>You are signed in as your <strong>admin IAM user</strong>, not root.</li>
+<li>Tags for everything today: <code>Module=CC</code>, <code>Day=7</code>, <code>Owner=&lt;student id&gt;</code>.</li>
+<li>Open your cost ledger. Write today's date and the segment names below with a blank cost column.</li>
+</ol>
+<p>Console labels below are as they appeared at the time of writing. AWS renames buttons from time to time; if a label differs, look for the same idea nearby and tell your lecturer.</p>
+<p>You need the same terminal as on Day 6, opened in the folder that holds <code>thara-key.pem</code>, the email inbox of the address you will give for alerts, and a clock you can read to the minute.</p>
+<h3 id="the-ideas-behind-the-morning-lab">The ideas behind the morning lab</h3>
+<p>Read the <a href="notes.html">morning notes</a> first. Four things are worth holding in your head while you build.</p>
+<p><strong>Three resources, three jobs.</strong> The <a class="term" data-term="launch-template" href="../../glossary.html#launch-template">launch template</a> says what a web server is. The <a class="term" data-term="auto-scaling-group" href="../../glossary.html#auto-scaling-group">Auto Scaling group</a> says how many there must be, and replaces one that fails. The load balancer gives patients one way in and checks which servers may be sent requests. None of them does another's job: you create all three, and the group is told about the load balancer through a <a class="term" data-term="target-group" href="../../glossary.html#target-group">target group</a>.</p>
+<p><strong>These servers have no names.</strong> <code>thara-web-1</code> was a server you knew. The group's instances are told apart only by their instance id, which each one writes on its own page at first boot. If one is terminated, nobody repairs it. Another is started from the template.</p>
+<p><strong>The load balancer bills by the hour.</strong> It is created in segment 2 and deleted in the teardown, before the break. Your ledger records both times, and the two must be less than two hours apart.</p>
+<p><strong>A health check is a loaded instruction.</strong> The group believes what the load balancer tells it. If the check is wrong, the group destroys healthy servers because it was told they were sick. The break-it shows you this on purpose.</p>
+<figure class="art"><svg aria-labelledby="gtm-t gtm-d" role="img" style="min-width:640px" viewbox="0 0 640 330"><title id="gtm-t">The group through the morning</title><desc id="gtm-d">A stepped line showing how many web servers the Auto Scaling group runs during the morning lab, between its minimum of 2 and its maximum of 3. At step 5 the group is created and runs two. At step 9 the alarm fires and the group runs three. At step 10 one server is terminated, so two remain, and the group replaces it and runs three again: the time between is the measured replacement time. At teardown the group is deleted and no servers run.</desc><rect fill="#FFFFFF" height="330" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">The group through the morning</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="14" y="46">web servers running</text><path d="M70 250 L600 250" stroke="#D3DADF" stroke-width="1.5"></path><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" x="58" y="254">0</text><path d="M70 200 L600 200" stroke="#D3DADF" stroke-width="1.5"></path><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" x="58" y="204">1</text><path d="M70 150 L600 150" stroke="#D3DADF" stroke-width="1.5"></path><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" x="58" y="154">2</text><path d="M70 100 L600 100" stroke="#D3DADF" stroke-width="1.5"></path><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" x="58" y="104">3</text><path d="M70 150 L600 150" stroke="#2A7A7A" stroke-dasharray="6 4" stroke-width="1.5"></path><path d="M70 100 L600 100" stroke="#2A7A7A" stroke-dasharray="6 4" stroke-width="1.5"></path><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="604" y="154">min</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="604" y="104">max</text><path d="M70 250 L70 150 L220 150 L220 100 L340 100 L340 150 L430 150 L430 100 L515 100 L515 250 L590 250" fill="none" stroke="#0D2B45" stroke-linejoin="round" stroke-width="4"></path><circle cx="70" cy="150" fill="#48C9B0" r="8" stroke="#0D2B45" stroke-width="2"></circle><circle cx="220" cy="100" fill="#F4B942" r="8" stroke="#0D2B45" stroke-width="2"></circle><circle cx="340" cy="150" fill="#E86A5B" r="8" stroke="#0D2B45" stroke-width="2"></circle><circle cx="430" cy="100" fill="#48C9B0" r="8" stroke="#0D2B45" stroke-width="2"></circle><circle cx="515" cy="250" fill="#FFFFFF" r="8" stroke="#0D2B45" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="76" y="282">step 5</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="76" y="299">group created</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="220" y="282">step 9</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="220" y="299">alarm: one more</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="385" y="282">step 10</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="385" y="299">terminated, replaced</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="555" y="282">teardown</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="555" y="299">group deleted</text><path d="M340 164 L430 164 M340 158 L340 170 M430 158 L430 170" fill="none" stroke="#546472" stroke-width="1.5"></path><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="385.0" y="184">your measured</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="385.0" y="200">replacement time</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="322">This line is what the group's activity history records, and what you screenshot.</text></svg><figcaption>What the morning looks like from the group's side. Your activity history should show every step of this line. <a class="full" href="img/the-group-through-the-morning.svg">Open this diagram at full size</a></figcaption></figure>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q"><code>thara-web-tg</code> checks the path <code>/</code> on each web server. Someone changes the path to one that does not exist, and every target fails its check at once. What does <code>thara-web-asg</code> do?</p><ol class="qc-opts"><li data-right="">It starts replacing web servers that are in fact healthy<span class="qc-key"> (answer)</span></li><li>It does nothing, because the page itself still loads</li><li>It removes one instance, because fewer are now needed</li></ol><p class="qc-why"><strong>Why:</strong> The group was told to trust the load balancer's health checks, so an instance reported unhealthy is terminated and replaced, however well it is working. The page may still load for a while, which is what makes the mistake easy to miss.</p></div>
+<h3 id="the-ideas-behind-the-afternoon-drill">The ideas behind the afternoon drill</h3>
+<h4 id="the-well-architected-framework-as-a-review-method">The Well-Architected Framework as a review method</h4>
+<p>The <a class="term" data-term="well-architected-framework" href="../../glossary.html#well-architected-framework">Well-Architected Framework</a> is AWS's own way of reviewing a design. Three things matter this afternoon.</p>
+<ul>
+<li><strong>Six pillars as questions, not adjectives.</strong> Operational excellence, security, reliability, performance efficiency, cost optimization and sustainability are the six names. "Is it secure?" is an adjective and gets the answer yes. "Who can read patient data, and how would we know if someone did?" is a question, and it has an answer you can check. For each pillar you ask the question, not the adjective.</li>
+<li><strong>The Well-Architected Tool demonstrated against one volunteer group's design.</strong> The tool is a questionnaire in the console. Your lecturer runs it against one group's capstone diagram, so that you see which questions it asks and how it marks a risk.</li>
+<li><strong>LO1 callback: is any part of the capstone better as a container, and what would that change?</strong> On Day 1 you argued virtual machines against containers for the portal. Ask it again of the design you have now built: the image, the launch template and the group would each change.</li>
+</ul>
+<div class="box thara"><p>The Head of IT must defend the pilot to the board; the review is the defence. A board does not read route tables. It asks the six questions in its own words, and a design that has already been reviewed against them has its answers ready.</p></div>
+<h4 id="decommissioning-is-a-skill">Decommissioning is a skill</h4>
+<p>Building is half of a pilot. Taking it down without losing what must be kept is the other half.</p>
+<ul>
+<li><strong>Clean deletion order; what to retain until marking; zero forecast as the proof.</strong> Things are deleted in the reverse of the order in which they depend on each other: instances before their network, the network last. Some things are kept on purpose, such as the snapshots and the trail's bucket, because they are the evidence. The proof that you have finished is a forecast for next month that reads zero or close to it.</li>
+<li><strong>Free Plan expiry, the six-month clock, and the 90-day grace period.</strong> At the time of writing a Free Plan account ends six months after it was opened, or when its credits are used up, whichever comes first. The account then closes. AWS keeps its content for 90 days, and within that time you can get it back by upgrading to a paid plan. After that it is deleted for good. Know the date on which your own clock runs out, and your host account's.</li>
+</ul>
+<p><strong>How the drill runs.</strong> You and a partner swap seats, not passwords. Each of you introduces the same five faults at the other's console, then you swap back and repair your own environment. You already know what the five faults are. The skill being practised is the one a real incident asks for: to say for each fault what the symptom was, which evidence located it, and what fixed it.</p>
+<p><strong>Not every fault has a symptom, and not every source speaks.</strong> Two of the five stop something working. Three change nothing that you would notice, and are found only by reading. Two of the evidence sources you are asked to consult will tell you nothing at all, and writing that down is part of the record.</p>
+<div class="box mistake"><p>"Turning off Block Public Access raises a warning." It does not. The console stays quiet, and Access Analyzer reports a bucket only when a policy or an access control list also grants public access. Removing the guard makes nothing public by itself, so nothing is reported, and the guard is still gone.</p></div>
+<div class="box mistake"><p>"A wildcard policy is harmless if nobody uses it." It is the first thing an attacker uses. A role that may do anything turns one compromised web server into the whole account.</p></div>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">During the drill a default route to the internet gateway appears in <code>thara-private-rt</code>. Every check you run still works as before. Is it a fault?</p><ol class="qc-opts"><li>No: nothing has stopped working, so nothing is wrong</li><li>Only if one of the instances in it is stopped</li><li data-right="">Yes: it has no symptom, and the private subnets are now public<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> A subnet is public because its route table sends <code>0.0.0.0/0</code> to an internet gateway, as Day 3 defined it. Nothing breaks today because no instance there has a public address. The first one that is given such an address is on the internet.</p></div>
+<h2 id="1-objective">1. Objective</h2>
+<p>At the end of the morning the portal has been served from two web servers in two availability zones behind one name, a third has appeared under load and gone unnoticed by patients, a terminated server has been replaced without you, and the load balancer has been deleted again: component 12, round component 6. At the end of the afternoon you have repaired five faults in your own environment with a record of how each was found, reviewed your group's capstone design, and taken your own account down to what must be kept. The morning serves Thara's requirement that the portal ride out the OPD peaks and the dengue season inside the CFO's ceiling. The launch template you write is the model for the one your capstone group builds.</p>
+<h2 id="2-timed-segments">2. Timed segments</h2>
+<h3 id="morning-build-component-12">Morning: build component 12</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Minutes</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Launch template and target group</td>
+<td>20</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>ALB across both public subnets</td>
+<td>20</td>
+<td>about USD 0.025 per hour plus LCU</td>
+</tr>
+<tr>
+<td>ASG min 2 across both private subnets</td>
+<td>20</td>
+<td>two to three <code>t3.micro</code></td>
+</tr>
+<tr>
+<td>Alarm, load, scale-out, replacement, SNS</td>
+<td>25</td>
+<td>nil</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="afternoon-the-breakfix-drill">Afternoon: the break/fix drill</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Minutes</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Introduce faults in a partner's environment</td>
+<td>20</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Diagnose and repair your own</td>
+<td>50</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Debrief by fault</td>
+<td>20</td>
+<td>nil</td>
+</tr>
+</tbody>
+</table></div>
+<p>Segments containing a NAT gateway, a load balancer or a database are created, used and deleted inside the segment. Do not carry them across the break. Today the load balancer lives from segment 2 to the morning teardown, and it is gone before you leave the room for the break. Left running, it costs about USD 0.85 a day with its two public addresses. The load balancer's price is charged by the hour and by the LCU, a unit that measures how much traffic it handled; your traffic today is a few page loads. Prices are for ap-south-1 at the time of writing.</p>
+<h2 id="3-steps">3. Steps</h2>
+<p>Each step states what to do and what you should see. If you do not see it, stop and diagnose before moving on.</p>
+<h3 id="morning-build-component-12-1">Morning: build component 12</h3>
+<p class="segment">Segment 1: Launch template and target group</p>
+<ol class="steps">
+<li data-n="1">
+<p><strong>Check where you are, who you are, and how much you may run.</strong> Confirm the region selector shows <strong>Asia Pacific (Mumbai) ap-south-1</strong> and the top bar shows <code>admin-&lt;student id&gt;</code>. Open the <strong>Service Quotas</strong> console, choose <strong>AWS services</strong>, <strong>Amazon Elastic Compute Cloud (Amazon EC2)</strong>, and find <strong>Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances</strong>. Read its <strong>Applied account-level quota value</strong>, which is counted in vCPUs. Then, in EC2, confirm that <code>thara-web-1</code> is <strong>Stopped</strong>, and start <code>thara-bastion</code> only. It comes back with a new public address, and your own address may have changed, so open <strong>Security groups</strong>, <code>thara-bastion-sg</code>, <strong>Edit inbound rules</strong>, set the source of the SSH rule to <strong>My IP</strong> again, and save. Note the bastion's new <strong>Public IPv4 address</strong>. <span class="expect"><b class="expect-label">You should see</b> a quota of 8 or more, <code>thara-web-1</code> stopped, and <code>thara-bastion</code> running. A <code>t3.micro</code> has 2 vCPUs, and at its busiest this lab runs the bastion and three web servers: 8 vCPUs. If your value is lower, tell your lecturer now and carry on: step 9 says what you will see. <code>thara-web-1</code> stays stopped all morning, because the group's servers take its place.</span></p>
+</li>
+<li data-n="2">
+<p><strong>Write down what a web server is.</strong> In EC2 choose <strong>Launch Templates</strong>, <strong>Create launch template</strong>. Set the page as follows, and leave anything not listed as it is offered.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Choose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Launch template name</td>
+<td><code>thara-web-lt</code></td>
+</tr>
+<tr>
+<td>Auto Scaling guidance</td>
+<td>tick the box</td>
+</tr>
+<tr>
+<td>Application and OS Images</td>
+<td><strong>My AMIs</strong>, <strong>Owned by me</strong>, <code>thara-portal-v1</code></td>
+</tr>
+<tr>
+<td>Instance type</td>
+<td><code>t3.micro</code></td>
+</tr>
+<tr>
+<td>Key pair</td>
+<td><code>thara-key</code></td>
+</tr>
+<tr>
+<td>Subnet</td>
+<td><strong>Don't include in launch template</strong></td>
+</tr>
+<tr>
+<td>Security groups</td>
+<td><strong>Select existing security group</strong>, <code>thara-web-sg</code></td>
+</tr>
+<tr>
+<td>Resource tags</td>
+<td>the three tags, with <code>Day=7</code>, on <strong>Instances</strong> and <strong>Volumes</strong></td>
+</tr>
+<tr>
+<td>Advanced details: IAM instance profile</td>
+<td><code>thara-web-role</code></td>
+</tr>
+<tr>
+<td>Advanced details: Detailed CloudWatch monitoring</td>
+<td><strong>Enable</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>At the foot of <strong>Advanced details</strong>, paste this into <strong>User data</strong>:</p>
+<pre tabindex="0"><code class="language-bash">#!/bin/bash
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/instance-id)
+echo "&lt;p&gt;Served by $ID&lt;/p&gt;" &gt;&gt; /var/www/html/index.html
+</code></pre>
+<p>Choose <strong>Create launch template</strong>. <span class="expect"><b class="expect-label">You should see</b> <code>thara-web-lt</code> is listed, at version 1. Read what you chose. The image is the Day 2 web server, with the pilot page already in it. The script runs once on each new server, asks the instance for its own id, as the Day 2 demonstration did, and adds one line to the page, so that you can tell two servers apart from a browser. No subnet is named, because the group decides where each server goes. Detailed monitoring makes each server report its CPU every minute, not every five; without it the alarm in step 8 would have nothing to read for four minutes in every five. It costs a few cents for the morning.</span></p>
+</li>
+<li data-n="3">
+<p><strong>Make the list the load balancer will send to.</strong> In EC2 choose <strong>Target Groups</strong>, <strong>Create target group</strong>. Target type <strong>Instances</strong>. Target group name <code>thara-web-tg</code>. Protocol <strong>HTTP</strong>, port <code>80</code>. VPC <code>thara-vpc</code>. Under <strong>Health checks</strong>, protocol <strong>HTTP</strong> and health check path <code>/</code>. Add the three tags, choose <strong>Next</strong>, register nothing, and choose <strong>Create target group</strong>. <span class="expect"><b class="expect-label">You should see</b> <code>thara-web-tg</code> is listed with no registered targets. You do not add servers to it by hand: the group will. Open its <strong>Health checks</strong> tab and read the settings you accepted: a request every 30 seconds, unhealthy after 2 failures, healthy after 5 successes. You will meet those numbers again as waiting time.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 2: ALB across both public subnets</p>
+<ol class="steps" start="4">
+<li data-n="4">
+<p><strong>Create the load balancer, and write the time.</strong> First its firewall: <strong>Security groups</strong>, <strong>Create security group</strong>, name <code>thara-alb-sg</code>, description <code class="long">HTTP to the portal from anywhere</code>, VPC <code>thara-vpc</code>, one inbound rule of type <strong>HTTP</strong> with the source <strong>Anywhere-IPv4</strong>, and the three tags. Then <strong>Load Balancers</strong>, <strong>Create load balancer</strong>, <strong>Application Load Balancer</strong>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Choose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Load balancer name</td>
+<td><code>thara-alb</code></td>
+</tr>
+<tr>
+<td>Scheme</td>
+<td><strong>Internet-facing</strong></td>
+</tr>
+<tr>
+<td>VPC</td>
+<td><code>thara-vpc</code></td>
+</tr>
+<tr>
+<td>Availability Zones and subnets</td>
+<td>both zones, with <code>thara-public-a</code> and <code>thara-public-b</code></td>
+</tr>
+<tr>
+<td>Security groups</td>
+<td><code>thara-alb-sg</code> only. Remove <code>default</code></td>
+</tr>
+<tr>
+<td>Listener</td>
+<td><strong>HTTP</strong>, port <code>80</code>, forward to <code>thara-web-tg</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Add the three tags and choose <strong>Create load balancer</strong>. <strong>Write the time in your ledger.</strong> Now make the web tier listen to the load balancer and to nothing else: open <code>thara-web-sg</code>, <strong>Edit inbound rules</strong>, and change the source of the <strong>HTTP</strong> rule from <strong>Anywhere-IPv4</strong> to <strong>Custom</strong>, <code>thara-alb-sg</code>. Leave the SSH rule from <code>thara-bastion-sg</code> as it is. Save. <span class="expect"><b class="expect-label">You should see</b> <code>thara-alb</code> moves from <strong>Provisioning</strong> to <strong>Active</strong> in two or three minutes, and its details show a <strong>DNS name</strong> that ends <code>.elb.amazonaws.com</code>. Copy it. The load balancer stands in the public subnets and the web servers in the private ones. Since Day 3 the web tier's HTTP rule had said "anywhere", which no route could use. Now it says what you mean: web requests come from the load balancer.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 3: ASG min 2 across both private subnets</p>
+<ol class="steps" start="5">
+<li data-n="5">
+<p><strong>Say how many there must be.</strong> In EC2 choose <strong>Auto Scaling Groups</strong>, <strong>Create Auto Scaling group</strong>. The wizard has seven pages.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Choose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Choose launch template</td>
+<td>name <code>thara-web-asg</code>; launch template <code>thara-web-lt</code></td>
+</tr>
+<tr>
+<td>Choose instance launch options</td>
+<td>VPC <code>thara-vpc</code>; subnets <code>thara-private-a</code> and <code>thara-private-b</code></td>
+</tr>
+<tr>
+<td>Integrate with other services</td>
+<td><strong>Attach to an existing load balancer</strong>, <strong>Choose from your load balancer target groups</strong>, <code>thara-web-tg</code>; tick <strong>Turn on Elastic Load Balancing health checks</strong>; leave the health check grace period at 300 seconds</td>
+</tr>
+<tr>
+<td>Configure group size and scaling</td>
+<td><strong>Desired capacity</strong> <code>2</code>, <strong>Min desired capacity</strong> <code>2</code>, <strong>Max desired capacity</strong> <code>3</code>; <strong>No scaling policies</strong>; tick <strong>Enable group metrics collection within CloudWatch</strong></td>
+</tr>
+<tr>
+<td>Add notifications</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td>Add tags</td>
+<td>the three tags, with <code>Day=7</code></td>
+</tr>
+<tr>
+<td>Review</td>
+<td><strong>Create Auto Scaling group</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><span class="expect"><b class="expect-label">You should see</b> within a minute the group's <strong>Activity</strong> tab lists two launches, and its <strong>Instance management</strong> tab shows two instances, one in each zone, moving to <strong>InService</strong>. In <strong>Target Groups</strong>, <code>thara-web-tg</code>, the <strong>Targets</strong> tab shows both, first as <strong>Initial</strong> and after about two and a half minutes as <strong>Healthy</strong>. You asked for two and named two subnets, and the group spread them across the zones without being told. The numbers mean: never fewer than two, two unless something says otherwise, and never more than three.</span></p>
+</li>
+<li data-n="6">
+<p><strong>Load the portal by its one name.</strong> Paste the load balancer's DNS name into a browser, as <code>http://&lt;DNS name&gt;</code>. Reload a dozen times. <span class="expect"><b class="expect-label">You should see</b> the page reads <strong>Thara Hospitals portal (pilot)</strong> and, beneath it, <strong>Served by</strong> and an instance id. As you reload, the id changes between two values. Write both down. Take a screenshot of each. One name, two servers, two zones: this is the first proof. If the page waits and fails, check that both targets are <strong>Healthy</strong> and that <code>thara-web-sg</code> names <code>thara-alb-sg</code> as its HTTP source.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 4: Alarm, load, scale-out, replacement, SNS</p>
+<ol class="steps" start="7">
+<li data-n="7">
+<p><strong>Give the alarm somewhere to send.</strong> Open the Simple Notification Service console, check the region, and choose <strong>Topics</strong>, <strong>Create topic</strong>. Type <strong>Standard</strong>, name <code>thara-alerts</code>, the three tags, <strong>Create topic</strong>. Then <strong>Create subscription</strong>: protocol <strong>Email</strong>, endpoint your own email address. Open your inbox and choose <strong>Confirm subscription</strong> in the message from AWS. <span class="expect"><b class="expect-label">You should see</b> the subscription's status changes from <strong>Pending confirmation</strong> to <strong>Confirmed</strong>. A topic is a named place to which a service publishes a message; whoever has subscribed receives it. Nothing is sent to an address that has not confirmed.</span></p>
+</li>
+<li data-n="8">
+<p><strong>Tell the group when to grow.</strong> First the <a class="term" data-term="alarm" href="../../glossary.html#alarm">alarm</a>. Open CloudWatch, <strong>Alarms</strong>, <strong>All alarms</strong>, <strong>Create alarm</strong>, <strong>Select metric</strong>. Choose <strong>EC2</strong>, <strong>By Auto Scaling Group</strong>, and tick <strong>CPUUtilization</strong> for <code>thara-web-asg</code>. Statistic <strong>Average</strong>, period <strong>1 minute</strong>. Condition <strong>Static</strong>, <strong>Greater</strong>, than <code>50</code>. Under <strong>Additional configuration</strong>, datapoints to alarm <code>2</code> out of <code>2</code>. Choose <strong>Next</strong>. Under <strong>Notification</strong>, alarm state trigger <strong>In alarm</strong>, <strong>Select an existing SNS topic</strong>, <code>thara-alerts</code>. Choose <strong>Next</strong>, name the alarm <code>thara-web-asg</code>, and create it. Then the policy: in <strong>Auto Scaling Groups</strong>, <code>thara-web-asg</code>, open the <strong>Automatic scaling</strong> tab and choose <strong>Create dynamic scaling policy</strong>. Policy type <strong>Simple scaling</strong>, scaling policy name <code>thara-web-asg</code>, CloudWatch alarm <code>thara-web-asg</code>, take the action <strong>Add</strong> <code>1</code> <strong>capacity units</strong>, and then wait <code>300</code> seconds before allowing another scaling activity. Create it. <span class="expect"><b class="expect-label">You should see</b> the alarm is listed with the state <strong>OK</strong>, or <strong>Insufficient data</strong> for its first minutes, and the group shows one dynamic scaling policy. Read it as a sentence: when the average CPU of the group stays above 50% for two minutes, add one server and send an email, then wait five minutes. The wait is the <a class="term" data-term="cooldown" href="../../glossary.html#cooldown">cooldown</a>. The policy and the alarm take the group's name because they belong to it.</span></p>
+</li>
+<li data-n="9">
+<p><strong>Make the servers busy.</strong> In EC2, <strong>Instances</strong>, note the <strong>Private IPv4 address</strong> of each of the group's two instances: one begins <code>10.0.11.</code> and the other <code>10.0.12.</code>. Connect to the bastion as on Day 6, and from the bastion connect to each web server in turn:</p>
+<pre tabindex="0"><code class="language-bash">ssh-add thara-key.pem
+ssh -A ec2-user@&lt;bastion public IPv4 address&gt;
+ssh ec2-user@&lt;first web private address&gt;     # typed on the bastion
+</code></pre>
+<p>On each web server run these three lines, then go to the other one and do the same:</p>
+<pre tabindex="0"><code class="language-bash">for i in 1 2; do nohup timeout 600 yes &gt; /dev/null 2&gt;&amp;1 &amp; done
+top -bn1 | head -3
+exit
+</code></pre>
+<p>Write the time. Then watch three places: the alarm in CloudWatch, the group's <strong>Activity</strong> tab, and your inbox. <span class="expect"><b class="expect-label">You should see</b> <code>top</code> shows the CPU almost fully in use. Within about three minutes the alarm changes to <strong>In alarm</strong>, an email from AWS Notifications arrives, and the <strong>Activity</strong> tab lists a new launch whose cause names the alarm. The group's desired capacity now reads 3. A few minutes later a third target is <strong>Healthy</strong>, and a third instance id joins the two on the portal's page. The load ends by itself after ten minutes. You loaded both servers because the alarm reads the average: one server at full load and one idle is about 50%, which is not above 50%. If the launch fails and the activity's status names a vCPU limit, your quota from step 1 is the cause: take a screenshot of that activity, write one line saying why it failed, and carry on. The group stays at three after the load ends, because you gave it a rule for growing and none for shrinking.</span></p>
+</li>
+<li data-n="10">
+<p><strong>Destroy a server, and time its replacement.</strong> In EC2, <strong>Instances</strong>, select one of the group's instances, <strong>Instance state</strong>, <strong>Terminate (delete) instance</strong>. <strong>Write the time, to the minute.</strong> Watch <code>thara-web-tg</code>, <strong>Targets</strong>, and the group's <strong>Activity</strong> tab, and keep reloading the portal. <span class="expect"><b class="expect-label">You should see</b> the target's status changes to <strong>Draining</strong>, and the group launches a replacement without being asked, with a cause that says an instance was taken out of service. The portal keeps answering from the servers that remain. When the new target shows <strong>Healthy</strong>, write the time. The minutes between the two times are your <strong>measured replacement time</strong>. Nobody repaired the server you destroyed. The group noticed that it had fewer than it was told to keep, and started another from the template.</span></p>
+</li>
+<li data-n="11">
+<p><strong>Read the bill.</strong> Open Billing and Cost Management, <strong>Cost Explorer</strong>. Set the date range from the first day of the module to today, and <strong>Group by</strong> the dimension <strong>Service</strong>. Then change <strong>Group by</strong> to <strong>Tag</strong> and look for <code>Owner</code>. <span class="expect"><b class="expect-label">You should see</b> by service, a bar for each service you have used, with EC2 and its related lines the largest. By tag, one of two things. If <code>Owner</code> is offered, the costs are grouped under your student id, with a separate group for whatever carries no tag. If <code>Owner</code> is not offered, the tag has not been activated for billing: open <strong>Cost allocation tags</strong>, select <code>Owner</code>, <code>Module</code> and <code>Day</code> under <strong>User-defined cost allocation tags</strong>, choose <strong>Activate</strong>, and use the view by service today. A tag groups costs only from the time it is activated, and activation takes up to a day. Write the module-to-date figure beside your ledger's total, and take a screenshot that shows the figure. This morning's load balancer is not in it yet: Cost Explorer is up to a day behind. The notes explain the two reasons why the figures differ.</span></p>
+</li>
+<li data-n="12">
+<p><strong>Finish the morning before the break.</strong> Do section 4, section 5 and section 6, each under its <strong>Morning</strong> heading, in that order, and write the ledger rows in section 7. The load balancer must be gone before you leave the room.</p>
+</li>
+</ol>
+<h3 id="afternoon-the-breakfix-drill-1">Afternoon: the break/fix drill</h3>
+<p class="segment">Segment 1: Introduce faults in a partner's environment</p>
+<ol class="steps" start="13">
+<li data-n="13">
+<p><strong>Bring the environment back, and prove it works.</strong> Start <code>thara-bastion</code> and the Day 3 <code>thara-web-1</code>, which is still in <code>thara-private-a</code>: <strong>Instance state</strong>, <strong>Start instance</strong>. Do not launch another server from the template: two servers named <code>thara-web-1</code> is a fault you removed on Day 3. Set the SSH source of <code>thara-bastion-sg</code> to <strong>My IP</strong> again, note the bastion's new public address, connect, hop to <code>thara-web-1</code>, and run:</p>
+<pre tabindex="0"><code class="language-bash">aws s3 ls s3://thara-reports-&lt;student id&gt;
+aws s3 ls
+exit
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> a prompt on <code>thara-web-1</code>, the first command lists <code>reports-index.txt</code>, and the second is refused with <strong>AccessDenied</strong>, because <code>thara-web-role</code> may list one bucket and no more. Leave the terminal on the bastion. This is your baseline: write down that all three results were as expected, with the time. A fault can only be recognised against something you know was working.</span></p>
+</li>
+<li data-n="14">
+<p><strong>Swap seats, and break your partner's environment.</strong> Pair up. Swap seats, never passwords: you work at your partner's console, in their signed-in session, and they work at yours. Take the fault sheet from your lecturer and introduce these five faults, in this order, ticking each one:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Fault</th>
+<th>Where</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>VPC, <strong>Route tables</strong>, <code>thara-public-rt</code></td>
+<td><strong>Edit routes</strong>, remove the route for <code>0.0.0.0/0</code>, save</td>
+</tr>
+<tr>
+<td>2</td>
+<td>EC2, <strong>Security groups</strong>, <code>thara-web-sg</code></td>
+<td><strong>Edit inbound rules</strong>, delete every rule, save</td>
+</tr>
+<tr>
+<td>3</td>
+<td>VPC, <strong>Route tables</strong>, <code>thara-private-rt</code></td>
+<td><strong>Edit routes</strong>, add <code>0.0.0.0/0</code> with the target <strong>Internet Gateway</strong>, save</td>
+</tr>
+<tr>
+<td>4</td>
+<td>S3, <code class="long">thara-reports-&lt;student id&gt;</code>, <strong>Permissions</strong></td>
+<td><strong>Block public access</strong>, <strong>Edit</strong>, clear <strong>Block all public access</strong>, save, and confirm</td>
+</tr>
+<tr>
+<td>5</td>
+<td>IAM, <strong>Roles</strong>, <code>thara-web-role</code></td>
+<td><strong>Add permissions</strong>, <strong>Create inline policy</strong>, <strong>JSON</strong>: keep the <code>Version</code> line and make the statement allow the action <code>*</code> on the resource <code>*</code>. Give the policy any name you like</td>
+</tr>
+</tbody>
+</table></div>
+<p>For fault 5 the <code>Statement</code> list reads:</p>
+<pre tabindex="0"><code class="language-json">"Statement": [
+  { "Effect": "Allow", "Action": "*", "Resource": "*" }
+]
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> five ticks on the fault sheet, and nothing else changed. Do exactly these five and no others: the list is controlled so that every fault is safe and can be put right. Fault 4 removes a guard and makes nothing public, because the bucket's policy still names one role. Do not add a public statement to the policy. Close nothing, sign out of nothing, and go back to your own seat.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 2: Diagnose and repair your own</p>
+<ol class="steps" start="15">
+<li data-n="15">
+<p><strong>Find all five, repair them, and keep the record.</strong> You are at your own console again, and five things are wrong. For each fault write one row in the table below: the symptom, the evidence that located it, the fix, and the time on the clock when it was fixed.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Fault</th>
+<th>Symptom (or "none")</th>
+<th>Evidence that located it</th>
+<th>Fix</th>
+<th>Fixed at</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>Work from what fails to what does not. First repeat the three checks of step 13, and note which fail and how: a wait that times out is a different symptom from a refusal. Then read, in whatever order the symptoms suggest:</p>
+<ul>
+<li><strong>The route tables.</strong> In VPC, <strong>Route tables</strong>, open <code>thara-public-rt</code> and <code>thara-private-rt</code> and read the <strong>Routes</strong> tab of each against what you built on Days 3 and 4.</li>
+<li><strong>The flow log.</strong> In CloudWatch, <strong>Log groups</strong>, <code>thara-flow-logs</code>, <strong>Search all log streams</strong>, search for <code>REJECT</code> in the last hour. A record shows a packet that arrived and was refused. No record means that the packet never arrived.</li>
+<li><strong>CloudTrail event history.</strong> In CloudTrail, <strong>Event history</strong>, set the time range to the last hour and filter <strong>Read-only</strong> to <code>false</code>, so that only changes are listed. Open an event and read who made it, when, and to which resource.</li>
+<li><strong>Access Analyzer.</strong> In IAM, <strong>Access analyzer</strong>, read the findings of the analyzer you created on Day 5.</li>
+<li><strong>The console itself.</strong> The <strong>Permissions</strong> tab of the reports bucket, the inbound rules of <code>thara-web-sg</code>, and the <strong>Permissions</strong> tab of <code>thara-web-role</code>.</li>
+</ul>
+<p>Repair each fault as you find it, and run the three checks again at the end. <span class="expect"><b class="expect-label">You should see</b> all five rows are filled in, the three checks give the results of step 13 again, <strong>Block all public access</strong> is <strong>On</strong>, <code>thara-web-sg</code> has its two rules (HTTP from <code>thara-alb-sg</code>, SSH from <code>thara-bastion-sg</code>), and <code>thara-web-role</code> has one policy, <code>thara-reports-read</code>. Two sources will have told you nothing. Access Analyzer has no finding for any of the five, and the change to the role is not in this region's event history, because IAM is a global service and its events are recorded elsewhere; your trail still delivers them to <code>thara-audit-&lt;student id&gt;</code>. Write both silences in the evidence column. Look also at the name on every event you did find: it is your own.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 3: Debrief by fault</p>
+<ol class="steps" start="16">
+<li data-n="16">
+<p><strong>Debrief, fault by fault.</strong> With your partner, and then with the room, answer two questions for each fault. Which evidence source found it fastest? And which of the five would the Data Protection Officer care about most? Write your pair's answer to the second in one sentence under your table. <span class="expect"><b class="expect-label">You should see</b> your table has a fastest source for every row, and the room does not agree on the second question at first. The Head of IT and the Data Protection Officer rank these five differently, and both are right about their own concern.</span></p>
+</li>
+<li data-n="17">
+<p><strong>Take your account down.</strong> After the capstone workshop, do section 6 under its <strong>Afternoon</strong> heading, then write the last ledger row in section 7.</p>
+</li>
+</ol>
+<section class="mark prove"><h2 id="4-prove-it"><span class="mark-chip">PROVE IT</span> 4. Prove it</h2>
+<h3 id="morning">Morning</h3>
+<p>Do these at step 12. Keep each with your own records.</p>
+<ul>
+<li>The load balancer's DNS name serves the pilot page from two instance ids: your two screenshots from step 6.</li>
+<li>In <strong>Auto Scaling Groups</strong>, <code>thara-web-asg</code>, the <strong>Activity</strong> tab, the activity history shows a launch caused by the alarm (the scale-out, step 9) and a launch that replaced a terminated instance (step 10). Take one screenshot that shows both.</li>
+<li>The email from <code>thara-alerts</code> arrived: a screenshot of the message, with your address masked.</li>
+</ul>
+<h3 id="afternoon">Afternoon</h3>
+<ul>
+<li>All five faults repaired, with the symptom and the evidence source written for each: your table from step 15, and the three checks of step 13 passing again.</li>
+</ul>
+</section><section class="mark break"><h2 id="5-break-it"><span class="mark-chip">BREAK IT</span> 5. Break it</h2>
+<h3 id="morning-1">Morning</h3>
+<p>Do this at step 12, while the group still exists.</p>
+<p><strong>Fault:</strong> someone "tidies" the health check and points it at a page that is not there.</p>
+<ol>
+<li>In EC2 open <strong>Target Groups</strong>, <code>thara-web-tg</code>, the <strong>Health checks</strong> tab, <strong>Edit</strong>. Change the health check path from <code>/</code> to <code>/missing</code>, and save. Write the time.</li>
+<li>Predict, in writing, what the patients will see and what the group will do. Then watch the <strong>Targets</strong> tab, the group's <strong>Activity</strong> tab, and the portal in your browser. <strong>Symptom:</strong> within about a minute every target reads <strong>Unhealthy</strong>. The portal still loads. Then the group begins to terminate servers and launch new ones, which fail the same check.</li>
+<li><strong>Locate it</strong> with what the console tells you. On the <strong>Targets</strong> tab, the <strong>Health status details</strong> of each target say that the health check failed with the code 404: the server answered, and the page it was asked for does not exist. In the <strong>Activity</strong> tab, each termination's cause says that the instance was taken out of service because the load balancer reported it unhealthy. The servers were never ill. The page still loaded because a target group whose targets are all unhealthy sends requests to all of them, which hides the fault from anyone who only looks at the portal.</li>
+<li><strong>Fix:</strong> revert at once. Set the health check path to <code>/</code> again and save. Watch the targets return to <strong>Healthy</strong>, which takes five successful checks, about two and a half minutes. Do not leave the fault in place for longer than it takes to see the first replacement.</li>
+</ol>
+<p>Record the fault, the symptom, the evidence that located it and the fix. Then say, in two sentences, why this is the most dangerous misconfiguration in the module: one wrong word, in a setting that is not a firewall and not a permission, made the system destroy its own healthy servers, while the page went on loading.</p>
+<h3 id="afternoon-1">Afternoon</h3>
+<p>This session is the break it. The five faults of step 14 are the faults, and your table from step 15 is the record.</p>
+</section><section class="mark teardown"><h2 id="6-teardown"><span class="mark-chip">TEARDOWN</span> 6. Teardown</h2>
+<h3 id="morning-2">Morning</h3>
+<p>Do these in order, before the break. Check your ledger rows are written first.</p>
+<ol>
+<li><strong>Delete the group.</strong> In <strong>Auto Scaling Groups</strong> select <code>thara-web-asg</code>, <strong>Actions</strong>, <strong>Delete</strong>, and confirm. <span class="expect"><b class="expect-label">You should see</b> the group's instances are terminated with it, and its scaling policy goes too. Wait until <strong>Instances</strong> shows them <strong>Terminated</strong>. If you terminate the instances first and leave the group, it launches them again: that is its job.</span></li>
+<li><strong>Delete the load balancer, and write the time.</strong> In <strong>Load Balancers</strong> select <code>thara-alb</code>, <strong>Actions</strong>, <strong>Delete load balancer</strong>, and confirm. <span class="expect"><b class="expect-label">You should see</b> <code>thara-alb</code> is no longer listed. Write the time in your ledger beside its creation time.</span></li>
+<li><strong>Delete the target group.</strong> In <strong>Target Groups</strong> select <code>thara-web-tg</code>, <strong>Actions</strong>, <strong>Delete</strong>. <span class="expect"><b class="expect-label">You should see</b> it is gone. It can be deleted only once no load balancer uses it.</span></li>
+<li><strong>Delete the alarm.</strong> In CloudWatch, <strong>Alarms</strong>, select <code>thara-web-asg</code>, <strong>Actions</strong>, <strong>Delete</strong>. <span class="expect"><b class="expect-label">You should see</b> no alarm is listed.</span></li>
+<li><strong>If you ever copied <code>thara-key.pem</code> to the bastion</strong>, check that it is gone: on the bastion, <code>ls ~</code> should not list it.</li>
+<li><strong>Stop <code>thara-bastion</code>.</strong> Choose <strong>Instance state</strong>, <strong>Stop instance</strong>. <span class="expect"><b class="expect-label">You should see</b> <code>thara-bastion</code> and <code>thara-web-1</code> both show <strong>Stopped</strong>, and nothing else is running.</span></li>
+<li><strong>Confirm in your ledger that the load balancer existed for under two hours.</strong></li>
+</ol>
+<p>What you keep from the morning, and why:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thara-web-lt</code></td>
+<td>It costs nothing, and it is the model for your capstone group's own</td>
+</tr>
+<tr>
+<td><code>thara-alerts</code> and its subscription</td>
+<td>It costs nothing. The afternoon's list removes it</td>
+</tr>
+<tr>
+<td><code>thara-alb-sg</code>, and the HTTP rule of <code>thara-web-sg</code> that names it</td>
+<td>They cost nothing, and the afternoon's fault 2 is repaired against them</td>
+</tr>
+<tr>
+<td><code>thara-web-role</code></td>
+<td><code>thara-web-1</code> uses it this afternoon</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="afternoon-2">Afternoon</h3>
+<p>This is the decommissioning of your own account, in the order in which things depend on each other.</p>
+<p><strong>If your account is the host of your group's capstone, do not delete.</strong> Read the list, tick each line on paper for the things the capstone does not use, and stop there. You decommission after the viva, with this list.</p>
+<p>Everyone else, in order:</p>
+<ol>
+<li><strong>Terminate the two instances.</strong> Select <code>thara-web-1</code> and <code>thara-bastion</code>, <strong>Instance state</strong>, <strong>Terminate (delete) instance</strong>. <span class="expect"><b class="expect-label">You should see</b> both show <strong>Terminated</strong>, and their root volumes go with them.</span></li>
+<li><strong>Delete the launch template and the topic.</strong> In <strong>Launch Templates</strong> choose <code>thara-web-lt</code>, <strong>Actions</strong>, <strong>Delete template</strong>. In the Simple Notification Service console delete the subscription, then the topic <code>thara-alerts</code>.</li>
+<li><strong>Switch off the watcher that will start to bill.</strong> In GuardDuty, <strong>Settings</strong>, choose <strong>Disable GuardDuty</strong>. Its trial ends 30 days after Day 5, and after that it bills for what it analyses.</li>
+<li><strong>Delete the Backup plan and what it made.</strong> In AWS Backup, <strong>Backup plans</strong>, <code>thara-daily</code>: delete the resource assignment <code>thara-daily</code>, then the plan. In <strong>Vaults</strong>, <strong>Default</strong>, delete any recovery point that is listed.</li>
+<li><strong>Delete the flow log and its records.</strong> In VPC, <code>thara-vpc</code>, the <strong>Flow logs</strong> tab: delete the flow log. In CloudWatch, <strong>Log groups</strong>, delete <code>thara-flow-logs</code>.</li>
+<li><strong>Delete the S3 gateway endpoint.</strong> VPC, <strong>Endpoints</strong>, select it, <strong>Actions</strong>, <strong>Delete VPC endpoints</strong>.</li>
+<li><strong>Delete the DB subnet group.</strong> RDS, <strong>Subnet groups</strong>, <code>thara-db-subnets</code>, <strong>Delete</strong>.</li>
+<li><strong>Delete the network.</strong> VPC, <strong>Your VPCs</strong>, select <code>thara-vpc</code>, <strong>Actions</strong>, <strong>Delete VPC</strong>. The console lists what goes with it: the four subnets, the route tables, the internet gateway, the network ACLs and the security groups, among them <code>thara-alb-sg</code>, <code>thara-web-sg</code>, <code>thara-db-sg</code> and <code>thara-bastion-sg</code>. Confirm. <span class="expect"><b class="expect-label">You should see</b> <code>thara-vpc</code> is gone, and only the default VPC is listed. If the console refuses, it names what is still attached; a network interface usually means that an instance has not finished terminating.</span></li>
+<li><strong>Confirm the forecast.</strong> In Cost Explorer read the forecast for next month. <span class="expect"><b class="expect-label">You should see</b> zero, or a few cents for what you kept. Write it as the final row of your ledger.</span></li>
+</ol>
+<p>What you keep until marking is complete, and why:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The image <code>thara-portal-v1</code> and its snapshot</td>
+<td>The proof of Day 2, and what a rebuild would start from</td>
+</tr>
+<tr>
+<td>The snapshot of the Day 2 data volume, and <code>thara-records-snap1</code></td>
+<td>The proof of Days 2 and 6. A few cents a month</td>
+</tr>
+<tr>
+<td><code>alias/thara-records</code></td>
+<td><code>thara-records-snap1</code> is encrypted with it and cannot be restored without it. About USD 0.03 a day</td>
+</tr>
+<tr>
+<td><code class="long">thara-reports-&lt;student id&gt;</code></td>
+<td>The reports bucket's versions, lifecycle rule and policy are evidence of Day 6</td>
+</tr>
+<tr>
+<td><code>thara-audit-&lt;student id&gt;</code> and <code>thara-trail</code></td>
+<td>The record of everything you did, including this afternoon</td>
+</tr>
+<tr>
+<td>Your users, <code>thara-web-role</code>, <code>thara-budget</code> and the Access Analyzer analyzer</td>
+<td>They cost nothing, and the budget is still your alarm</td>
+</tr>
+</tbody>
+</table></div>
+<p>Your Free Plan account runs for six months from the day you opened it, or until its credits are used. Write that date in your ledger now.</p>
+</section><section class="mark cost"><h2 id="7-cost-line"><span class="mark-chip">COST</span> 7. Cost line</h2>
+<p>Estimate for the morning: <strong>USD 1.50</strong>. The morning itself comes to about USD 0.25: about an hour and a half of the load balancer with its two public IPv4 addresses, up to three <code>t3.micro</code> web servers and the bastion for two hours, detailed monitoring, and a few cents for ten minutes of full CPU on servers that are priced for bursts. The rest is room for a load balancer that was left running, which would use it up in a day.</p>
+<p>Estimate for the afternoon: <strong>USD 0.30</strong>. Two <code>t3.micro</code> instances for three hours with the bastion's public address come to about USD 0.10, and what you keep afterwards costs about USD 0.03 a day for the key and a few cents a month for the snapshots.</p>
+<p>Add one ledger row for each of: <code>thara-bastion</code> (two starts and two stops); <code>thara-web-lt</code>, <code>thara-web-tg</code>, <code>thara-alb-sg</code> and <code>thara-alerts</code> (cost 0.00); <code>thara-alb</code> (created and deleted, with the minutes between); <code>thara-web-asg</code> (created and deleted, with the largest number of instances it ran and the <strong>measured replacement time</strong>); the alarm (created and deleted); <code>thara-web-1</code> (started, terminated); and one row for the decommissioning, with the forecast for next month. Write the day's total against the estimate. If it is higher than the estimate, write why in one line.</p>
+</section><h2 id="8-evidence-required">8. Evidence required</h2>
+<p>There is no evidence pack for Day 7. Keep these with your own records: the first three belong in your capstone's design justification, and the ledger completes your individual ledger.</p>
+<h3 id="morning-3">Morning</h3>
+<ol>
+<li>The activity history of <code>thara-web-asg</code> showing the scale-out and the replacement (section 4).</li>
+<li>Ledger rows with the creation and deletion times of <code>thara-alb</code>.</li>
+<li>The Cost Explorer screenshot, by <code>Owner</code> tag or by service, with your ledger's total beside it (step 11).</li>
+<li>Your break-it record from section 5, with your two sentences.</li>
+</ol>
+<h3 id="afternoon-3">Afternoon</h3>
+<ol start="5">
+<li>Your fault diagnosis record: the table from step 15 and your sentence from step 16. It is formative: it is not marked, and it is not part of the portfolio.</li>
+<li>The decommissioning confirmation as the final row of your ledger: the forecast, and the list of what you kept.</li>
+</ol>
+<p>Check every screenshot before you share it: no password, your email address masked, and the middle digits of your account id masked.</p>
+<h2 id="9-thara-connection">9. Thara connection</h2>
+<p>This day meets the requirement that the portal ride out the morning OPD peaks, from 07:00 to 10:00, and the dengue-season surges, and it answers the flood. One server in one basement was a single point of failure. This morning the portal ran on two servers in two availability zones behind one name, grew to three when it was busy, and replaced a server that you destroyed, in a number of minutes you measured. The CFO would ask what the third server costs: by the hour, and only in the hours when it runs, which is why her ceiling does not have to buy a server sized for the peak. She would also ask you to read the bill back to her, and you have now compared your ledger with Cost Explorer. The Head of IT must defend the pilot to the board, and the six questions of this afternoon's review are that defence. The Data Protection Officer would ask the question he has asked since Day 3: how would we know? This afternoon you found five changes after the event, and for four of them the trail named a person and a time. It named you, because your partner worked in your session. That is why the requirement says every administrative action must be attributable to a named person, and why nobody shares a sign-in. One thing remains for your capstone group: the lab's listener is plain HTTP, and Thara requires TLS at the edge.</p>
+<p>Practice: if any of practice questions 1 to 6 is still not attempted, do it before the review session. They are in <a href="../../practice/index.html">practice</a>.</p>
+
+<script type="application/json" id="glossary-data">{"alarm":{"d":"A watch on one metric in CloudWatch. It changes state when the metric stays past a threshold for a set time, and it can then trigger an action and send a notification.","t":"Alarm","x":"the alarm <code>thara-web-asg<\/code> triggers the scale-out and publishes to <code>thara-alerts<\/code>, which emails you."},"auto-scaling-group":{"d":"A service that keeps a set number of instances running from a launch template, across the subnets it is given, and replaces any instance that fails.","t":"Auto Scaling group","x":"<code>thara-web-asg<\/code> keeps two web servers, one in <code>thara-private-a<\/code> and one in <code>thara-private-b<\/code>, and may grow to three."},"cooldown":{"d":"A pause after a scaling action, during which the group ignores further alarms, so that a new instance can take its share of the load before anything else is added.","t":"Cooldown","x":"after adding the third web server, <code>thara-web-asg<\/code> waits 300 seconds before it will act again."},"launch-template":{"d":"A saved set of launch settings, such as the image, the instance type, the security group and the role, from which identical instances can be started without a person.","t":"Launch template","x":"<code>thara-web-lt<\/code> starts every web server from the image <code>thara-portal-v1<\/code>, with <code>thara-web-role<\/code>."},"target-group":{"d":"The list of servers to which a load balancer sends requests, together with the health check it runs on each of them.","t":"Target group","x":"<code>thara-web-tg<\/code> holds the web servers and checks the path <code>/<\/code> on port 80 of each."},"well-architected-framework":{"d":"The set of review questions that AWS publishes for judging a design, grouped under six pillars. It is a method for finding risks, not a mark.","t":"Well-Architected Framework","x":"the Head of IT uses its questions to defend the pilot to the board, and your group uses them on its capstone design."}}</script>
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this afternoon</h2><ul><li><a href="slides/day-7-afternoon.pdf">Slides for this afternoon (PDF)</a></li><li><a href="artefacts/fault-finder.html">Fault finder: five faults hidden in the Thara environment, and the evidence that locates each</a> (visual)</li><li><a href="artefacts/well-architected-wheel.html">Well-Architected wheel: six pillars as review questions for your capstone design</a> (visual)</li><li><a href="plays/p7-words.html">Words ladder: Day 7</a> (12 minutes)</li><li><a href="plays/p7-1-size-the-group.html">Size the group</a> (8 minutes)</li><li><a href="plays/p7-2-which-fault-first.html">Which fault first?</a> (6 minutes)</li><li><a href="plays/p7-quiz.html">Day quiz: stay up, scale, find the fault</a> (10 minutes)</li><li><a href="../../templates/cost-ledger.csv">Cost ledger template</a> and <a href="../../templates/evidence-pack.html">evidence pack template</a> (also as a <a href="../../templates/evidence-pack.pdf">PDF form</a>)</li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d7a">Mark this afternoon as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-7/notes.html">Day 7 morning</a></span><span><a href="index.html">Day 7</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

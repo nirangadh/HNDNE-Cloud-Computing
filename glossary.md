@@ -353,3 +353,65 @@ A schedule in AWS Backup that says which resources are backed up, how often, and
 The container in AWS Backup that holds the backups a plan creates, with access controls of its own.
 
 *Thara example:* the backups made by `thara-daily` are kept in a vault, apart from the volume they protect.
+
+## Day 7
+
+### Availability target
+The share of time for which a service is meant to work, written as a percentage. It is best read the other way round, as the minutes of downtime it allows in a month.
+
+*Thara example:* a target of 99.9% would allow the portal about 44 minutes of downtime in a month of 730 hours.
+
+### High availability
+A design that recovers from a failure quickly and by itself, after a brief interruption. It needs more than one of everything that can fail, in more than one place.
+
+*Thara example:* two web servers in two zones behind `thara-alb`: when one fails, a few requests fail, and then the other answers.
+
+### Fault tolerance
+A design in which a failure causes no interruption at all, because spare capacity is already running and already carrying the load. It costs far more than high availability.
+
+*Thara example:* the pilot buys high availability, which its ceiling of USD 150 a month can afford, and not fault tolerance.
+
+### Horizontal scaling
+Adding more servers of the same size to share the work, as opposed to vertical scaling, which makes one server larger. It needs servers that can stand in for one another.
+
+*Thara example:* a third `t3.micro` joins the web tier for the OPD peak, and leaves when the peak is over.
+
+### Launch template
+A saved set of launch settings, such as the image, the instance type, the security group and the role, from which identical instances can be started without a person.
+
+*Thara example:* `thara-web-lt` starts every web server from the image `thara-portal-v1`, with `thara-web-role`.
+
+### Target group
+The list of servers to which a load balancer sends requests, together with the health check it runs on each of them.
+
+*Thara example:* `thara-web-tg` holds the web servers and checks the path `/` on port 80 of each.
+
+### Auto Scaling group
+A service that keeps a set number of instances running from a launch template, across the subnets it is given, and replaces any instance that fails.
+
+*Thara example:* `thara-web-asg` keeps two web servers, one in `thara-private-a` and one in `thara-private-b`, and may grow to three.
+
+### Scaling policy
+A rule attached to an Auto Scaling group that changes the number of instances it keeps when an alarm fires.
+
+*Thara example:* the policy on `thara-web-asg` adds one server when the group's average CPU stays above 50%.
+
+### Cooldown
+A pause after a scaling action, during which the group ignores further alarms, so that a new instance can take its share of the load before anything else is added.
+
+*Thara example:* after adding the third web server, `thara-web-asg` waits 300 seconds before it will act again.
+
+### Alarm
+A watch on one metric in CloudWatch. It changes state when the metric stays past a threshold for a set time, and it can then trigger an action and send a notification.
+
+*Thara example:* the alarm `thara-web-asg` triggers the scale-out and publishes to `thara-alerts`, which emails you.
+
+### Web ACL
+A list of rules in AWS WAF that inspects each web request and allows or blocks it. It is attached to a resource such as a load balancer.
+
+*Thara example:* demonstrated on a load balancer, where it blocks a request shaped like a SQL injection before it reaches a web server.
+
+### Well-Architected Framework
+The set of review questions that AWS publishes for judging a design, grouped under six pillars. It is a method for finding risks, not a mark.
+
+*Thara example:* the Head of IT uses its questions to defend the pilot to the board, and your group uses them on its capstone design.
