@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anatomy of a composite question: one worked question, part by part</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.55; }
+  main { max-width: 54rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
+  h3 { font-size: 1rem; margin: 1rem 0 .3rem; }
+  p { margin: .5rem 0; }
+  .lede { color: var(--ink-muted); margin: 0 0 1.25rem; }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .card { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; margin: 0 0 1rem; }
+  .part { border-left: 6px solid var(--navy); }
+  .tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .04em; border: 1px solid var(--navy); border-radius: 4px; padding: 0 .45rem; margin-right: .4rem; background: var(--turquoise-tint); }
+  .marks { font-weight: 600; color: var(--ink-muted); font-size: .92rem; }
+  .steps { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1rem; padding: 0; list-style: none; }
+  .steps li { flex: 1 1 9rem; background: var(--navy); color: var(--white); border-radius: 6px; padding: .5rem .7rem; font-size: .9rem; }
+  .steps b { display: block; color: var(--turquoise); }
+  ul.c { margin: .3rem 0 .3rem 1.1rem; padding: 0; }
+  mark { background: var(--signal-amber); color: var(--navy); padding: 0 .15rem; border-bottom: 2px solid var(--navy); }
+  body:not(.found) mark { background: none; border-bottom: none; padding: 0; }
+  label { font-weight: 600; display: block; margin: .8rem 0 .3rem; }
+  textarea { width: 100%; min-height: 7.5rem; font: inherit; padding: .6rem; border: 2px solid var(--ink-muted); border-radius: 6px; background: var(--paper); color: var(--navy); resize: vertical; }
+  textarea:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 2px; }
+  .paper { display: flex; align-items: center; gap: .5rem; font-weight: 400; margin: .5rem 0; min-height: 44px; }
+  .paper input { width: 1.3rem; height: 1.3rem; }
+  .row { display: flex; flex-wrap: wrap; gap: .6rem; margin: .6rem 0 0; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1.1rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--turquoise); color: var(--navy); }
+  button.ghost { background: var(--white); }
+  button[disabled] { background: var(--paper); border-style: dashed; border-color: var(--ink-muted); color: var(--ink-muted); cursor: not-allowed; }
+  .hint { font-size: .88rem; color: var(--ink-muted); margin: .3rem 0 0; }
+  .reveal { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .7rem .9rem; margin: .8rem 0 0; }
+  .reveal:focus { outline: 3px solid var(--turquoise-deep); outline-offset: 2px; }
+  .model { border-left-color: var(--navy); background: var(--paper); }
+  .model ol { margin: .4rem 0 0; padding: 0; list-style: none; }
+  .model li { margin: 0 0 .55rem; padding-left: 5.6rem; position: relative; }
+  .kind { position: absolute; left: 0; top: .15rem; width: 5rem; text-align: center; font-size: .72rem; font-weight: 700; letter-spacing: .03em; border-radius: 4px; padding: .05rem 0; border: 1px solid var(--navy); background: var(--white); }
+  .kind.applies { background: var(--turquoise-tint); }
+  .kind.weighs { background: var(--navy); color: var(--white); }
+  .key { display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .88rem; margin: .5rem 0 0; }
+  .key .kind { position: static; display: inline-block; margin-right: .35rem; }
+  @media (max-width: 34rem) { .model li { padding-left: 0; } .model li .kind { position: static; display: inline-block; margin: 0 .4rem .2rem 0; } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Anatomy of a composite question</h1>
+  <p class="lede">This is the Day 1 practice question, taken one part at a time. Attempt each part before you look: write here, or on paper. Then compare your attempt with what a strong answer covers, and only then read the model answer. Nothing you type is saved or sent anywhere.</p>
+
+  <ol class="steps" aria-label="How to work through a question">
+    <li><b>1. Read</b>Find the constraints</li>
+    <li><b>2. Explain</b>6 marks, about 10 minutes</li>
+    <li><b>3. Apply</b>8 marks, about 14 minutes</li>
+    <li><b>4. Evaluate</b>6 marks, about 10 minutes</li>
+  </ol>
+
+  <section class="card" aria-labelledby="h-sc">
+    <h2 id="h-sc">The scenario</h2>
+    <p>The south-west monsoon has returned. A substation fault leaves Colombo, including Thara Hospitals' flagship hospital and its IT office, without mains power for six hours. The basement server room is dry this time, but its generator runs for only two hours.</p>
+    <p>Thara's six-month pilot is being built in AWS in Asia Pacific (Mumbai), <code>ap-south-1</code>. The Head of IT must choose how the patient portal's web tier is packaged: as a <b>virtual machine image</b> (an image of a whole EC2 instance, operating system included) or as a <b>container image</b> (the portal and its libraries, run by a container runtime on an EC2 instance). He also proposes running the pilot in a single availability zone "to keep us inside the budget".</p>
+    <ul class="c">
+      <li>The CFO has approved <mark>USD 150 a month</mark> for the pilot, and wants every cost line explained.</li>
+      <li>The Data Protection Officer requires that patient data <mark>stay in a known location</mark> and that Thara can say <mark>who can read it</mark> at every layer.</li>
+      <li>The hospital information system and the Colombo IT office are <mark>not part of the pilot</mark>; they remain on the premises.</li>
+    </ul>
+    <p class="hint" id="cHint">Before you start: which facts here rule some answers out? Say them to yourself, then check.</p>
+    <div class="row"><button type="button" class="ghost" id="bFind" aria-pressed="false">Show the constraints</button></div>
+    <p id="cSay" class="reveal" hidden tabindex="-1">Three people, three constraints: a ceiling on cost, a rule about where the data is and who reads it, and a boundary on what the pilot includes. Every part of your answer should touch at least one of them. The six hours and the two-hour generator are facts you will use in part (c).</p>
+  </section>
+
+  <section class="card part" data-part="a" aria-labelledby="h-a">
+    <h2 id="h-a"><span class="tag">(a) EXPLAIN</span> <span class="marks">6 marks</span></h2>
+    <p>Explain the difference in isolation boundary between a virtual machine running on a Type 1 hypervisor such as the AWS Nitro System, and a container running on a shared kernel using namespaces and cgroups. State what follows from that difference for start-up time and for attack surface.</p>
+    <label for="ta-a">Your attempt at part (a)</label>
+    <textarea id="ta-a"></textarea>
+    <label class="paper"><input type="checkbox" id="pp-a"> I have written my attempt on paper</label>
+    <div class="row">
+      <button type="button" class="bG" disabled aria-expanded="false" aria-controls="g-a">Show what a strong answer covers</button>
+      <button type="button" class="bM ghost" disabled aria-expanded="false" aria-controls="m-a">Show a model answer</button>
+    </div>
+    <p class="hint">Attempt the part first: the buttons open once you have written a few lines, here or on paper.</p>
+    <div class="reveal" id="g-a" hidden tabindex="-1">
+      <h3>What a strong answer covers</h3>
+      <p>It places the boundaries precisely. A VM has its own guest kernel, and isolation is enforced by the hypervisor (on EC2, a thin hypervisor with networking, storage and security offloaded to Nitro hardware). A container is a group of processes on the host's kernel, isolated by namespaces (what it can see) and limited by cgroups (what it can use). It then draws the consequences: containers start faster because no kernel boots, and pack more densely; but every container on a host depends on the one shared kernel, so a kernel flaw exposes all of them, whereas a VM escape must defeat the hypervisor. Answers that call a container "a lightweight VM" miss the point of the question.</p>
+      <p><b>Check your attempt:</b> did you say where each boundary is, and did you give both consequences that the question asks for?</p>
+    </div>
+    <div class="reveal model" id="m-a" hidden tabindex="-1">
+      <h3>A model answer</h3>
+      <ol>
+        <li><span class="kind">NAMES</span>A virtual machine has a guest kernel of its own, and a Type 1 hypervisor keeps one machine apart from the next. On EC2 that is the thin hypervisor of the Nitro System, with networking and storage moved onto Nitro hardware.</li>
+        <li><span class="kind">NAMES</span>A container has no kernel of its own. It is a group of processes on the host's kernel: namespaces limit what it can see, and cgroups limit what it can use.</li>
+        <li><span class="kind">NAMES</span>Two things follow. A container starts faster, because no kernel has to boot, and more of them fit on one host.</li>
+        <li><span class="kind">NAMES</span>The attack surface differs too. Every container on a host depends on the one shared kernel, so a flaw in that kernel exposes all of them, whereas an escape from a VM has to defeat the hypervisor.</li>
+        <li><span class="kind">NAMES</span>So a container is not a lighter virtual machine. It is a different boundary, with a different thing to trust.</li>
+      </ol>
+      <p>Part (a) asks for explanation, so every line here names a mechanism and says what follows from it. Thara barely appears, and that is correct for this part.</p>
+    </div>
+  </section>
+
+  <section class="card part" data-part="b" aria-labelledby="h-b">
+    <h2 id="h-b"><span class="tag">(b) APPLY</span> <span class="marks">8 marks</span></h2>
+    <p>Recommend whether Thara should package the portal's web tier as a virtual machine image or as a container image for the pilot, and justify your recommendation against the scenario. In your answer:</p>
+    <ul class="c">
+      <li>describe where the portal runs so that the six-hour Colombo outage does not take the portal offline; and</li>
+      <li>using the Shared Responsibility Model, state which layers of your chosen design Thara must secure and which AWS secures.</li>
+    </ul>
+    <label for="ta-b">Your attempt at part (b)</label>
+    <textarea id="ta-b"></textarea>
+    <label class="paper"><input type="checkbox" id="pp-b"> I have written my attempt on paper</label>
+    <div class="row">
+      <button type="button" class="bG" disabled aria-expanded="false" aria-controls="g-b">Show what a strong answer covers</button>
+      <button type="button" class="bM ghost" disabled aria-expanded="false" aria-controls="m-b">Show a model answer</button>
+    </div>
+    <p class="hint">Attempt the part first: the buttons open once you have written a few lines, here or on paper.</p>
+    <div class="reveal" id="g-b" hidden tabindex="-1">
+      <h3>What a strong answer covers</h3>
+      <p>Either recommendation can earn full marks if it is argued from the scenario. A strong answer notices that both options run on EC2 in <code>ap-south-1</code>, so neither is affected by a power failure in Colombo: the outage is a question of <i>where</i> the portal runs, not <i>how</i> it is packaged. It then chooses on the real differences for a small team in a pilot. For example, a VM image is closer to what the IT team already runs and is rebuildable after a failure; a container image is smaller, starts faster and is easier to reproduce exactly, but adds a runtime to learn and patch. The shared responsibility part should be specific: with the portal on EC2, Thara patches the operating system, and with containers also the runtime and the images; Thara controls access, security group rules and the data; AWS secures the facilities, hardware, network and hypervisor. Strong answers link this to the DPO: patient data stays in <code>ap-south-1</code>, and Thara can name who reads it at each layer.</p>
+      <p><b>Check your attempt:</b> did you make a recommendation, or only compare? Did the outage, the small team and the DPO each appear in a sentence of yours?</p>
+    </div>
+    <div class="reveal model" id="m-b" hidden tabindex="-1">
+      <h3>A model answer</h3>
+      <ol>
+        <li><span class="kind applies">APPLIES</span>I recommend a virtual machine image for the pilot.</li>
+        <li><span class="kind applies">APPLIES</span>The outage does not choose between them. Either image runs on EC2 in <code>ap-south-1</code>, so the portal is in Mumbai and patients reach it over the internet while Colombo is dark. The six hours are about where the portal runs, not how it is packaged.</li>
+        <li><span class="kind applies">APPLIES</span>The packaging is decided by the team. Thara's IT team is small and the pilot lasts six months. A VM image is close to what they run today and can rebuild the web tier after a failure.</li>
+        <li><span class="kind weighs">WEIGHS</span>A container image would be smaller, start faster and be easier to reproduce exactly, but it adds a runtime that the same few people must learn and patch.</li>
+        <li><span class="kind applies">APPLIES</span>Under the Shared Responsibility Model, Thara patches the operating system on its instances, controls who can sign in, writes the security group rules and answers for the patient data. AWS secures the buildings, the hardware, the network and the hypervisor.</li>
+        <li><span class="kind applies">APPLIES</span>That answers the Data Protection Officer: the data stays in <code>ap-south-1</code>, and at each layer Thara can name who is able to read it.</li>
+      </ol>
+      <p>Notice the first line. It makes the recommendation before it argues for it, and every line after it could only have been written about Thara.</p>
+    </div>
+  </section>
+
+  <section class="card part" data-part="c" aria-labelledby="h-c">
+    <h2 id="h-c"><span class="tag">(c) EVALUATE</span> <span class="marks">6 marks</span></h2>
+    <p>Evaluate the Head of IT's proposal to run the pilot in a single availability zone. Consider what does and does not fail during the Colombo outage, what a single-AZ design risks that the outage does not, and the cost argument. State what would change your view.</p>
+    <label for="ta-c">Your attempt at part (c)</label>
+    <textarea id="ta-c"></textarea>
+    <label class="paper"><input type="checkbox" id="pp-c"> I have written my attempt on paper</label>
+    <div class="row">
+      <button type="button" class="bG" disabled aria-expanded="false" aria-controls="g-c">Show what a strong answer covers</button>
+      <button type="button" class="bM ghost" disabled aria-expanded="false" aria-controls="m-c">Show a model answer</button>
+    </div>
+    <p class="hint">Attempt the part first: the buttons open once you have written a few lines, here or on paper.</p>
+    <div class="reveal" id="g-c" hidden tabindex="-1">
+      <h3>What a strong answer covers</h3>
+      <p>It separates two different failures. The Colombo outage does not touch AWS: the portal keeps serving patients over the internet. What fails is on Thara's side: the on-premises HIS once the generator runs out, and administrative access from the IT office, so staff may need another way in. A single AZ, however, is exposed to a failure <i>inside</i> AWS: if that AZ has a problem, the whole pilot stops, which is exactly the "one basement" risk the move was meant to end. The cost argument should be weighed, not assumed: a second AZ matters most for the parts that must stay up, and the pilot's budget is an argument for sizing carefully, not automatically for giving up the AZ. Strong answers say what would change their view, for example if the pilot's recovery targets were relaxed, or if a second AZ pushed a stated cost line beyond the USD 150 ceiling.</p>
+      <p><b>Check your attempt:</b> does your last sentence say what you would choose, what you give up, and what would change your mind?</p>
+    </div>
+    <div class="reveal model" id="m-c" hidden tabindex="-1">
+      <h3>A model answer</h3>
+      <ol>
+        <li><span class="kind applies">APPLIES</span>The outage is not an argument for or against the proposal, because it does not touch AWS. The portal keeps serving patients from Mumbai.</li>
+        <li><span class="kind applies">APPLIES</span>What fails is in Colombo: the hospital information system, once the generator stops after two hours, and administrative access from the IT office, so the team may need another way in.</li>
+        <li><span class="kind weighs">WEIGHS</span>A single zone risks something that the outage does not: a fault inside AWS. If that one zone has a problem, the whole pilot stops. That is the one basement again, which the move was meant to end.</li>
+        <li><span class="kind weighs">WEIGHS</span>The proposal is right that a second zone costs money. But the ceiling is a reason to size each part carefully, and a second zone matters most for the parts that must stay up.</li>
+        <li><span class="kind weighs">WEIGHS</span>I would keep two zones for what patients use and size it small. I give up some of the USD 150. I would change my view if the pilot's recovery targets were relaxed, or if the second zone pushed a stated cost line over the ceiling.</li>
+      </ol>
+      <p>The last line is the shape to copy: a choice, what it costs, and what would change it.</p>
+    </div>
+  </section>
+
+  <div class="key" aria-label="Key to the labels in the model answers">
+    <span><span class="kind">NAMES</span>says what a mechanism is and what follows</span>
+    <span><span class="kind applies">APPLIES</span>uses this scenario's names, numbers and constraints</span>
+    <span><span class="kind weighs">WEIGHS</span>sets one thing against another</span>
+  </div>
+
+  <footer>The question and the "what a strong answer covers" text are from practice question 1. A model answer is one good answer, not the only one: for part (b) a container image can be argued just as well. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+(function () {
+  var MIN = 60;
+  function $(s, r) { return (r || document).querySelector(s); }
+  var bFind = $("#bFind"), cSay = $("#cSay");
+  bFind.addEventListener("click", function () {
+    var on = !document.body.classList.contains("found");
+    document.body.classList.toggle("found", on);
+    bFind.setAttribute("aria-pressed", on ? "true" : "false");
+    bFind.textContent = on ? "Hide the constraints" : "Show the constraints";
+    cSay.hidden = !on;
+    if (on) { cSay.focus(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".part"), function (sec) {
+    var k = sec.getAttribute("data-part");
+    var ta = $("#ta-" + k), pp = $("#pp-" + k), bG = $(".bG", sec), bM = $(".bM", sec);
+    var g = $("#g-" + k), m = $("#m-" + k), seen = false;
+    function attempted() { return pp.checked || ta.value.replace(/\s+/g, " ").trim().length >= MIN; }
+    function sync() {
+      bG.disabled = !attempted() && g.hidden;
+      bM.disabled = !seen;
+    }
+    function toggle(btn, box, show, hide) {
+      var open = box.hidden;
+      box.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.textContent = open ? hide : show;
+      if (open) { box.focus(); }
+    }
+    ta.addEventListener("input", sync);
+    pp.addEventListener("change", sync);
+    bG.addEventListener("click", function () {
+      toggle(bG, g, "Show what a strong answer covers", "Hide what a strong answer covers");
+      seen = true; sync();
+    });
+    bM.addEventListener("click", function () {
+      toggle(bM, m, "Show a model answer", "Hide the model answer");
+    });
+    sync();
+  });
+})();
+</script>
+</body>
+</html>
