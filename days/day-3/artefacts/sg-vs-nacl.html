@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security group versus network ACL: one connection, two firewalls</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 66rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.1rem; margin: 0 0 .15rem; }
+  h3 { font-size: .8rem; letter-spacing: .04em; color: var(--ink-muted); margin: .9rem 0 .3rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  .sr { position: absolute; left: -9999px; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .conn { background: var(--navy); color: var(--white); border-radius: 6px; padding: .8rem 1.1rem; margin-bottom: 1rem; }
+  .conn code { color: var(--turquoise); }
+  .actions { display: flex; flex-wrap: wrap; gap: .6rem; margin: 0 0 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.primary { background: var(--navy); color: var(--white); }
+  button:disabled { border-color: var(--silver); color: var(--ink-muted); background: var(--paper); cursor: not-allowed; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .toggles { display: grid; gap: .3rem; margin: 0 0 1rem; }
+  .toggles label { display: flex; gap: .6rem; align-items: center; min-height: 44px; font-weight: 600; }
+  .toggles input { width: 1.3rem; height: 1.3rem; accent-color: var(--navy); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 50rem) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .tag { font-size: .85rem; color: var(--ink-muted); margin: 0; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: .3rem .5rem; border-bottom: 1px solid var(--silver); font-size: .92rem; }
+  th { color: var(--ink-muted); font-weight: 600; }
+  tr.try td { background: var(--turquoise-wash); }
+  tr.hit td { background: var(--turquoise); font-weight: 700; }
+  tr.deny td { background: var(--signal-coral); font-weight: 700; }
+  tr.gone td { color: var(--ink-muted); text-decoration: line-through; }
+  .memory { border: 2px dashed var(--ink-muted); border-radius: 6px; padding: .5rem .7rem; font-size: .92rem; color: var(--ink-muted); }
+  .memory.has { border-style: solid; border-color: var(--navy); color: var(--navy); background: var(--turquoise-tint); }
+  .log { margin: .6rem 0 0; padding: 0; list-style: none; display: grid; gap: .35rem; }
+  .log li { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .45rem .7rem; font-size: .93rem; }
+  .log li.bad { border-left-color: var(--signal-coral); background: var(--white); outline: 1px solid var(--silver); }
+  .log li b { display: block; }
+  .verdict { margin-top: .7rem; font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <h1>One connection, two firewalls</h1>
+  <p class="lede">The same SSH connection is judged by a security group and by a network ACL. Send the request, then the reply, and watch what each firewall consults. Then remove the return rule and send them again.</p>
+
+  <div class="conn">Your laptop, <code>203.0.113.25</code>, port <code>51544</code> (an ephemeral port) &nbsp;to&nbsp; <code>thara-bastion</code>, <code>10.0.1.25</code>, port <code>22</code></div>
+
+  <div class="toggles">
+    <label><input type="checkbox" id="eph" checked> The network ACL has outbound rule 120: allow TCP 1024-65535 (the return rule)</label>
+    <label><input type="checkbox" id="sgr" checked> The security group has its inbound rule: allow SSH from your IP</label>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="primary" id="req">1. Send the request</button>
+    <button type="button" id="rep" disabled>2. Send the reply</button>
+    <button type="button" id="reset">Start again</button>
+  </div>
+  <p class="sr" id="status" aria-live="polite"></p>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="sgT">
+      <h2 id="sgT">Security group</h2>
+      <p class="tag">Stateful. Allow rules only. On the instance's network interface.</p>
+      <h3>INBOUND RULES, EVALUATED TOGETHER</h3>
+      <table><thead><tr><th>Type</th><th>Port</th><th>Source</th></tr></thead>
+        <tbody><tr id="sg-in"><td>SSH</td><td>22</td><td>203.0.113.25/32 (your IP)</td></tr></tbody></table>
+      <h3>WHAT IT REMEMBERS</h3>
+      <div class="memory" id="mem">Nothing yet.</div>
+      <ul class="log" id="sg-log"></ul>
+      <p class="verdict" id="sg-v"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="naT">
+      <h2 id="naT">Network ACL</h2>
+      <p class="tag">Stateless. Allow and deny. On the subnet. Lowest number first.</p>
+      <h3>INBOUND RULES</h3>
+      <table><thead><tr><th>Rule</th><th>Port</th><th>Source</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr id="ni-100"><td>100</td><td>80</td><td>0.0.0.0/0</td><td>Allow</td></tr>
+          <tr id="ni-110"><td>110</td><td>22</td><td>0.0.0.0/0</td><td>Allow</td></tr>
+          <tr id="ni-x"><td>*</td><td>All</td><td>0.0.0.0/0</td><td>Deny</td></tr>
+        </tbody></table>
+      <h3>OUTBOUND RULES</h3>
+      <table><thead><tr><th>Rule</th><th>Port</th><th>Destination</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr id="no-100"><td>100</td><td>80</td><td>0.0.0.0/0</td><td>Allow</td></tr>
+          <tr id="no-110"><td>110</td><td>443</td><td>0.0.0.0/0</td><td>Allow</td></tr>
+          <tr id="no-120"><td>120</td><td>1024-65535</td><td>0.0.0.0/0</td><td>Allow</td></tr>
+          <tr id="no-x"><td>*</td><td>All</td><td>0.0.0.0/0</td><td>Deny</td></tr>
+        </tbody></table>
+      <h3>WHAT IT REMEMBERS</h3>
+      <div class="memory">Nothing, ever. Each packet is judged alone.</div>
+      <ul class="log" id="na-log"></ul>
+      <p class="verdict" id="na-v"></p>
+    </section>
+  </div>
+
+  <footer>The rules are those of <code>thara-bastion-sg</code> and of the strict network ACL in today's lab. The addresses are examples.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  let sgOk, naOk;
+  function clear() {
+    document.querySelectorAll('tr').forEach(r => r.classList.remove('try', 'hit', 'deny'));
+  }
+  function say(list, title, text, bad) {
+    const li = document.createElement('li'); if (bad) li.className = 'bad';
+    li.innerHTML = '<b>' + title + '</b>' + text; $(list).appendChild(li);
+  }
+  function setup() {
+    $('no-120').classList.toggle('gone', !$('eph').checked);
+    $('sg-in').classList.toggle('gone', !$('sgr').checked);
+  }
+  function reset() {
+    clear(); setup(); sgOk = naOk = null;
+    $('sg-log').innerHTML = $('na-log').innerHTML = ''; $('sg-v').textContent = $('na-v').textContent = '';
+    $('mem').className = 'memory'; $('mem').textContent = 'Nothing yet.';
+    $('req').disabled = false; $('rep').disabled = true; $('status').textContent = 'Ready to send the request.';
+  }
+  $('req').onclick = () => {
+    clear();
+    // security group: any allow rule, or drop
+    if ($('sgr').checked) {
+      $('sg-in').classList.add('hit'); sgOk = true;
+      $('mem').className = 'memory has'; $('mem').innerHTML = 'A connection: <code>203.0.113.25:51544</code> to port <code>22</code>.';
+      say('sg-log', 'Request in: allowed.', 'A rule allows SSH from this address. The group now remembers the connection.');
+    } else {
+      sgOk = false;
+      say('sg-log', 'Request in: dropped.', 'No rule allows it. There is no deny rule to find, and none is needed: the absence of an allow is the deny.', true);
+      $('sg-v').textContent = 'Through the security group the connection times out.';
+    }
+    // network ACL inbound: 100 (80) no, 110 (22) yes
+    $('ni-100').classList.add('try'); $('ni-110').classList.add('hit'); naOk = true;
+    say('na-log', 'Request in: allowed.', 'Rule 100 is for port 80: no match. Rule 110 is for port 22: match, allow. Nothing is remembered.');
+    $('req').disabled = true; $('rep').disabled = false;
+    $('status').textContent = 'Request sent. Security group: ' + (sgOk ? 'allowed and remembered' : 'dropped') + '. Network ACL: allowed by rule 110.';
+  };
+  $('rep').onclick = () => {
+    document.querySelectorAll('#no-100, #no-110, #no-120, #no-x').forEach(r => r.classList.remove('try', 'hit', 'deny'));
+    if (sgOk) {
+      say('sg-log', 'Reply out: allowed.', 'It matches the remembered connection. No rule is consulted, and no outbound rule had to be written.');
+      $('sg-v').textContent = 'Through the security group the connection works.';
+    } else say('sg-log', 'No reply.', 'The request never reached the instance, so there is nothing to answer.', true);
+    $('no-100').classList.add('try'); $('no-110').classList.add('try');
+    if ($('eph').checked) {
+      $('no-120').classList.add('hit');
+      say('na-log', 'Reply out: allowed.', 'A new packet, from port 22 to port 51544. Rules 100 and 110 are for ports 80 and 443: no match. Rule 120 covers 1024-65535: match, allow.');
+      $('na-v').textContent = 'Through the network ACL the connection works.';
+    } else {
+      $('no-x').classList.add('deny');
+      say('na-log', 'Reply out: denied.', 'A new packet, from port 22 to port 51544. Rules 100 and 110 are for ports 80 and 443: no match. Nothing else is left, so * denies it. The request arrived, and the answer never leaves the subnet.', true);
+      $('na-v').textContent = 'Through the network ACL the connection times out.';
+    }
+    $('rep').disabled = true;
+    $('status').textContent = $('sg-v').textContent + ' ' + $('na-v').textContent;
+  };
+  $('reset').onclick = reset;
+  $('eph').onchange = $('sgr').onchange = reset;
+  reset();
+</script>
+</body>
+</html>

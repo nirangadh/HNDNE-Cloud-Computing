@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Lab 3: Build the Thara network | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Day 3 afternoon lab sheet: Build the Thara network. Day 3, afternoon session. Duration 3 hours. Builds component 4 (Thara VPC), component 5 (Bastion for Colombo...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/lab.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Lab 3: Build the Thara network">
+<meta property="og:description" content="Day 3 afternoon lab sheet: Build the Thara network. Day 3, afternoon session. Duration 3 hours. Builds component 4 (Thara VPC), component 5 (Bastion for Colombo...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/lab.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"Day 3 afternoon lab sheet: Build the Thara network. Day 3, afternoon session. Duration 3 hours. Builds component 4 (Thara VPC), component 5 (Bastion for Colombo...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Lab sheet","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Lab 3: Build the Thara network","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/lab.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/","name":"Day 3","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/lab.html","name":"Lab 3: Build the Thara network","position":3}]}</script>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Build the Thara network</h1><p class="sub">Day 3, afternoon lab</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 5">LO5</span><span class="badge" title="Learning outcome 7">LO7</span><span class="chip">You build: component 4</span><span class="chip">You build: component 5</span><span class="chip">You build: component 6</span><span class="chip cost">Credit use: USD 0.40</span></div>
+<p><strong>Day 3, afternoon session. Duration 3 hours. Builds component 4 (Thara VPC), component 5 (Bastion for Colombo IT) and component 6 (Portal web tier) of the Thara Hospitals architecture.</strong></p>
+<div class="table-wrap"><table class="meta-table">
+
+<tbody>
+<tr>
+<td>Learning outcomes</td>
+<td>LO5, LO7</td>
+</tr>
+<tr>
+<td>Sub-outcomes</td>
+<td>S5.4, S7.1, S7.3</td>
+</tr>
+<tr>
+<td>Prerequisites</td>
+<td>From Day 2: the image <code>thara-portal-v1</code>, the key pair file <code>thara-key.pem</code> on your computer, and the stopped <code>thara-web-1</code> in the default VPC. From this morning: the agreed subnet plan</td>
+</tr>
+<tr>
+<td>Estimated credit consumption</td>
+<td>USD 0.40</td>
+</tr>
+<tr>
+<td>Evidence pack</td>
+<td>Pack 3, due before the next teaching day</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="0-before-you-start">0. Before you start</h2>
+<ol>
+<li>Region check: the console shows <strong>Asia Pacific (Mumbai) ap-south-1</strong>. If not, change it now.</li>
+<li>You are signed in as your <strong>admin IAM user</strong>, not root.</li>
+<li>Tags for everything today: <code>Module=CC</code>, <code>Day=3</code>, <code>Owner=&lt;student id&gt;</code>.</li>
+<li>Open your cost ledger. Write today's date and the segment names below with a blank cost column.</li>
+</ol>
+<p>Console labels below are as they appeared at the time of writing. AWS renames buttons from time to time; if a label differs, look for the same idea nearby and tell your lecturer.</p>
+<p>You need a terminal with an SSH client on your own computer today: Terminal on macOS or Linux, PowerShell on Windows. Open it in the folder that holds <code>thara-key.pem</code>. On macOS or Linux, run <code>chmod 400 thara-key.pem</code> once, or SSH will refuse to use the file.</p>
+<h3 id="the-ideas-behind-todays-lab">The ideas behind today's lab</h3>
+<h4 id="build-order-matters">Build order matters</h4>
+<p>This morning you watched the wizard build a network in one click, and then watched the same network built by hand. This afternoon you build it by hand, because the order is the lesson. Each piece needs the one before it:</p>
+<ol>
+<li><strong>The VPC</strong>, because everything else is created inside it.</li>
+<li><strong>The subnets</strong>, because they are slices of the VPC's address range.</li>
+<li><strong>The internet gateway, attached</strong>, because a route can only point at a gateway that is attached to this VPC.</li>
+<li><strong>The route tables</strong>, because an association needs a table to point to.</li>
+<li><strong>The associations</strong>, because until a subnet is associated it quietly uses the main route table, which has no route to the internet.</li>
+<li><strong>The instances</strong>, last, because an instance launched into a subnet that is not yet routed looks broken when it is not.</li>
+</ol>
+<p>A mis-ordered build is the commonest failure in this lab. The symptom is nearly always the same: an SSH connection that waits and then times out. When that happens, do not launch another instance. Walk back up this list and find the piece that is missing.</p>
+<figure class="art"><svg aria-labelledby="ord-t ord-d" role="img" style="min-width:640px" viewbox="0 0 640 300"><title id="ord-t">Each piece needs the one before it</title><desc id="ord-d">Six numbered boxes in a row, joined by arrows: 1 the VPC, thara-vpc; 2 the subnets, four in two zones; 3 the gateway, attached; 4 the route tables, public and private; 5 the associations of subnet to table; 6 the instances, last. Below: 2 needs 1 because subnets are slices of the VPC's range; 3 needs 1 because the gateway is attached to one VPC; 4 needs 3 because a route can only point at an attached gateway; 5 needs 2 and 4, and until it is associated a subnet uses the main route table; 6 needs 5, because an instance launched earlier looks broken when it is not.</desc><rect fill="#FFFFFF" height="300" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">Each piece needs the one before it</text><rect fill="#DEF5F1" height="76" rx="8" stroke="#0D2B45" stroke-width="1.5" width="92" x="9" y="44"></rect><circle cx="25" cy="60" fill="#0D2B45" r="10"></circle><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="25" y="64.5">1</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="55" y="90">The VPC</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="55" y="108">thara-vpc</text><path d="M101 82 L107 82" fill="none" stroke="#0D2B45" stroke-width="2"></path><path d="M105 76 L115 82 L105 88 Z" fill="#0D2B45"></path><rect fill="#DEF5F1" height="76" rx="8" stroke="#0D2B45" stroke-width="1.5" width="92" x="115" y="44"></rect><circle cx="131" cy="60" fill="#0D2B45" r="10"></circle><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="131" y="64.5">2</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="161" y="90">The subnets</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="161" y="108">four, two zones</text><path d="M207 82 L213 82" fill="none" stroke="#0D2B45" stroke-width="2"></path><path d="M211 76 L221 82 L211 88 Z" fill="#0D2B45"></path><rect fill="#DEF5F1" height="76" rx="8" stroke="#0D2B45" stroke-width="1.5" width="92" x="221" y="44"></rect><circle cx="237" cy="60" fill="#0D2B45" r="10"></circle><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="237" y="64.5">3</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="267" y="90">The gateway</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="267" y="108">attached</text><path d="M313 82 L319 82" fill="none" stroke="#0D2B45" stroke-width="2"></path><path d="M317 76 L327 82 L317 88 Z" fill="#0D2B45"></path><rect fill="#DEF5F1" height="76" rx="8" stroke="#0D2B45" stroke-width="1.5" width="92" x="327" y="44"></rect><circle cx="343" cy="60" fill="#0D2B45" r="10"></circle><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="343" y="64.5">4</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="373" y="90">Route tables</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="373" y="108">public, private</text><path d="M419 82 L425 82" fill="none" stroke="#0D2B45" stroke-width="2"></path><path d="M423 76 L433 82 L423 88 Z" fill="#0D2B45"></path><rect fill="#DEF5F1" height="76" rx="8" stroke="#0D2B45" stroke-width="1.5" width="92" x="433" y="44"></rect><circle cx="449" cy="60" fill="#0D2B45" r="10"></circle><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="449" y="64.5">5</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="479" y="90">Associations</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="479" y="108">subnet to table</text><path d="M525 82 L531 82" fill="none" stroke="#0D2B45" stroke-width="2"></path><path d="M529 76 L539 82 L529 88 Z" fill="#0D2B45"></path><rect fill="#48C9B0" height="76" rx="8" stroke="#0D2B45" stroke-width="1.5" width="92" x="539" y="44"></rect><circle cx="555" cy="60" fill="#0D2B45" r="10"></circle><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="555" y="64.5">6</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="585" y="90">Instances</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="585" y="108">last</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="start" x="14" y="152">2 needs 1</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="128" y="152">Subnets are slices of the VPC's range.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="start" x="14" y="176">3 needs 1</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="128" y="176">The gateway is attached to one VPC.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="start" x="14" y="200">4 needs 3</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="128" y="200">A route can only point at a gateway that is attached.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="start" x="14" y="224">5 needs 2 and 4</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="128" y="224">Until it is associated, a subnet uses the main route table: no way out.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="start" x="14" y="248">6 needs 5</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="128" y="248">Launched earlier, an instance looks broken when it is not: SSH times out.</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="286">When SSH times out, walk back from 6 to 1 and find the missing piece.</text></svg><figcaption>Each piece needs the one before it. When SSH times out, walk back from 6 to 1. <a class="full" href="img/build-order.svg">Open this diagram at full size</a></figcaption></figure>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">A student launches <code>thara-bastion</code> before <code>thara-public-rt</code> has its default route. The bastion has a public address, and <code>thara-bastion-sg</code> allows SSH from the student's IP. What happens when the student connects?</p><ol class="qc-opts"><li data-right="">The connection times out, because the subnet has no route to the internet<span class="qc-key"> (answer)</span></li><li>The connection opens, because the public address and the rule are in place</li><li>The connection is refused, because the instance was launched too early</li></ol><p class="qc-why"><strong>Why:</strong> Without the default route the bastion's reply has nowhere to go, so the student sees a timeout. A public address and a rule are not a path. Nothing is wrong with the instance, and launching it again would change nothing.</p></div>
+<h4 id="names-and-tags">Names and tags</h4>
+<p>Every name today comes from Thara's naming table: <code>thara-vpc</code>, <code>thara-public-a</code>, <code>thara-public-b</code>, <code>thara-private-a</code>, <code>thara-private-b</code>, <code>thara-bastion</code>, <code>thara-web-1</code>. Type them exactly. Later days find these resources by name, and so does your marker. Everything you create carries <code>Module=CC</code>, <code>Day=3</code>, <code>Owner=&lt;student id&gt;</code>.</p>
+<p>One thing is retired today. The <code>thara-web-1</code> you built on Day 2 has been waiting, stopped, in the default VPC as a fallback. In step 8 you launch a new <code>thara-web-1</code> from your image, inside your own network. Once it serves the pilot page, the image is proven and step 10 terminates the old server.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">After step 8 the instance list shows two servers named <code>thara-web-1</code>. Which one does step 10 terminate, and how do you tell them apart?</p><ol class="qc-opts"><li>The running one, because the stopped one is still the fallback</li><li>Whichever is listed first, because the two are the same server</li><li data-right="">The stopped one tagged <code>Day=2</code>, which sits in the default VPC<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> A name is only a tag, and two resources can share it. The <code>Day</code> tag and the VPC tell them apart. The Day 2 server was the fallback until the image was proven, and step 9 proves it.</p></div>
+<div class="box mistake"><p>"The private instance cannot be reached at all." It can, from inside the VPC. <code>thara-web-1</code> has no public address and no route to the internet, yet the bastion reaches it on its private address in step 9. Private means unreachable from outside, not unreachable.</p></div>
+<div class="box mistake"><p>"A public IP alone makes an instance reachable." It needs the route too. In the break-it step the bastion keeps its public address, and nobody can reach it.</p></div>
+<h2 id="1-objective">1. Objective</h2>
+<p>At the end of this lab you have <code>thara-vpc</code> with four subnets in two availability zones, routing, two security groups and a <a class="term" data-term="flow-log" href="../../glossary.html#flow-log">flow log</a>, a <a class="term" data-term="bastion" href="../../glossary.html#bastion">bastion</a> <code>thara-bastion</code> in a public subnet, and a new <code>thara-web-1</code> launched from your image in a private subnet: components 4, 5 and 6. Every later day builds inside this network, up to Day 7; it serves Thara's requirements for private administrative access from the Colombo IT office and for a web tier that is not exposed to the internet. Keep <a href="artefacts/thara-vpc-builder.html">thara-vpc-builder</a> open beside the console: it shows what each step adds to the picture.</p>
+<h2 id="2-timed-segments">2. Timed segments</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Minutes</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VPC, subnets, IGW, route tables</td>
+<td>45</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Bastion and private web instance</td>
+<td>35</td>
+<td>two <code>t3.micro</code>, about USD 0.022 per hour together, plus USD 0.005 per hour for the bastion's public IPv4 address</td>
+</tr>
+<tr>
+<td>Security group experiments</td>
+<td>25</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>NACL experiment</td>
+<td>25</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Flow Logs</td>
+<td>20</td>
+<td>negligible: a few kilobytes of log records</td>
+</tr>
+<tr>
+<td>Ledger, teardown, evidence</td>
+<td>15</td>
+<td>nil</td>
+</tr>
+</tbody>
+</table></div>
+<p>Segments containing a NAT gateway, a load balancer or a database are created, used and deleted inside the segment. Do not carry them across the break. Today has none of those. A VPC, its subnets, route tables, gateway, security groups and network ACLs cost nothing. The two instances bill by the hour while they run, so they are stopped before you leave. Prices are for ap-south-1 at the time of writing.</p>
+<h2 id="3-steps">3. Steps</h2>
+<p>Each step states what to do and what you should see. If you do not see it, stop and diagnose before moving on.</p>
+<p class="segment">Segment 1: VPC, subnets, IGW, route tables</p>
+<ol class="steps">
+<li data-n="1">
+<p><strong>Check where and who you are.</strong> Confirm the region selector shows <strong>Asia Pacific (Mumbai) ap-south-1</strong> and the top bar shows <code>admin-&lt;student id&gt;</code>. <span class="expect"><b class="expect-label">You should see</b> both are correct.</span></p>
+</li>
+<li data-n="2">
+<p><strong>Create the VPC.</strong> Open the VPC console, choose <strong>Create VPC</strong>, and for <strong>Resources to create</strong> choose <strong>VPC only</strong>. Name tag <code>thara-vpc</code>; <strong>IPv4 CIDR manual input</strong>, <code>10.0.0.0/16</code>; no IPv6 CIDR block; tenancy <strong>Default</strong>. Add the three tags and choose <strong>Create VPC</strong>. Then select the VPC, choose <strong>Actions</strong>, <strong>Edit VPC settings</strong>, tick <strong>Enable DNS hostnames</strong> and save. <span class="expect"><b class="expect-label">You should see</b> <code>thara-vpc</code> is listed with the range <code>10.0.0.0/16</code>, and its details show <strong>DNS hostnames: Enabled</strong>. Notice what arrived without your asking: a main route table, a default network ACL and a default security group.</span></p>
+</li>
+<li data-n="3">
+<p><strong>Create the four subnets.</strong> Choose <strong>Subnets</strong>, <strong>Create subnet</strong>, and select <code>thara-vpc</code>. Use <strong>Add new subnet</strong> to create all four in one go, each with the three tags:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subnet name</th>
+<th>Availability Zone</th>
+<th>IPv4 subnet CIDR block</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thara-public-a</code></td>
+<td><code>ap-south-1a</code></td>
+<td><code>10.0.1.0/24</code></td>
+</tr>
+<tr>
+<td><code>thara-public-b</code></td>
+<td><code>ap-south-1b</code></td>
+<td><code>10.0.2.0/24</code></td>
+</tr>
+<tr>
+<td><code>thara-private-a</code></td>
+<td><code>ap-south-1a</code></td>
+<td><code>10.0.11.0/24</code></td>
+</tr>
+<tr>
+<td><code>thara-private-b</code></td>
+<td><code>ap-south-1b</code></td>
+<td><code>10.0.12.0/24</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Then, for <code>thara-public-a</code> and <code>thara-public-b</code> only: select the subnet, <strong>Actions</strong>, <strong>Edit subnet settings</strong>, tick <strong>Enable auto-assign public IPv4 address</strong>, save. <span class="expect"><b class="expect-label">You should see</b> four subnets in <code>thara-vpc</code>, two in each zone. At this moment all four are private, whatever they are called: none has a route to the internet yet.</span></p>
+</li>
+<li data-n="4">
+<p><strong>Create and attach an internet gateway.</strong> Choose <strong>Internet gateways</strong>, <strong>Create internet gateway</strong>. Leave the name tag empty and add the three tags; the VPC it is attached to identifies it. Create it, then choose <strong>Actions</strong>, <strong>Attach to VPC</strong>, select <code>thara-vpc</code> and choose <strong>Attach internet gateway</strong>. <span class="expect"><b class="expect-label">You should see</b> the gateway's state is <strong>Attached</strong> and its VPC column shows <code>thara-vpc</code>.</span></p>
+</li>
+<li data-n="5">
+<p><strong>Create the two route tables and associate the subnets.</strong> Choose <strong>Route tables</strong>, <strong>Create route table</strong>: name <code>thara-public-rt</code>, VPC <code>thara-vpc</code>, the three tags. On its <strong>Routes</strong> tab choose <strong>Edit routes</strong>, <strong>Add route</strong>: destination <code>0.0.0.0/0</code>, target <strong>Internet Gateway</strong>, then your gateway. Save. On its <strong>Subnet associations</strong> tab choose <strong>Edit subnet associations</strong>, tick <code>thara-public-a</code> and <code>thara-public-b</code>, and save. Now create <code>thara-private-rt</code> in the same VPC with the three tags, add <strong>no</strong> route to it, and associate <code>thara-private-a</code> and <code>thara-private-b</code>. <span class="expect"><b class="expect-label">You should see</b> <code>thara-public-rt</code> shows two routes, <code>10.0.0.0/16</code> to <strong>local</strong> and <code>0.0.0.0/0</code> to an id beginning <code>igw-</code>. <code>thara-private-rt</code> shows one route, <code>10.0.0.0/16</code> to <strong>local</strong>. Each table lists two explicit subnet associations. Only now are the public subnets public.</span></p>
+</li>
+<li data-n="6">
+<p><strong>Create the two security groups.</strong> Choose <strong>Security groups</strong>, <strong>Create security group</strong>. Name <code>thara-bastion-sg</code>, description <code>SSH from the IT office</code>, VPC <code>thara-vpc</code>. Add one inbound rule: type <strong>SSH</strong>, source <strong>My IP</strong>. Add the three tags and create it. Then create <code>thara-web-sg</code>, description <code>Portal web tier</code>, VPC <code>thara-vpc</code>, with two inbound rules: type <strong>HTTP</strong>, source <strong>Anywhere-IPv4</strong>; and type <strong>SSH</strong>, source <strong>Custom</strong>, choosing <code>thara-bastion-sg</code> from the list that appears when you click in the source box. Add the three tags. <span class="expect"><b class="expect-label">You should see</b> the SSH rule of <code>thara-web-sg</code> shows a source beginning <code>sg-</code>, not an address. That rule says "whatever wears the bastion's group", not "whatever has this address".</span></p>
+</li>
+</ol>
+<p class="segment">Segment 2: Bastion and private web instance</p>
+<ol class="steps" start="7">
+<li data-n="7">
+<p><strong>Launch the bastion and connect to it.</strong> In EC2 choose <strong>Launch instances</strong>. Name <code>thara-bastion</code>, with the three tags on <strong>Instances</strong> and <strong>Volumes</strong>. Amazon Linux, <code>t3.micro</code>, key pair <code>thara-key</code> (the existing one). Under <strong>Network settings</strong> choose <strong>Edit</strong>: VPC <code>thara-vpc</code>, subnet <code>thara-public-a</code>, <strong>Auto-assign public IP</strong> enabled, <strong>Select existing security group</strong>, <code>thara-bastion-sg</code>. Launch. When it is running with its status checks passed, note its <strong>Public IPv4 address</strong> and, in your own terminal:</p>
+<pre tabindex="0"><code class="language-bash">ssh -i thara-key.pem ec2-user@&lt;bastion public IPv4 address&gt;
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> after you accept the host key, a prompt of the form <code class="long">[ec2-user@ip-10-0-1-... ~]$</code>. The address in the prompt is the bastion's private address, in <code>thara-public-a</code>. If the connection waits and times out, walk back up the build order in section 0 before you touch the instance.</span></p>
+</li>
+<li data-n="8">
+<p><strong>Launch the web server from your image.</strong> Choose <strong>Launch instances</strong> again. Name <code>thara-web-1</code>, with the three tags (<code>Day=3</code>) on <strong>Instances</strong> and <strong>Volumes</strong>. Under <strong>Application and OS Images</strong> choose <strong>My AMIs</strong>, <strong>Owned by me</strong>, and select <code>thara-portal-v1</code>. <code>t3.micro</code>, key pair <code>thara-key</code>. Under <strong>Network settings</strong>, <strong>Edit</strong>: VPC <code>thara-vpc</code>, subnet <code>thara-private-a</code>, <strong>Auto-assign public IP</strong> disabled, <strong>Select existing security group</strong>, <code>thara-web-sg</code>. No user data: the web server is already in the image. Launch. <span class="expect"><b class="expect-label">You should see</b> the instance is running with a <strong>Private IPv4 address</strong> of the form <code>10.0.11.x</code> and an empty <strong>Public IPv4 address</strong>. Note the private address.</span></p>
+</li>
+<li data-n="9">
+<p><strong>Reach the web server through the bastion.</strong> Your laptop cannot reach <code>10.0.11.x</code>. The bastion can, and <code>thara-web-sg</code> allows SSH from the bastion's group. The private key must not be typed into the bastion, so use one of two methods, for today only. Day 5 discusses why neither is ideal.</p>
+<p>Method A, agent forwarding. Your own computer keeps the key and answers for it:</p>
+<pre tabindex="0"><code class="language-bash">exit                                  # leave the bastion first
+ssh-add thara-key.pem
+ssh -A ec2-user@&lt;bastion public IPv4 address&gt;
+ssh ec2-user@&lt;web private address&gt;    # typed on the bastion
+</code></pre>
+<p>Method B, only if <code>ssh-add</code> reports that it cannot reach an agent (common on Windows without administrator rights). Copy the key to the bastion for today, and remove it in teardown:</p>
+<pre tabindex="0"><code class="language-bash">exit                                  # leave the bastion first
+scp -i thara-key.pem thara-key.pem ec2-user@&lt;bastion public IPv4 address&gt;:~/
+ssh -i thara-key.pem ec2-user@&lt;bastion public IPv4 address&gt;
+chmod 400 thara-key.pem               # typed on the bastion
+ssh -i thara-key.pem ec2-user@&lt;web private address&gt;
+</code></pre>
+<p>On <code>thara-web-1</code>, and then back on the bastion, run:</p>
+<pre tabindex="0"><code class="language-bash">curl http://localhost                           # on thara-web-1
+curl -m 10 https://aws.amazon.com               # on thara-web-1
+exit                                            # back to the bastion
+curl http://&lt;web private address&gt;               # on the bastion
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the prompt on <code>thara-web-1</code> reads <code class="long">[ec2-user@ip-10-0-11-... ~]$</code>. Both <code>curl</code> commands to the web server print the line containing <strong>Thara Hospitals portal (pilot)</strong>: a server you never configured is serving the page, so the image works. The <code>curl</code> to the internet prints nothing for ten seconds and then reports a timeout: the private subnet has no way out. Day 4 fixes that.</span></p>
+</li>
+<li data-n="10">
+<p><strong>Retire the Day 2 server.</strong> In EC2, <strong>Instances</strong>, two servers are now named <code>thara-web-1</code>. Find the one that is <strong>Stopped</strong>, tagged <code>Day=2</code>, in the default VPC. Select it, <strong>Instance state</strong>, <strong>Terminate (delete) instance</strong>. When it shows <strong>Terminated</strong>, choose <strong>Security groups</strong> and delete the group named <code>launch-wizard-...</code> that the Day 2 launch created in the default VPC. <span class="expect"><b class="expect-label">You should see</b> one <code>thara-web-1</code> remains in the list of running instances, in <code>thara-vpc</code>. If you launched the Day 2 server through <strong>Explore AWS</strong>, this termination is what completes that activity; its credit can take a while to appear. Leave the default VPC itself alone.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 3: Security group experiments</p>
+<ol class="steps" start="11">
+<li data-n="11">
+<p><strong>Experiment: an address is not a group.</strong> Make sure you are on the bastion, not on <code>thara-web-1</code>. Open <code>thara-web-sg</code>, <strong>Edit inbound rules</strong>, and change the source of the SSH rule from <code>thara-bastion-sg</code> to <strong>My IP</strong>. Save. On the bastion:</p>
+<pre tabindex="0"><code class="language-bash">ssh -o ConnectTimeout=10 ec2-user@&lt;web private address&gt;
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> <code>Connection timed out</code>. Write down why before you read on. "My IP" is the public address of your own network. The bastion's packet arrives at <code>thara-web-1</code> from the bastion's private address, <code>10.0.1.x</code>, which no rule now allows. And your laptop, which the rule does allow, has no path to a private address. The rule lets in nobody. <strong>Revert:</strong> set the SSH source back to <code>thara-bastion-sg</code>, save, and repeat the command to confirm that it connects. Then <code>exit</code> back to the bastion.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 4: NACL experiment</p>
+<ol class="steps" start="12">
+<li data-n="12">
+<p><strong>Experiment: a firewall that forgets.</strong> In the VPC console choose <strong>Network ACLs</strong>, <strong>Create network ACL</strong>: name <code>thara-strict-nacl</code>, VPC <code>thara-vpc</code>, the three tags. A new network ACL blocks everything, so add rules. On <strong>Inbound rules</strong>, <strong>Edit inbound rules</strong>, <strong>Add new rule</strong>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rule number</th>
+<th>Type</th>
+<th>Source</th>
+<th>Allow or deny</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100</td>
+<td>HTTP (80)</td>
+<td><code>0.0.0.0/0</code></td>
+<td>Allow</td>
+</tr>
+<tr>
+<td>110</td>
+<td>SSH (22)</td>
+<td><code>0.0.0.0/0</code></td>
+<td>Allow</td>
+</tr>
+</tbody>
+</table></div>
+<p>On <strong>Outbound rules</strong>, <strong>Edit outbound rules</strong>, <strong>Add new rule</strong>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rule number</th>
+<th>Type</th>
+<th>Destination</th>
+<th>Allow or deny</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100</td>
+<td>HTTP (80)</td>
+<td><code>0.0.0.0/0</code></td>
+<td>Allow</td>
+</tr>
+<tr>
+<td>110</td>
+<td>HTTPS (443)</td>
+<td><code>0.0.0.0/0</code></td>
+<td>Allow</td>
+</tr>
+</tbody>
+</table></div>
+<p>Now choose <strong>Actions</strong>, <strong>Edit subnet associations</strong>, tick <code>thara-public-a</code> and save. In a <strong>new</strong> terminal on your own computer:</p>
+<pre tabindex="0"><code class="language-bash">ssh -o ConnectTimeout=10 -i thara-key.pem ec2-user@&lt;bastion public IPv4 address&gt;
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> <code>Connection timed out</code>, and your existing session on the bastion stops responding too. Inbound port 22 is allowed, so your packet arrives. The bastion's reply leaves from port 22 towards a high-numbered port on your side, and no outbound rule allows that. Add a third outbound rule: number 120, type <strong>Custom TCP</strong>, port range <code>1024-65535</code>, destination <code>0.0.0.0/0</code>, <strong>Allow</strong>. Repeat the command. <span class="expect"><b class="expect-label">You should see</b> it connects, and the stalled session wakes up. <strong>Revert:</strong> open <code>thara-strict-nacl</code>, <strong>Actions</strong>, <strong>Edit subnet associations</strong>, untick <code>thara-public-a</code> and save. The subnet returns to the VPC's default network ACL, which allows everything.</span></span></p>
+</li>
+</ol>
+<p class="segment">Segment 5: Flow Logs</p>
+<ol class="steps" start="13">
+<li data-n="13">
+<p><strong>Record the traffic, then find two rejections.</strong> Open CloudWatch, <strong>Log groups</strong>, <strong>Create log group</strong>: name <code>thara-flow-logs</code>, the three tags. Back in the VPC console choose <strong>Your VPCs</strong>, select <code>thara-vpc</code>, <strong>Actions</strong>, <strong>Create flow log</strong>. Filter <strong>All</strong>; maximum aggregation interval <strong>1 minute</strong>; destination <strong>Send to CloudWatch Logs</strong>; destination log group <code>thara-flow-logs</code>; for <strong>Service access</strong>, let the console create a new service role (the flow log needs permission to write to the log group, and Day 5 explains roles); log record format <strong>AWS default format</strong>; the three tags. Create it. Now make three attempts, noting the time:</p>
+<pre tabindex="0"><code class="language-bash"># 1. on your own computer: SSH to the web server's private address
+ssh -o ConnectTimeout=5 -i thara-key.pem ec2-user@&lt;web private address&gt;
+# 2. on your own computer: knock on the bastion at port 3389
+ssh -p 3389 -o ConnectTimeout=5 ec2-user@&lt;bastion public IPv4 address&gt;
+# 3. on the bastion: knock on the web server at port 3389
+ssh -p 3389 -o ConnectTimeout=5 ec2-user@&lt;web private address&gt;
+</code></pre>
+<p>All three must fail. Wait five to ten minutes (write your ledger rows meanwhile). Then open CloudWatch, <strong>Log groups</strong>, <code>thara-flow-logs</code>, and choose <strong>Search all log streams</strong> (or open each log stream in turn: there is one for each network interface). Filter with <code>REJECT 3389</code>. <span class="expect"><b class="expect-label">You should see</b> two records of this shape, one for attempt 2 and one for attempt 3:</span></p>
+<pre tabindex="0"><code class="language-text">2 &lt;account id&gt; eni-0a1b... 203.0.113.25 10.0.1.25 51544 3389 6 1 52 1700000000 1700000050 REJECT OK
+2 &lt;account id&gt; eni-0c3d... 10.0.1.25 10.0.11.40 40312 3389 6 1 60 1700000100 1700000150 REJECT OK
+</code></pre>
+<p>Read each one field by field against this morning's notes: source address, destination address, source port, destination port, protocol 6 (TCP), action. Two things to notice. In the first record the destination is the bastion's <strong>private</strong> address, because the internet gateway has already translated the public one. And attempt 1 has <strong>no record at all</strong>: a private address is not routable on the internet, so your packet never reached the VPC, and a flow log can only record what arrives at one of its network interfaces. If something did answer on that address, it was a machine on the network you are sitting in, not your instance.</p>
+</li>
+</ol>
+<p class="segment">Segment 6: Ledger, teardown, evidence</p>
+<p>Write the ledger rows first (section 7), then do sections 4 and 5, then tear down (section 6), then collect the evidence (section 8).</p>
+<section class="mark prove"><h2 id="4-prove-it"><span class="mark-chip">PROVE IT</span> 4. Prove it</h2>
+<p>Paste the output of each into your evidence pack.</p>
+<ul>
+<li>On the bastion, <code class="long">curl http://&lt;web private address&gt;</code> (an address of the form <code>10.0.11.x</code>) returns the line containing <strong>Thara Hospitals portal (pilot)</strong>. The web tier is reachable from inside the network.</li>
+<li>On <code>thara-web-1</code>, <code class="long">curl -m 10 https://aws.amazon.com</code> times out. The web tier has no egress; Day 4 fixes this.</li>
+<li>In <code>thara-flow-logs</code>, two REJECT records, each annotated by you with its source, destination, port and action, and one line saying which rule was missing.</li>
+</ul>
+</section><section class="mark break"><h2 id="5-break-it"><span class="mark-chip">BREAK IT</span> 5. Break it</h2>
+<p><strong>Fault:</strong> the bastion stops answering, although it still has a public address.</p>
+<ol>
+<li>Open <code>thara-public-rt</code>, <strong>Edit routes</strong>, and remove the <code>0.0.0.0/0</code> route. Save.</li>
+<li>From your own computer run <code class="long">ssh -o ConnectTimeout=10 -i thara-key.pem ec2-user@&lt;bastion public IPv4 address&gt;</code>. <strong>Symptom:</strong> <code>Connection timed out</code>.</li>
+<li><strong>Locate it</strong> with what you already know. In EC2 the bastion is running, its status checks pass and it still shows a <strong>Public IPv4 address</strong>. Its security group still allows SSH from your IP. So look at the network: select <code>thara-public-a</code>, open its <strong>Route table</strong> tab, and read the routes. Only <code>10.0.0.0/16</code> to <strong>local</strong> is left. The subnet has nowhere to send a packet whose destination is on the internet, so the bastion's replies cannot leave. A public address is only a mapping held at the internet gateway; without the route, nothing in the subnet can use it.</li>
+<li><strong>Fix:</strong> add the route again (destination <code>0.0.0.0/0</code>, target your internet gateway), save, and connect.</li>
+</ol>
+<p>Record the fault, the symptom, the evidence that located it and the fix in the table in section 4 of your evidence pack. Say in one sentence why a public address was not enough.</p>
+</section><section class="mark teardown"><h2 id="6-teardown"><span class="mark-chip">TEARDOWN</span> 6. Teardown</h2>
+<p>Do these in order. Check your ledger rows are written first.</p>
+<ol>
+<li><strong>If you used method B in step 9</strong>, remove the key from the bastion: on the bastion, <code>rm ~/thara-key.pem</code>.</li>
+<li><strong>Stop <code>thara-bastion</code> and <code>thara-web-1</code></strong>: <strong>Instance state</strong>, <strong>Stop instance</strong>. Do not terminate them. <span class="expect"><b class="expect-label">You should see</b> both show <strong>Stopped</strong>, and the bastion's public IPv4 address disappears.</span></li>
+<li><strong>Delete <code>thara-strict-nacl</code></strong>, but only if it is not associated with any subnet: its <strong>Subnet associations</strong> tab must be empty. If <code>thara-public-a</code> is still listed, revert the association first (step 12).</li>
+<li><strong>Confirm the Day 2 server is gone</strong>: <strong>Instances</strong> shows it as <strong>Terminated</strong> or no longer lists it.</li>
+</ol>
+<p>What you keep, and why:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thara-vpc</code>, its four subnets, the internet gateway, <code>thara-public-rt</code> and <code>thara-private-rt</code></td>
+<td>Every later lab builds inside this network, up to Day 7. None of it costs anything</td>
+</tr>
+<tr>
+<td><code>thara-bastion-sg</code>, <code>thara-web-sg</code> and the VPC's default network ACL</td>
+<td>The same</td>
+</tr>
+<tr>
+<td>The flow log and <code>thara-flow-logs</code></td>
+<td>Day 7 uses the records to find faults. With both instances stopped it records almost nothing</td>
+</tr>
+<tr>
+<td><code>thara-bastion</code> and <code>thara-web-1</code>, stopped</td>
+<td>Day 4 starts them again</td>
+</tr>
+<tr>
+<td>AMI <code>thara-portal-v1</code>, the Day 2 data snapshot, the bucket and the inactive access key</td>
+<td>As on Day 2</td>
+</tr>
+<tr>
+<td><code>thara-key.pem</code>, on your computer</td>
+<td>Every later connection needs it</td>
+</tr>
+</tbody>
+</table></div>
+<p>Two stopped instances are not free. Their two 8 GiB root volumes are still stored, at about USD 0.05 a day together at the time of writing. When you start the bastion on Day 4 it will have a <strong>new</strong> public address, and your own address may have changed too.</p>
+</section><section class="mark cost"><h2 id="7-cost-line"><span class="mark-chip">COST</span> 7. Cost line</h2>
+<p>Estimate for today: <strong>USD 0.40</strong>. That covers about two and a half hours of two <code>t3.micro</code> instances with one public IPv4 address (about USD 0.08) and roughly a week of the two stopped root volumes. Add one ledger row for each of: <code>thara-bastion</code> and <code>thara-web-1</code> (with start and stop times), the flow log, and the Day 2 server (terminated, with the time). Add one row with cost 0.00 for the network itself: <code>thara-vpc</code>, subnets, gateway, route tables and security groups. Write the day's total against the estimate. If it is higher than the estimate, write why in one line.</p>
+</section><h2 id="8-evidence-required">8. Evidence required</h2>
+<ol>
+<li>A diagram of <code>thara-vpc</code>, drawn by hand or with a tool, showing the four subnets with their ranges and zones, both route tables with their routes and associations, the internet gateway, and both instances.</li>
+<li>One screenshot showing the routes of <code>thara-public-rt</code> and <code>thara-private-rt</code> side by side.</li>
+<li>The two annotated REJECT records from <code>thara-flow-logs</code>.</li>
+<li>Your ledger rows.</li>
+<li>Your break-it row from section 5, with your sentence on why a public address was not enough.</li>
+</ol>
+<p>Check every screenshot before you submit it: no private key, and the middle digits of your account id masked.</p>
+<h2 id="9-thara-connection">9. Thara connection</h2>
+<p>This lab meets two requirements and starts a third. The Head of IT asked for private administrative access from the Colombo IT office and no public path to what sits behind it: the bastion is the one door, <code>thara-bastion-sg</code> opens it to one address, and the web tier has no public address at all. The web tier must not be exposed to the internet: <code>thara-web-1</code> sits in a private subnet whose route table has no way out, which is also why it cannot yet be patched, and that is Day 4's problem. The Data Protection Officer's question, "how would we know?", gets its first answer: the flow log recorded two attempts that were refused, with who knocked and on which port. The Head of IT would ask what happens to administration if the bastion is lost. The CFO would ask what the network costs, and the answer is nothing: only what runs inside it does.</p>
+
+<script type="application/json" id="glossary-data">{"bastion":{"d":"The one server that administrators connect to from outside, and from which they reach everything else. It is the only administrative door into the network.","t":"Bastion","x":"<code>thara-bastion<\/code> accepts SSH from the IT office's address only, and <code>thara-web-1<\/code> accepts SSH only from the bastion's group."},"flow-log":{"d":"A record of the traffic at the network interfaces of a VPC: who talked to whom, on which port, and whether it was accepted or rejected. It does not record what was said.","t":"Flow log","x":"the flow log on <code>thara-vpc<\/code> shows a REJECT record for the attempt on the bastion's port 3389."}}</script>
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this afternoon</h2><ul><li><a href="slides/day-3-afternoon.pdf">Slides for this afternoon (PDF)</a></li><li><a href="artefacts/thara-vpc-builder.html">Thara VPC builder: what Day 3 adds to the architecture</a> (visual)</li><li><a href="plays/p3-words.html">Words ladder: Day 3</a> (10 minutes)</li><li><a href="plays/p3-1-build-it-in-order.html">Build it in order</a> (5 minutes)</li><li><a href="plays/p3-2-find-the-fault-in-the-network.html">Find the fault in the network</a> (10 minutes)</li><li><a href="plays/p3-quiz.html">Day quiz: Thara&#x27;s own network</a> (10 minutes)</li><li><a href="../../templates/cost-ledger.csv">Cost ledger template</a> and <a href="../../templates/evidence-pack.html">evidence pack template</a> (also as a <a href="../../templates/evidence-pack.pdf">PDF form</a>)</li><li><a href="../../practice/PQ3.html">Practice question 3</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d3a">Mark this afternoon as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-3/notes.html">Day 3 morning</a></span><span><a href="index.html">Day 3</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>
