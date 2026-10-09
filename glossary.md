@@ -291,3 +291,65 @@ A CloudTrail setting that delivers a continuous record of the account's API even
 A report from a detection service that something looks wrong or is exposed. It has a severity, and it waits to be read. It changes nothing by itself.
 
 *Thara example:* GuardDuty would write a finding if `thara-web-1` contacted an address known for malware.
+
+## Day 6
+
+### Storage class
+The tier an object in S3 is stored in. Each class trades the monthly price of keeping the object against the cost, and the time, of getting it back.
+
+*Thara example:* report PDFs start in S3 Standard and move to Standard-Infrequent Access after 90 days.
+
+### Versioning
+A bucket setting that keeps every version of an object. An overwrite adds a version and a delete adds a marker, so earlier content can be made current again.
+
+*Thara example:* with versioning on `thara-reports-<student id>`, a report that a doctor overwrites by mistake can be brought back.
+
+### Lifecycle rule
+A rule on a bucket that moves objects to a cheaper storage class, or deletes them, when they reach a set age. S3 carries it out in the background, over hours to days.
+
+*Thara example:* `thara-reports-lifecycle` moves reports after 90 days and removes old versions after 180.
+
+### Bucket policy
+A resource-based policy attached to a bucket. It names principals and says what each may do to the bucket and to the objects in it.
+
+*Thara example:* the policy on the reports bucket names `thara-web-role` and allows it to list the bucket and read its objects.
+
+### DB subnet group
+A named list of subnets, in at least two availability zones, that tells RDS where a database may be placed.
+
+*Thara example:* `thara-db-subnets` lists `thara-private-a` and `thara-private-b`, so the records database cannot land in a public subnet.
+
+### Multi-AZ
+An RDS option that keeps a standby copy of a database in a second availability zone and fails over to it automatically. The standby answers no queries while it waits.
+
+*Thara example:* it would let `thara-records` ride out the loss of one zone. The pilot is shown it and does not build it.
+
+### Read replica
+A copy of a database that follows the primary a little behind and answers read queries at an endpoint of its own. It adds capacity for reading and does not take over by itself.
+
+*Thara example:* slow report look-ups on OPD mornings are a question for a read replica, not for a standby.
+
+### Automated backup
+The backup RDS takes of a database every day without being asked, kept for a set number of days. It is deleted with the database unless you choose to retain it. A manual snapshot is not.
+
+*Thara example:* deleting `thara-records` removes its automated backups, and `thara-records-snap1` stays.
+
+### RPO
+Recovery point objective: the most data, measured as time, that an organisation accepts losing. How often you back up decides whether you meet it.
+
+*Thara example:* one hour for patient records, so the records must be backed up at least every hour.
+
+### RTO
+Recovery time objective: the longest a service may stay down, from the failure to working again. You find your own figure by restoring and timing it.
+
+*Thara example:* two hours for patient records. The Day 6 lab deletes the database and measures how long it takes to return.
+
+### Backup plan
+A schedule in AWS Backup that says which resources are backed up, how often, and how long each backup is kept.
+
+*Thara example:* `thara-daily` backs up once a day and keeps each backup for 7 days.
+
+### Backup vault
+The container in AWS Backup that holds the backups a plan creates, with access controls of its own.
+
+*Thara example:* the backups made by `thara-daily` are kept in a vault, apart from the volume they protect.

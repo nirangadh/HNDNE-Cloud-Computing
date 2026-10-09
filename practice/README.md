@@ -11,4 +11,4 @@ Attempt each one without notes, in about 35 minutes, then compare with the guida
 | [PQ3](PQ3.md) | Day 3 | A VPC design for a new branch in Trincomalee, drawn and justified |
 | [PQ4](PQ4.md) | Day 4 | Connecting four branch hospitals: options, cost and latency |
 | [PQ5](PQ5.md) | Day 5 | The leaked report link: controls, and reconstructing who did what |
-| PQ6 | Day 6 | Backup and recovery for patient records against a one-hour RPO and two-hour RTO, with cost |
+| [PQ6](PQ6.md) | Day 6 | Backup and recovery for patient records against a one-hour RPO and two-hour RTO, with cost |

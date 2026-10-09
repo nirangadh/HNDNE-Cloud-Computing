@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RPO and RTO timeline: the last backup, the failure, the restore and the return of service</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .2rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); max-width: 52rem; }
+  .controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem 1.5rem; background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .9rem 1rem; margin-bottom: 1rem; }
+  @media (max-width: 52rem) { .controls { grid-template-columns: 1fr; } }
+  .controls label { display: block; font-weight: 700; }
+  .controls output { font-weight: 800; }
+  .controls .before { border-left: 5px solid var(--signal-amber); padding-left: .7rem; }
+  .controls .after { border-left: 5px solid var(--navy-raised); padding-left: .7rem; }
+  input[type=range] { width: 100%; min-height: 44px; accent-color: var(--navy); }
+  input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .frame { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .5rem; overflow-x: auto; }
+  .frame svg { display: block; width: 100%; min-width: 44rem; height: auto; }
+  .results { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem; }
+  @media (max-width: 52rem) { .results { grid-template-columns: 1fr; } }
+  .card { background: var(--white); border: 2px solid var(--navy); border-radius: 6px; padding: .8rem 1rem; }
+  .card.out { border: 3px solid var(--signal-coral); }
+  .card .big { font-weight: 800; font-size: 1.6rem; line-height: 1.2; }
+  .card .verdict { display: inline-block; font-weight: 700; border-radius: 4px; padding: .1rem .5rem; border: 1px solid var(--navy); background: var(--turquoise); margin-top: .3rem; }
+  .card.out .verdict { background: var(--white); border: 2px solid var(--signal-coral); }
+  .card p { margin: .4rem 0 0; }
+  .say { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .8rem 1rem; margin: 1rem 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>RPO and RTO on one line</h1>
+  <p class="lede">Thara's patient records have two targets: lose at most one hour of data, and be back within two hours. Drag the sliders. The two on the left are decided before a failure, and they set the data lost. The two on the right are decided after it, and they set the time down. Watch which result moves.</p>
+
+  <div class="controls">
+    <div class="before"><label for="iv">A backup is taken every <output id="ivO" for="iv"></output></label><input type="range" id="iv" min="0" max="7" step="1" value="2"></div>
+    <div class="after"><label for="nt">Noticing, and starting the restore, takes <output id="ntO" for="nt"></output></label><input type="range" id="nt" min="0" max="180" step="5" value="15"></div>
+    <div class="before"><label for="fl">The failure comes <output id="flO" for="fl"></output> after the last backup</label><input type="range" id="fl" min="0" max="100" step="5" value="65"></div>
+    <div class="after"><label for="rs">The restore, and checking it, takes <output id="rsO" for="rs"></output></label><input type="range" id="rs" min="5" max="360" step="5" value="25"></div>
+  </div>
+
+  <div class="frame">
+    <svg viewBox="0 0 900 250" role="img" aria-labelledby="tlT" id="tl" font-family="'Open Sans', Arial, sans-serif"><title id="tlT">A time line with the last backup, the failure, the start of the restore and the return of service</title><g id="tlG"></g></svg>
+  </div>
+
+  <div class="results" role="status" aria-live="polite">
+    <section class="card" id="cP" aria-labelledby="hP"><h2 id="hP">Data lost, against the RPO</h2><div class="big" id="vP"></div><span class="verdict" id="wP"></span><p id="xP"></p></section>
+    <section class="card" id="cT" aria-labelledby="hT"><h2 id="hT">Time down, against the RTO</h2><div class="big" id="vT"></div><span class="verdict" id="wT"></span><p id="xT"></p></section>
+  </div>
+
+  <div class="say" id="say"></div>
+
+  <footer>The targets are Thara's: an RPO of one hour and an RTO of two hours for patient records. The picture is the same for any system; only the targets change. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const IV = [15, 30, 60, 120, 240, 480, 720, 1440], RPO = 60, RTO = 120;
+  const $ = id => document.getElementById(id);
+  const dur = m => m < 60 ? m + ' minutes' : (m % 60 === 0 ? (m / 60) + (m === 60 ? ' hour' : ' hours') : Math.floor(m / 60) + (m < 120 ? ' hour ' : ' hours ') + (m % 60) + ' minutes');
+  function draw() {
+    const iv = IV[+$('iv').value];
+    const lost = Math.round(iv * (+$('fl').value) / 100 / 5) * 5;
+    const nt = +$('nt').value, rs = +$('rs').value, down = nt + rs;
+    const every = iv === 60 ? 'hour' : dur(iv); $('ivO').textContent = every; $('flO').textContent = lost === 0 ? 'straight' : dur(lost);
+    $('ntO').textContent = nt === 0 ? 'no time' : dur(nt); $('rsO').textContent = dur(rs);
+    [['iv', dur(iv)], ['fl', dur(lost)], ['nt', dur(nt)], ['rs', dur(rs)]].forEach(([k, v]) => $(k).setAttribute('aria-valuetext', v));
+    // layout: the failure sits where the two spans meet; each side is scaled to fit
+    const L = 40, R = 860, total = Math.max(lost + down, 1), W = R - L, minSeg = 70;
+    let a = Math.max(minSeg, W * lost / total), b = Math.max(minSeg, W * down / total); const k = W / (a + b); a *= k; b *= k;
+    const xB = L, xF = L + a, xS = xF + (down ? b * nt / down : 0), xR = R, y = 120;
+    const showS = nt > 0 && xS - xF > 40 && xR - xS > 110;
+    const P = '#F4B942', T = '#133B50', N = '#0D2B45', M = '#546472', C = '#E86A5B';
+    const mark = (x, top, t1, t2, col) => '<line x1="' + x.toFixed(1) + '" y1="' + (y - 34) + '" x2="' + x.toFixed(1) + '" y2="' + (y + 34) + '" stroke="' + N + '" stroke-width="2.5"/>'
+      + '<circle cx="' + x.toFixed(1) + '" cy="' + y + '" r="8" fill="' + col + '" stroke="' + N + '" stroke-width="2"/>'
+      + '<text x="' + x.toFixed(1) + '" y="' + (top ? y - 58 : y + 56) + '" font-size="14" font-weight="700" fill="' + N + '" text-anchor="' + (x < 120 ? 'start' : x > 780 ? 'end' : 'middle') + '">' + t1 + '</text>'
+      + '<text x="' + x.toFixed(1) + '" y="' + (top ? y - 42 : y + 72) + '" font-size="13" fill="' + M + '" text-anchor="' + (x < 120 ? 'start' : x > 780 ? 'end' : 'middle') + '">' + t2 + '</text>';
+    let g = '<rect x="' + xB + '" y="' + (y - 12) + '" width="' + (xF - xB).toFixed(1) + '" height="24" fill="' + P + '" stroke="' + N + '" stroke-width="1.5"/>'
+      + '<rect x="' + xF.toFixed(1) + '" y="' + (y - 12) + '" width="' + (xR - xF).toFixed(1) + '" height="24" fill="' + T + '" stroke="' + N + '" stroke-width="1.5"/>'
+      + '<text x="' + ((xB + xF) / 2).toFixed(1) + '" y="' + (y + 5) + '" font-size="13" font-weight="700" fill="' + N + '" text-anchor="middle">data lost</text>'
+      + '<text x="' + ((showS ? (xS + xR) / 2 : (xF + xR) / 2)).toFixed(1) + '" y="' + (y + 5) + '" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">service down</text>';
+    g += mark(xB, true, 'Last backup', 'the last good copy', '#FFFFFF') + mark(xF, false, 'Failure', 'the clock starts', C);
+    if (showS) g += mark(xS, true, 'Restore starts', 'after ' + dur(nt), '#FFFFFF');
+    g += mark(xR, false, 'Service returns', 'data checked', '#48C9B0');
+    g += '<text x="' + ((xB + xF) / 2).toFixed(1) + '" y="222" font-size="14" font-weight="700" fill="' + N + '" text-anchor="middle">' + dur(lost) + '</text>'
+      + '<text x="' + ((xF + xR) / 2).toFixed(1) + '" y="222" font-size="14" font-weight="700" fill="' + N + '" text-anchor="middle">' + dur(down) + '</text>'
+      + '<path d="M' + xB + ' 204 L' + xF.toFixed(1) + ' 204 M' + xF.toFixed(1) + ' 204 L' + xR + ' 204" stroke="' + M + '" stroke-width="1.5"/>'
+      + '<path d="M' + xB + ' 198 L' + xB + ' 210 M' + xF.toFixed(1) + ' 198 L' + xF.toFixed(1) + ' 210 M' + xR + ' 198 L' + xR + ' 210" stroke="' + M + '" stroke-width="1.5"/>';
+    $('tlG').innerHTML = g;
+    const okP = lost <= RPO, worstOk = iv <= RPO, okT = down <= RTO;
+    $('vP').textContent = dur(lost); $('cP').className = 'card' + (okP ? '' : ' out');
+    $('wP').textContent = okP ? 'Inside the one hour' : 'Outside the one hour';
+    $('xP').textContent = worstOk ? 'With a backup every ' + every + ', the worst case is ' + dur(iv) + ' lost. The target is met whenever the failure comes.'
+      : 'With a backup every ' + every + ', the worst case is ' + dur(iv) + ' lost. ' + (okP ? 'This failure happened to come early. The schedule does not meet the target; the timing did.' : 'Only a shorter interval between backups can change this.');
+    $('vT').textContent = dur(down); $('cT').className = 'card' + (okT ? '' : ' out');
+    $('wT').textContent = okT ? 'Inside the two hours' : 'Outside the two hours';
+    $('xT').textContent = dur(nt) + ' to notice and begin, and ' + dur(rs) + ' to restore and check. ' + (nt > rs ? 'More of the time went on people than on the restore.' : 'You find the second figure only by doing a restore with a clock running.');
+    $('say').innerHTML = '<b>Two spans, one shared moment.</b> The left-hand sliders moved only the data lost. The right-hand sliders moved only the time down. A system can be back in ' + dur(down) + ' with ' + dur(lost) + ' of work missing: the two numbers answer different questions, and each has its own cure.';
+  }
+  ['iv', 'fl', 'nt', 'rs'].forEach(k => $(k).addEventListener('input', draw));
+  draw();
+</script>
+</body>
+</html>
