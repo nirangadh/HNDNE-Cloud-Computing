@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Day 5 notes: Identity, encryption, detection | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Day 5 morning notes: Identity, encryption, detection. These notes go with the morning slides. They build the ideas you need before this afternoon&#x27;s lab, where you...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/notes.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Day 5 notes: Identity, encryption, detection">
+<meta property="og:description" content="Day 5 morning notes: Identity, encryption, detection. These notes go with the morning slides. They build the ideas you need before this afternoon&#x27;s lab, where you...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/notes.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"Day 5 morning notes: Identity, encryption, detection. These notes go with the morning slides. They build the ideas you need before this afternoon's lab, where you...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Lecture notes","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Day 5 notes: Identity, encryption, detection","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/notes.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/","name":"Day 5","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/notes.html","name":"Day 5 notes: Identity, encryption, detection","position":3}]}</script>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Identity, encryption, detection</h1><p class="sub">Day 5, morning notes</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 8">LO8</span></div>
+<p>These notes go with the morning slides. They build the ideas you need before this afternoon's lab, where you build component 10 (identity, keys and audit) of the Thara architecture and change how the web tier reaches component 3, the laboratory reports bucket.</p>
+<h2 id="where-you-are-starting">Where you are starting</h2>
+<p>So far you have built components 1 to 9. The network is finished: <code>thara-vpc</code> has its public and private subnets, <code>thara-bastion</code> is the one door for administrators, <code>thara-web-1</code> sits in a private subnet, and on Day 4 it gained a private path to the reports bucket through the S3 gateway endpoint.</p>
+<p>Three things were left unpaid on the way here. On Day 2 you typed an access key with the full power of your account into a text file on the web server, and on Day 4 you typed it in again; it is switched off, and it still exists. On Day 3 the console created a "service role" for your flow log, and the lab sheet said only that Day 5 explains roles. And from the first day the Data Protection Officer has been asking three questions that the network cannot answer: who can read patient data, what protects it, and how the hospital would know if someone did.</p>
+<p>Today answers them in that order. Who is asking, and what decides the answer, is identity. What protects the data when the storage itself is copied is encryption. How anyone would know is detection. The afternoon builds one piece of each.</p>
+<h2 id="1-identity-is-the-perimeter">1. Identity is the perimeter</h2>
+<p>On Days 3 and 4 the perimeter was a network: subnets, routes and firewalls decided what could reach what. But every AWS service is also reached through its API, from anywhere on the internet, and a request that carries valid credentials never touches your route tables. For the API, the perimeter is identity.</p>
+<p><strong>Principals.</strong> Every request to AWS is made by a <a class="term" data-term="principal" href="../../glossary.html#principal">principal</a>: the identity that is asking. A principal is an IAM user, a role, or an AWS service acting for you. The root user is a principal too, and the only one that no policy can restrict. Every question about access begins with "who is asking?".</p>
+<p><strong>Two kinds of policy.</strong> A policy is a JSON document that says what is allowed or denied. It comes in two kinds, the <a class="term" data-term="identity-based-policy" href="../../glossary.html#identity-based-policy">identity-based policy</a> and the resource-based policy, and the difference is what each is attached to.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Identity-based policy</th>
+<th>Resource-based policy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Attached to</td>
+<td>A user, a group or a role</td>
+<td>A resource: a bucket, a key, a role's trust</td>
+</tr>
+<tr>
+<td>Answers</td>
+<td>What may this identity do?</td>
+<td>Who may do what to this resource?</td>
+</tr>
+<tr>
+<td>Names a principal</td>
+<td>No: the principal is whoever it is attached to</td>
+<td>Yes: it must say who it is talking about</td>
+</tr>
+<tr>
+<td>You meet it</td>
+<td>This afternoon: the web tier's policy</td>
+<td>This afternoon: a key policy and a trust policy. Day 6: a bucket policy</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The anatomy of a statement.</strong> A policy holds one or more statements. This is one of the two that you write this afternoon:</p>
+<pre tabindex="0"><code class="language-json">{
+  "Sid": "ReadTheReports",
+  "Effect": "Allow",
+  "Action": "s3:GetObject",
+  "Resource": "arn:aws:s3:::thara-reports-&lt;student id&gt;/*"
+}
+</code></pre>
+<ul>
+<li><code>Effect</code> is <code>Allow</code> or <code>Deny</code>. There is no third value.</li>
+<li><code>Action</code> names what may be done, as a service and an operation. A star is a wildcard: <code>s3:*</code> is every S3 action.</li>
+<li><code>Resource</code> names what it may be done to, as an ARN, the full name of a resource. Here it is every object in one bucket.</li>
+<li><code>Sid</code> is a label for people. A statement may also carry a <code>Condition</code>, which narrows it further, and a resource-based policy adds a <code>Principal</code>.</li>
+<li>Around the statements sits a <code>Version</code> line. It is always the same fixed text, and the console writes it for you.</li>
+</ul>
+<p><strong>How AWS decides.</strong> For every request, AWS gathers every statement that applies and decides in a fixed order.</p>
+<ol>
+<li>Is there an <strong><a class="term" data-term="explicit-deny" href="../../glossary.html#explicit-deny">explicit deny</a></strong>, a statement with the effect <code>Deny</code> that matches? Then the answer is no, and nothing can override it.</li>
+<li>If not, is there an <strong>allow</strong> that matches? Then the answer is yes.</li>
+<li>If neither, the answer is no. This is the <strong>implicit deny</strong>: everything is refused until something allows it.</li>
+</ol>
+<figure class="art"><svg aria-labelledby="dad-t dad-d" role="img" style="min-width:640px" viewbox="0 0 640 330"><title id="dad-t">How AWS decides: deny, then allow, then no</title><desc id="dad-d">A request passes through two questions in order. First: does an explicit deny match? If yes, the request is denied explicitly, nothing overrides it, and the only cure is to remove the deny. If no, second: does an allow match? If yes, the request is allowed. If no, third, the request is denied implicitly, because nothing allowed it, and the cure is to add an allow.</desc><rect fill="#FFFFFF" height="330" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">How AWS decides: deny, then allow, then no</text><rect fill="#FFFFFF" height="44" rx="22" stroke="#0D2B45" stroke-width="2.5" width="92" x="10" y="76"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="56" y="103">A request</text><path d="M102 98 L120 98" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M118 92 L128 98 L118 104 Z" fill="#0D2B45"></path><rect fill="#FFFFFF" height="64" rx="8" stroke="#0D2B45" stroke-width="2.5" width="170" x="128" y="66"></rect><circle cx="132" cy="66" fill="#F4B942" r="11" stroke="#FFFFFF" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="132" y="70.5">1</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle" x="213.0" y="94">An explicit deny?</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="213.0" y="114">checked first</text><path d="M298 98 L338 98" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M336 92 L346 98 L336 104 Z" fill="#0D2B45"></path><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="320" y="88">no</text><path d="M213.0 130 L213.0 172" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M207.0 170 L213.0 180 L219.0 170 Z" fill="#0D2B45"></path><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="225.0" y="158">yes</text><rect fill="#FFFFFF" height="64" rx="8" stroke="#0D2B45" stroke-width="2.5" width="150" x="346" y="66"></rect><circle cx="350" cy="66" fill="#F4B942" r="11" stroke="#FFFFFF" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="350" y="70.5">2</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle" x="421.0" y="94">An allow?</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="421.0" y="114">checked second</text><path d="M496 98 L536 98" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M534 92 L544 98 L534 104 Z" fill="#0D2B45"></path><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="518" y="88">no</text><path d="M421.0 130 L421.0 172" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M415.0 170 L421.0 180 L427.0 170 Z" fill="#0D2B45"></path><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="433.0" y="158">yes</text><rect fill="#FFFFFF" height="56" rx="8" stroke="#E86A5B" stroke-width="4" width="170" x="128" y="182"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="800" text-anchor="middle" x="213" y="206">Denied</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="213" y="226">explicitly</text><rect fill="#48C9B0" height="56" rx="8" stroke="#0D2B45" stroke-width="2" width="150" x="346" y="182"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="800" text-anchor="middle" x="421" y="216">Allowed</text><rect fill="#FFFFFF" height="64" rx="8" stroke="#0D2B45" stroke-dasharray="7 5" stroke-width="2.5" width="88" x="544" y="66"></rect><circle cx="548" cy="66" fill="#F4B942" r="11" stroke="#FFFFFF" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="548" y="70.5">3</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="800" text-anchor="middle" x="588" y="94">Denied</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="588" y="114">implicitly</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="128" y="264">Nothing overrides it.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="128" y="282">The only cure is to</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="128" y="300">remove the deny.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="346" y="264">One statement allows</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="346" y="282">this action on</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="346" y="300">this resource.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="end" x="632" y="156">Nothing allowed it.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" x="632" y="174">The cure is to</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" x="632" y="192">add an allow.</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="322">Two ways to be refused, with two different cures.</text></svg><figcaption>The order never changes: an explicit deny, then an allow, then no. The two refusals look the same from outside and are cured in different ways. <a class="full" href="img/deny-allow-default.svg">Open this diagram at full size</a></figcaption></figure>
+<p>So there are two ways to be refused and they are not the same. An implicit deny is cured by adding an allow. An explicit deny is not cured by anything except removing it. Add and remove statements and watch the verdict change in <a href="artefacts/policy-evaluator.html">policy-evaluator</a>.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q"><code>thara-web-role</code> has a policy that allows <code>s3:GetObject</code> on the reports bucket. Someone attaches a second policy that denies <code>s3:*</code>. The web tier asks for a report. What happens?</p><ol class="qc-opts"><li>It is allowed, because the allow names the exact action</li><li data-right="">It is denied, because an explicit deny always wins<span class="qc-key"> (answer)</span></li><li>It depends on which policy was attached most recently</li></ol><p class="qc-why"><strong>Why:</strong> A matching deny is looked for first, and nothing overrides it. How specific the allow is, and the order in which policies were attached, play no part. The only cure is to remove the deny.</p></div>
+<p>The <strong>policy simulator</strong> in the IAM console runs this check for you without touching anything real. You give it a policy, an action and a resource, and it answers allowed, implicitly denied or explicitly denied, and names the statement that decided. This afternoon you test a policy there before it is attached to anything.</p>
+<p><strong><a class="term" data-term="least-privilege" href="../../glossary.html#least-privilege">Least privilege</a> is a method, not a slogan.</strong> Everyone agrees that an identity should have only the permissions it needs. The method is what makes it happen.</p>
+<ol>
+<li>Start from the workload, not from the service. The web tier lists the reports bucket and downloads reports.</li>
+<li>Write down the actions that work needs: <code>s3:ListBucket</code> and <code>s3:GetObject</code>. Not <code>s3:*</code>.</li>
+<li>Write down the resources: one bucket, and the objects in it. Not <code>*</code>.</li>
+<li>Write the policy, and test it in the simulator against what it should allow and what it should refuse.</li>
+<li>Attach it. Widen it later only when a refusal shows that the work needs more.</li>
+</ol>
+<p>The opposite method is to grant everything and plan to tighten it later. Later does not come, and the wide policy is the one an attacker inherits.</p>
+<p><strong>Roles, instance profiles and temporary credentials.</strong> A user has credentials of its own: a password, or an access key that works until someone deletes it. A <strong><a class="term" data-term="role" href="../../glossary.html#role">role</a></strong> has none. A role is an identity that is assumed: its trust policy names who may take it on, and whoever does is issued <strong><a class="term" data-term="temporary-credentials" href="../../glossary.html#temporary-credentials">temporary credentials</a></strong>, a key, a secret and a token that expire by themselves within hours. For an EC2 instance, the role is handed over through an <strong><a class="term" data-term="instance-profile" href="../../glossary.html#instance-profile">instance profile</a></strong>, and the instance collects fresh credentials before the old ones expire. Nothing is typed in and nothing is stored on a disk.</p>
+<p>You have already used one. The service role that the console created for your flow log on Day 3 is a role that the flow logs service assumes, so that it can write to your log group without anyone giving it a key. And the sixty-second key that EC2 Instance Connect pushed on Day 2 was the same idea in a smaller form: a credential that expires before it can be lost.</p>
+<p>This is the cure for long-lived keys. The Day 2 key had three faults: it carried every permission of your admin user, it never expired, and it sat in a file. A role fixes all three. Compare the two paths, and steal the credential in each, in <a href="artefacts/role-vs-key.html">role-vs-key</a>.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">The contractor needs to read Thara's logs for two days. Which way of giving him access needs nobody to remember anything on the third day?</p><ol class="qc-opts"><li data-right="">A role he assumes, whose credentials expire by themselves<span class="qc-key"> (answer)</span></li><li>An IAM user with an access key, to be deleted on day three</li><li>The admin user's password, changed again when he leaves</li></ol><p class="qc-why"><strong>Why:</strong> A role issues temporary credentials, so nothing long-lived exists to be forgotten. A key that is "to be deleted" works until someone deletes it, and a shared admin password also means the audit trail cannot say who did what.</p></div>
+<p><strong>MFA and key hygiene.</strong> The rest is discipline, and it is short.</p>
+<ul>
+<li>MFA on every identity that a person uses, as on Day 1. A stolen password is then not enough.</li>
+<li>No access keys on the root user, ever.</li>
+<li>No long-lived key where a role will do. Where a key must exist, it is never put in a file on a server, in a screenshot or in a repository, and it is deleted when its job ends. A key that is only deactivated can be switched on again.</li>
+<li>One person, one identity. A shared login means that the audit trail names nobody.</li>
+<li>The same goes for the SSH key. On Day 3 you reached <code>thara-web-1</code> either by forwarding your agent through the bastion or by copying <code>thara-key.pem</code> onto it. Neither is ideal: a forwarded agent can be used by anyone with control of the bastion while you are connected, and a copied key sits on the one server that faces the internet. Both were for teaching, and the copy was removed.</li>
+</ul>
+<p><strong>Organizations.</strong> One account is enough for a pilot. A real organisation runs many: one for production, one for testing, one for audit logs. AWS Organizations groups accounts so that there is <strong>one bill</strong> and <strong>one policy boundary</strong>: a policy set at the top that no account beneath it can exceed, whatever its own administrators allow. You do not build this. You should know that it exists, and that it is how a hospital group would keep its audit logs out of reach of the people being audited.</p>
+<div class="box know"><p>RBAC on a firewall manager; the enable password nobody should share. A policy attached to a role is role-based access control: the engineer gets the permissions of the job, not of the person. The long-lived access key is the shared enable password: it works for whoever holds it, it never changes, and the log cannot say who used it.</p></div>
+<div class="box thara"><p>The Day 2 key on the web server; the contractor who needs two days of log access; the DPO's "who". The key is replaced by a role this afternoon. The contractor is the same problem with a person in it: he needs to read the logs for two days and nothing else, so he gets a role whose credentials expire, not a key that somebody must remember to delete. And the DPO's question, who can read patient data, now has an answer you can read out of a policy.</p></div>
+<div class="box mistake"><p>"An explicit allow wins." It does not. An explicit deny always wins. If one policy allows an action and another denies it, the answer is no, however specific the allow is and whichever was attached last.</p></div>
+<h2 id="2-encrypting-what-the-hospital-holds">2. Encrypting what the hospital holds</h2>
+<p>Access control decides who may ask. Encryption protects the data when the question is never asked: when a disk, a snapshot or a backup is copied by someone who goes around the API altogether.</p>
+<p><strong>At rest and in transit.</strong> Data is encrypted <strong>at rest</strong> when it is stored encrypted, on a volume, in a bucket or in a database. It is encrypted <strong>in transit</strong> when it is protected on the wire, which on the web means TLS. Thara needs both. This afternoon is about data at rest. In transit arrives on Day 7, where TLS is terminated at the load balancer: the patient's browser speaks HTTPS to the load balancer, which is where the certificate lives.</p>
+<p><strong>KMS and customer-managed keys.</strong> The AWS Key Management Service (KMS) creates and holds encryption keys, and it never hands them out. You cannot download a KMS key. You can only ask KMS to use it for you, and every such request is checked against policy and recorded. Keys come in two kinds. An AWS managed key is created and looked after by AWS for one service; you can use it and cannot change it. A <strong><a class="term" data-term="customer-managed-key" href="../../glossary.html#customer-managed-key">customer-managed key</a></strong> is one that you create: you write its policy, you can disable it, and you can schedule it for deletion. It costs about USD 1 a month at the time of writing. Thara's is <code>alias/thara-records</code>.</p>
+<p><strong><a class="term" data-term="envelope-encryption" href="../../glossary.html#envelope-encryption">Envelope encryption</a>.</strong> KMS does not encrypt your disk. A volume of many gigabytes is not sent to KMS and back. Instead there are two keys, one inside the other.</p>
+<ol>
+<li>The service asks KMS for a <strong>data key</strong>. KMS returns it twice: once in the clear, and once encrypted under your KMS key.</li>
+<li>The service encrypts the data with the clear data key, then throws that copy away.</li>
+<li>It stores the <strong>encrypted data key</strong> beside the encrypted data. That is the envelope: the key travels with the data, sealed.</li>
+<li>To read the data, the service sends the sealed data key to KMS. If policy allows, KMS opens it and returns the clear data key, which is held in memory only while it is needed.</li>
+</ol>
+<figure class="art"><svg aria-labelledby="env-t env-d" role="img" style="min-width:640px" viewbox="0 0 640 344"><title id="env-t">Envelope encryption: which key is where</title><desc id="env-d">Three boxes. On the left is KMS, which holds the KMS key, alias/thara-records, and never gives it out. In the middle is memory, which holds the data key in the clear only while it is needed. On the right is the volume as stored, which holds the encrypted data and the data key in sealed form. Step 1: KMS makes the data key. Step 2: the data key encrypts the data. Step 3: the sealed data key is stored beside the data.</desc><rect fill="#FFFFFF" height="344" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">Envelope encryption: which key is where</text><rect fill="#0D2B45" height="190" rx="8" width="186" x="14" y="44"></rect><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="start" x="28" y="68">KMS</text><text fill="#BBBBBB" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="28" y="88">never gives a key out</text><rect fill="#133B50" height="56" rx="6" stroke="#48C9B0" stroke-width="2" width="158" x="28" y="110"></rect><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="107" y="134">the KMS key</text><text fill="#FFFFFF" font-family="Courier New, monospace" font-size="12" font-weight="400" text-anchor="middle" x="107" y="153">alias/thara-records</text><rect fill="#F7F7F7" height="190" rx="8" stroke="#BBBBBB" stroke-width="1.5" width="186" x="227" y="44"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="start" x="241" y="68">In memory</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="241" y="88">only while it is needed</text><rect fill="#F4B942" height="56" rx="6" stroke="#0D2B45" stroke-width="2" width="158" x="241" y="110"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="320" y="134">the data key</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="320" y="153">in the clear</text><rect fill="#FFFFFF" height="190" rx="8" stroke="#0D2B45" stroke-width="2.5" width="186" x="440" y="44"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="start" x="454" y="68">The volume, as stored</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="454" y="88">what a copied disk holds</text><rect fill="#133B50" height="48" rx="6" width="158" x="454" y="110"></rect><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="533" y="139">encrypted data</text><rect fill="#DEF5F1" height="48" rx="6" stroke="#0D2B45" stroke-dasharray="7 5" stroke-width="2" width="158" x="454" y="170"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="533" y="199">the data key, sealed</text><path d="M186 138 L231 138" fill="none" stroke="#48C9B0" stroke-width="3.5"></path><path d="M229 132 L239 138 L229 144 Z" fill="#48C9B0"></path><path d="M399 134 L444 134" fill="none" stroke="#0D2B45" stroke-width="3.5"></path><path d="M442 128 L452 134 L442 140 Z" fill="#0D2B45"></path><circle cx="213" cy="138" fill="#F4B942" r="10" stroke="#FFFFFF" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="213" y="142.5">1</text><circle cx="426" cy="134" fill="#F4B942" r="10" stroke="#FFFFFF" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="426" y="138.5">2</text><path d="M320 166 L320 194 L444 194" fill="none" stroke="#0D2B45" stroke-dasharray="6 5" stroke-width="3"></path><path d="M444 194 L434 188 L434 200 Z" fill="#0D2B45"></path><circle cx="320" cy="194" fill="#F4B942" r="10" stroke="#FFFFFF" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="320" y="198.5">3</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="262">1: KMS makes a data key and hands it over twice, once in the clear and once sealed under the KMS key.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="280">2: the data is encrypted with the clear data key, which is then thrown away.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="298">3: the sealed data key is stored beside the data. Only KMS can open it again.</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="322">The KMS key never leaves KMS. A stolen copy of the volume holds nothing that opens it.</text></svg><figcaption>Three things are called a key. The KMS key stays in KMS, the clear data key exists only in memory, and the sealed data key is stored beside the data. <a class="full" href="img/envelope.svg">Open this diagram at full size</a></figcaption></figure>
+<p>Three things follow. The KMS key itself never leaves KMS. Stolen storage is useless, because it holds only encrypted data and a sealed key. And disabling one KMS key makes everything encrypted under it unreadable at once. Step through both directions in <a href="artefacts/envelope-encryption.html">envelope-encryption</a>.</p>
+<p><strong>What is encrypted without being asked.</strong> The two storage services you have used behave differently.</p>
+<ul>
+<li><strong>S3</strong> encrypts every new object by default, with keys that S3 manages. You did nothing on Day 2, and <code class="long">thara-reports-&lt;student id&gt;</code> has been encrypted since.</li>
+<li><strong>EBS</strong> encrypts a volume when you ask for it at creation, or when an account has been set to encrypt every new volume. Your Day 2 data volume and its snapshot were not encrypted. A volume created from an unencrypted snapshot can be encrypted as it is created, which is what the lab does. A snapshot of an encrypted volume is always encrypted.</li>
+</ul>
+<p><strong>Key policy versus IAM policy.</strong> Every KMS key has a <strong><a class="term" data-term="key-policy" href="../../glossary.html#key-policy">key policy</a></strong>, a resource-based policy on the key itself, which says who may manage the key and who may use it. That makes two questions where you might expect one. Who can read the bucket is answered by the policies on the principal and on the bucket. Who can use the key is answered by the key policy. For data encrypted under a customer-managed key, a principal needs a yes to both. That is a second lock, and it is the one the DPO can point to: the people who administer storage and the people who control the key need not be the same people.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">The reports bucket is encrypted. The Data Protection Officer asks whether that would have stopped someone who stole the Day 2 access key from reading the reports. What do you answer?</p><ol class="qc-opts"><li>Yes: only the owner of the bucket holds the key that opens it</li><li>Yes, for as long as the encryption key is not rotated</li><li data-right="">No: S3 decrypts for any principal the policies allow to read<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> The stolen key was the admin user's, and the admin user may read the bucket, so S3 would decrypt each report and hand it over. Encryption at rest protects copied storage. Who may ask is decided by policy.</p></div>
+<div class="box know"><p>Full-disk encryption on a laptop with the key held by the domain. The laptop's disk is encrypted with a key that the user never sees and that the organisation can withdraw. A stolen laptop is a brick. Envelope encryption is the same arrangement: the data key is on the device, sealed, and the key that opens it stays with the authority.</p></div>
+<div class="box thara"><p>Patient records and report PDFs are special-category data; encryption is an acceptance criterion. It is not a feature to add if there is time. A pilot that stores a patient's records unencrypted has not met the requirement, however well everything else works.</p></div>
+<div class="box mistake"><p>"Encrypting the bucket means only the owner can read it." Encryption and access control are separate questions. With the default encryption, S3 decrypts an object for any principal that the policies allow to read it. Encryption at rest protects against copied storage. It does nothing about a principal that has been given too much.</p></div>
+<h2 id="3-knowing-when-something-happened">3. Knowing when something happened</h2>
+<p>A control that fails silently has not protected anything. The third question is how the hospital would know, and three services answer it by reading three different things.</p>
+<p><strong>CloudTrail reads the API.</strong> Every console click and every CLI call ends as an API call, and CloudTrail records each one as an event: who made it, when, from which address, what they asked for, and whether it was allowed. <strong>Event history</strong> keeps the last 90 days in each region at no charge, with nothing to set up. A <strong><a class="term" data-term="trail" href="../../glossary.html#trail">trail</a></strong> delivers a continuous copy to a bucket, so that the record outlives 90 days and sits somewhere the people it records cannot quietly edit. By default it records management events: the calls that create, change or delete things, and sign-ins. Reading one object out of a bucket is a different kind of call, a data event, which a trail records only when you ask it to, at a charge. And CloudTrail does not see packets. The flow log from Day 3 knows that an address reached port 22. CloudTrail knows who changed the rule that let it.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">Last night someone changed a rule in <code>thara-web-sg</code> so that SSH is open to anywhere. Which record names the user who did it?</p><ol class="qc-opts"><li>The flow log on <code>thara-vpc</code></li><li data-right="">A CloudTrail event<span class="qc-key"> (answer)</span></li><li>The security group's own rule list</li></ol><p class="qc-why"><strong>Why:</strong> Changing a rule is an API call, and CloudTrail records the call with its user name, time and source address. The flow log shows packets that arrived afterwards, not who opened the door, and the rule list shows what the rule is now, not who wrote it.</p></div>
+<p><strong>GuardDuty reads telemetry.</strong> GuardDuty analyses three streams that AWS already has: the VPC's flow records, DNS lookups made by your instances, and CloudTrail events. It needs nothing installed and no flow log of your own. When a pattern looks like trouble, such as an instance talking to an address known for malware or credentials used from an unusual place, it writes a <strong><a class="term" data-term="finding" href="../../glossary.html#finding">finding</a></strong>. Findings, not alerts: a finding is a report with a severity, waiting to be read. GuardDuty changes nothing in your account.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">GuardDuty reports that <code>thara-web-1</code> is contacting an address known for malware. What has GuardDuty done to that connection?</p><ol class="qc-opts"><li data-right="">Nothing: it has written a finding for someone to act on<span class="qc-key"> (answer)</span></li><li>Blocked it with a deny rule in the subnet's network ACL</li><li>Stopped the instance until an administrator reviews it</li></ol><p class="qc-why"><strong>Why:</strong> GuardDuty reads copies of the telemetry and is not in the path of any traffic, so it cannot block or stop anything. Until a person, or something a person has built, acts on the finding, the connection carries on.</p></div>
+<p><strong>IAM Access Analyzer reads policies.</strong> It examines the resource-based policies in your account and reports every resource that can be reached from <strong>outside</strong> the account: a bucket that a policy has made public, a role that another account may assume. It does not wait for anyone to use the access. It tells you that the door is open.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Reads</th>
+<th>Tells you</th>
+<th>Does not</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CloudTrail</td>
+<td>API calls</td>
+<td>Who did what, when, from where</td>
+<td>See network traffic, or judge anything</td>
+</tr>
+<tr>
+<td>GuardDuty</td>
+<td>Flow records, DNS lookups, CloudTrail events</td>
+<td>That behaviour looks malicious</td>
+<td>Block, stop or fix anything</td>
+</tr>
+<tr>
+<td>IAM Access Analyzer</td>
+<td>Resource-based policies</td>
+<td>What is reachable from outside the account</td>
+<td>Say whether anyone has used it</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>At the edge.</strong> Two services from Day 4 complete the picture, placed in front of everything as component 13. <strong>Shield</strong> absorbs distributed denial-of-service attacks before they reach your network. <strong>WAF</strong> inspects web requests and blocks those that match its rules. WAF is the one service on this page that stops traffic, and it is demonstrated on Day 7. See where all five stand, and what each can and cannot see, in <a href="artefacts/detection-map.html">detection-map</a>.</p>
+<p><strong>The security pillar as a checklist.</strong> The AWS Well-Architected Framework is a set of questions for reviewing a design, grouped into pillars. Its security pillar asks, in order: who can do what (identity and access), how you would know (detection), what protects the network and the servers (infrastructure protection), what protects the data (data protection), and what you do when something happens (incident response). This morning's activity uses those questions to walk the environment you have built.</p>
+<div class="box know"><p>Syslog from every device to a SIEM; an IDS on a span port. CloudTrail is the syslog of the control plane, collected in one place that the devices cannot rewrite. GuardDuty is the intrusion detection system reading a copy of the traffic: it sees and reports, and it is not in the path, so it cannot drop a packet.</p></div>
+<div class="box thara"><p>The DPO's "how would we know" is CloudTrail plus flow logs plus GuardDuty. CloudTrail says who changed what. The flow log says who talked to whom. GuardDuty reads both and says when the pattern is wrong. No one of them is the answer alone.</p></div>
+<div class="box mistake"><p>"GuardDuty blocks attacks." It reports findings. Nothing is blocked, stopped or isolated until a person, or something that a person has built, acts on the finding.</p></div>
+<h2 id="the-threat-walk">The threat walk</h2>
+<p>This morning's activity is done in pairs, and it produces a table that you keep.</p>
+<p>Walk the Thara environment as it stands after Day 4, using the security pillar's questions. Four threats are given to you as seeds. For each, write what it would allow an attacker to do, and which control from today's session closes it.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Seed</th>
+<th>What it allows an attacker to do</th>
+<th>The control that closes it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A stolen access key</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>An open security group</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>A public bucket</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>A missing audit trail</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>Then add two threats of your own, to make six rows. Be exact: "data could be stolen" is not a threat until it says which data, by which path. This table is the start of the capstone's threat table, which needs at least eight threats, each with its control and where in the architecture that control sits. It is also the first half of this afternoon's security review memo.</p>
+<h2 id="before-the-lab">Before the lab</h2>
+<ul>
+<li>Find <code>thara-key.pem</code>. Bring your pair's threat table.</li>
+<li>Sit with your capstone group for the last part of the afternoon, and know which account is the host and who has which tier.</li>
+<li>Open <a href="artefacts/role-vs-key.html">role-vs-key</a> and be ready to say what an attacker holds in each case.</li>
+<li>Open your cost ledger. The estimate for the day is USD 0.80. One new line today does not stop when you stop the instances: the key, at about USD 1 a month.</li>
+<li>Be ready to predict every simulator result before you run it. Today each step is a prediction about a policy.</li>
+</ul>
+<h2 id="reading">Reading</h2>
+<ul>
+<li>Shields, D. <em>AWS Security</em>, Manning. Chapters 7 and 8 (protecting data; logging and audit trails).</li>
+<li>AWS, <em>IAM User Guide</em>, "Policy evaluation logic" and "IAM roles".</li>
+<li>AWS, <em>AWS Key Management Service Developer Guide</em>, "Concepts".</li>
+<li>For Day 6: AWS, <em>Amazon RDS User Guide</em>, "Backups and restores" overview; AWS, <em>AWS Backup Developer Guide</em>, "Getting started".</li>
+</ul>
+<p>Self-check: CLF-C02 bank, Domain 2 set B (15 items) and Domain 3 database set (10 items), issued separately. Practice question: <a href="../../practice/PQ5.html">PQ5</a>.</p>
+<p>Task for Day 6: complete Evidence Pack 5. With your group, begin the capstone network build in the host account.</p>
+
+<script type="application/json" id="glossary-data">{"customer-managed-key":{"d":"An encryption key in the AWS Key Management Service that you create and control: you write its policy, and you can disable it or schedule its deletion. It has a monthly charge.","t":"Customer-managed key","x":"<code>alias/thara-records<\/code> encrypts today's volume and Day 6's patient records database."},"envelope-encryption":{"d":"Encrypting data with a data key, then encrypting that data key with a KMS key and storing the sealed copy beside the data. The KMS key never leaves the service.","t":"Envelope encryption","x":"a copied snapshot of the encrypted volume holds scrambled blocks and a sealed key that only KMS can open."},"explicit-deny":{"d":"A statement with the effect Deny that matches a request. It beats every allow. A request that nothing allows is also refused, by implicit deny, and that refusal is cured by adding an allow.","t":"Explicit deny","x":"<code>thara-deny-test<\/code> stops the bucket listing although <code>thara-reports-read<\/code> still allows it."},"finding":{"d":"A report from a detection service that something looks wrong or is exposed. It has a severity, and it waits to be read. It changes nothing by itself.","t":"Finding","x":"GuardDuty would write a finding if <code>thara-web-1<\/code> contacted an address known for malware."},"identity-based-policy":{"d":"A JSON document attached to a user, a group or a role. Its statements say which actions that identity may take on which resources. It names no principal, because it belongs to one.","t":"Identity-based policy","x":"<code>thara-reports-read<\/code> lets the web tier list one bucket and read the objects in it."},"instance-profile":{"d":"The container that hands a role to an EC2 instance. The IAM console creates one with the role's name, and it is what you choose when you give an instance a role.","t":"Instance profile","x":"<code>thara-web-1<\/code> receives <code>thara-web-role<\/code> through its instance profile, and the Day 7 launch template names the same one."},"key-policy":{"d":"The policy attached to a KMS key itself. It says who may manage the key and who may use it, which is a separate question from who may read the data.","t":"Key policy","x":"<code>admin-&lt;student id&gt;<\/code> is in the key policy of <code>alias/thara-records<\/code>, and <code>thara-web-role<\/code> is not."},"least-privilege":{"d":"Granting an identity only the actions its work needs, on only the resources it needs, and testing that before it is attached. It is a method: start from the work, not from the service.","t":"Least privilege","x":"the web tier gets two S3 actions on one bucket, where the Day 2 key had everything."},"principal":{"d":"The identity that makes a request to AWS: an IAM user, a role, or an AWS service acting for you. Every question about access starts with who is asking.","t":"Principal","x":"<code>thara-web-1<\/code> asks S3 for a report as the principal <code>thara-web-role<\/code>."},"role":{"d":"An identity with no password or key of its own. It is assumed by whoever its trust policy names, and each time it hands out credentials that expire.","t":"Role","x":"<code>thara-web-role<\/code> is assumed by the EC2 service on behalf of <code>thara-web-1<\/code>."},"temporary-credentials":{"d":"A key, a secret and a token issued when a role is assumed. They stop working by themselves after a few hours, and an instance is handed new ones before then.","t":"Temporary credentials","x":"the web tier signs its requests to S3 with them, so there is no file on the server to steal."},"trail":{"d":"A CloudTrail setting that delivers a continuous record of the account's API events to a bucket. Without one, the events are kept for 90 days and are then gone.","t":"Trail","x":"<code>thara-trail<\/code> writes to <code>thara-audit-&lt;student id&gt;<\/code>, where the record the Data Protection Officer relies on is kept."}}</script>
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this morning</h2><ul><li><a href="slides/day-5-morning.pdf">Slides for this morning (PDF)</a></li><li><a href="artefacts/policy-evaluator.html">Policy evaluator: explicit deny, then allow, then implicit deny</a> (visual)</li><li><a href="artefacts/envelope-encryption.html">Envelope encryption: the KMS key, the data key and the sealed data key</a> (visual)</li><li><a href="artefacts/detection-map.html">Detection map: what CloudTrail, GuardDuty, Access Analyzer, WAF and Shield each see</a> (visual)</li><li><a href="plays/p5-words.html">Words ladder: Day 5</a> (12 minutes)</li><li><a href="plays/p5-1-write-the-statement.html">Write the statement</a> (8 minutes)</li><li><a href="plays/p5-2-retire-the-key.html">Retire the key</a> (5 minutes)</li><li><a href="plays/p5-quiz.html">Day quiz: who, what protects it, how would we know</a> (10 minutes)</li><li><a href="../../practice/PQ5.html">Practice question 5</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d5m">Mark this morning as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-4/lab.html">Day 4 afternoon</a></span><span><a href="index.html">Day 5</a></span><span>Next: <a href="../../days/day-5/lab.html">Day 5 afternoon</a></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

@@ -229,3 +229,65 @@ A request that a load balancer sends to each target every few seconds. A target 
 A service that caches content at edge locations close to users, so that requests are answered nearby and the origin servers are asked less often.
 
 *Thara example:* in a later phase the portal sits behind it, so that a patient in Galle is answered from nearby.
+
+## Day 5
+
+### Principal
+The identity that makes a request to AWS: an IAM user, a role, or an AWS service acting for you. Every question about access starts with who is asking.
+
+*Thara example:* `thara-web-1` asks S3 for a report as the principal `thara-web-role`.
+
+### Identity-based policy
+A JSON document attached to a user, a group or a role. Its statements say which actions that identity may take on which resources. It names no principal, because it belongs to one.
+
+*Thara example:* `thara-reports-read` lets the web tier list one bucket and read the objects in it.
+
+### Explicit deny
+A statement with the effect Deny that matches a request. It beats every allow. A request that nothing allows is also refused, by implicit deny, and that refusal is cured by adding an allow.
+
+*Thara example:* `thara-deny-test` stops the bucket listing although `thara-reports-read` still allows it.
+
+### Least privilege
+Granting an identity only the actions its work needs, on only the resources it needs, and testing that before it is attached. It is a method: start from the work, not from the service.
+
+*Thara example:* the web tier gets two S3 actions on one bucket, where the Day 2 key had everything.
+
+### Role
+An identity with no password or key of its own. It is assumed by whoever its trust policy names, and each time it hands out credentials that expire.
+
+*Thara example:* `thara-web-role` is assumed by the EC2 service on behalf of `thara-web-1`.
+
+### Instance profile
+The container that hands a role to an EC2 instance. The IAM console creates one with the role's name, and it is what you choose when you give an instance a role.
+
+*Thara example:* `thara-web-1` receives `thara-web-role` through its instance profile, and the Day 7 launch template names the same one.
+
+### Temporary credentials
+A key, a secret and a token issued when a role is assumed. They stop working by themselves after a few hours, and an instance is handed new ones before then.
+
+*Thara example:* the web tier signs its requests to S3 with them, so there is no file on the server to steal.
+
+### Customer-managed key
+An encryption key in the AWS Key Management Service that you create and control: you write its policy, and you can disable it or schedule its deletion. It has a monthly charge.
+
+*Thara example:* `alias/thara-records` encrypts today's volume and Day 6's patient records database.
+
+### Envelope encryption
+Encrypting data with a data key, then encrypting that data key with a KMS key and storing the sealed copy beside the data. The KMS key never leaves the service.
+
+*Thara example:* a copied snapshot of the encrypted volume holds scrambled blocks and a sealed key that only KMS can open.
+
+### Key policy
+The policy attached to a KMS key itself. It says who may manage the key and who may use it, which is a separate question from who may read the data.
+
+*Thara example:* `admin-<student id>` is in the key policy of `alias/thara-records`, and `thara-web-role` is not.
+
+### Trail
+A CloudTrail setting that delivers a continuous record of the account's API events to a bucket. Without one, the events are kept for 90 days and are then gone.
+
+*Thara example:* `thara-trail` writes to `thara-audit-<student id>`, where the record the Data Protection Officer relies on is kept.
+
+### Finding
+A report from a detection service that something looks wrong or is exposed. It has a severity, and it waits to be read. It changes nothing by itself.
+
+*Thara example:* GuardDuty would write a finding if `thara-web-1` contacted an address known for malware.

@@ -168,6 +168,43 @@
 <h3 id="cloudfront">CloudFront</h3>
 <p>A service that caches content at edge locations close to users, so that requests are answered nearby and the origin servers are asked less often.</p>
 <p><em>Thara example:</em> in a later phase the portal sits behind it, so that a patient in Galle is answered from nearby.</p>
+<h2 id="day-5">Day 5</h2>
+<h3 id="principal">Principal</h3>
+<p>The identity that makes a request to AWS: an IAM user, a role, or an AWS service acting for you. Every question about access starts with who is asking.</p>
+<p><em>Thara example:</em> <code>thara-web-1</code> asks S3 for a report as the principal <code>thara-web-role</code>.</p>
+<h3 id="identity-based-policy">Identity-based policy</h3>
+<p>A JSON document attached to a user, a group or a role. Its statements say which actions that identity may take on which resources. It names no principal, because it belongs to one.</p>
+<p><em>Thara example:</em> <code>thara-reports-read</code> lets the web tier list one bucket and read the objects in it.</p>
+<h3 id="explicit-deny">Explicit deny</h3>
+<p>A statement with the effect Deny that matches a request. It beats every allow. A request that nothing allows is also refused, by implicit deny, and that refusal is cured by adding an allow.</p>
+<p><em>Thara example:</em> <code>thara-deny-test</code> stops the bucket listing although <code>thara-reports-read</code> still allows it.</p>
+<h3 id="least-privilege">Least privilege</h3>
+<p>Granting an identity only the actions its work needs, on only the resources it needs, and testing that before it is attached. It is a method: start from the work, not from the service.</p>
+<p><em>Thara example:</em> the web tier gets two S3 actions on one bucket, where the Day 2 key had everything.</p>
+<h3 id="role">Role</h3>
+<p>An identity with no password or key of its own. It is assumed by whoever its trust policy names, and each time it hands out credentials that expire.</p>
+<p><em>Thara example:</em> <code>thara-web-role</code> is assumed by the EC2 service on behalf of <code>thara-web-1</code>.</p>
+<h3 id="instance-profile">Instance profile</h3>
+<p>The container that hands a role to an EC2 instance. The IAM console creates one with the role's name, and it is what you choose when you give an instance a role.</p>
+<p><em>Thara example:</em> <code>thara-web-1</code> receives <code>thara-web-role</code> through its instance profile, and the Day 7 launch template names the same one.</p>
+<h3 id="temporary-credentials">Temporary credentials</h3>
+<p>A key, a secret and a token issued when a role is assumed. They stop working by themselves after a few hours, and an instance is handed new ones before then.</p>
+<p><em>Thara example:</em> the web tier signs its requests to S3 with them, so there is no file on the server to steal.</p>
+<h3 id="customer-managed-key">Customer-managed key</h3>
+<p>An encryption key in the AWS Key Management Service that you create and control: you write its policy, and you can disable it or schedule its deletion. It has a monthly charge.</p>
+<p><em>Thara example:</em> <code>alias/thara-records</code> encrypts today's volume and Day 6's patient records database.</p>
+<h3 id="envelope-encryption">Envelope encryption</h3>
+<p>Encrypting data with a data key, then encrypting that data key with a KMS key and storing the sealed copy beside the data. The KMS key never leaves the service.</p>
+<p><em>Thara example:</em> a copied snapshot of the encrypted volume holds scrambled blocks and a sealed key that only KMS can open.</p>
+<h3 id="key-policy">Key policy</h3>
+<p>The policy attached to a KMS key itself. It says who may manage the key and who may use it, which is a separate question from who may read the data.</p>
+<p><em>Thara example:</em> <code>admin-&lt;student id&gt;</code> is in the key policy of <code>alias/thara-records</code>, and <code>thara-web-role</code> is not.</p>
+<h3 id="trail">Trail</h3>
+<p>A CloudTrail setting that delivers a continuous record of the account's API events to a bucket. Without one, the events are kept for 90 days and are then gone.</p>
+<p><em>Thara example:</em> <code>thara-trail</code> writes to <code>thara-audit-&lt;student id&gt;</code>, where the record the Data Protection Officer relies on is kept.</p>
+<h3 id="finding">Finding</h3>
+<p>A report from a detection service that something looks wrong or is exposed. It has a severity, and it waits to be read. It changes nothing by itself.</p>
+<p><em>Thara example:</em> GuardDuty would write a finding if <code>thara-web-1</code> contacted an address known for malware.</p>
 <nav class="pager" aria-label="Page navigation"><span></span><span><a href="index.html">All days</a></span><span></span></nav>
 </div>
 </main>

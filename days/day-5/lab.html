@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Lab 5: Least privilege, keys, trails, group access | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Day 5 afternoon lab sheet: Least privilege, keys, trails. Day 5, afternoon session. Duration 3 hours. Builds component 10 (Identity, keys and audit) and adds to...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/lab.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Lab 5: Least privilege, keys, trails, group access">
+<meta property="og:description" content="Day 5 afternoon lab sheet: Least privilege, keys, trails. Day 5, afternoon session. Duration 3 hours. Builds component 10 (Identity, keys and audit) and adds to...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/lab.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"Day 5 afternoon lab sheet: Least privilege, keys, trails. Day 5, afternoon session. Duration 3 hours. Builds component 10 (Identity, keys and audit) and adds to...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Lab sheet","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Lab 5: Least privilege, keys, trails, group access","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/lab.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/","name":"Day 5","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-5/lab.html","name":"Lab 5: Least privilege, keys, trails, group access","position":3}]}</script>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Least privilege, keys, trails, group access</h1><p class="sub">Day 5, afternoon lab</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 5">LO5</span><span class="badge" title="Learning outcome 8">LO8</span><span class="chip">You build: component 10</span><span class="chip">You build: component 3</span><span class="chip cost">Credit use: USD 0.80</span></div>
+<p><strong>Day 5, afternoon session. Duration 3 hours. Builds component 10 (Identity, keys and audit) and adds to component 3 (Laboratory reports bucket) of the Thara Hospitals architecture.</strong></p>
+<div class="table-wrap"><table class="meta-table">
+
+<tbody>
+<tr>
+<td>Learning outcomes</td>
+<td>LO5, LO8</td>
+</tr>
+<tr>
+<td>Sub-outcomes</td>
+<td>S5.3, S8.1, S8.2</td>
+</tr>
+<tr>
+<td>Prerequisites</td>
+<td>From Day 4: <code>thara-bastion</code> and <code>thara-web-1</code>, both stopped, the S3 gateway endpoint on <code>thara-private-rt</code>, and the inactive Day 2 access key. From Day 2: the bucket <code class="long">thara-reports-&lt;student id&gt;</code> and the snapshot of the data volume. From this morning: your pair's threat table. On your computer: <code>thara-key.pem</code>. Your group's host account is nominated</td>
+</tr>
+<tr>
+<td>Estimated credit consumption</td>
+<td>USD 0.80</td>
+</tr>
+<tr>
+<td>Evidence pack</td>
+<td>Pack 5, due before the next teaching day</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="0-before-you-start">0. Before you start</h2>
+<ol>
+<li>Region check: the console shows <strong>Asia Pacific (Mumbai) ap-south-1</strong>. If not, change it now.</li>
+<li>You are signed in as your <strong>admin IAM user</strong>, not root.</li>
+<li>Tags for everything today: <code>Module=CC</code>, <code>Day=5</code>, <code>Owner=&lt;student id&gt;</code>.</li>
+<li>Open your cost ledger. Write today's date and the segment names below with a blank cost column.</li>
+</ol>
+<p>Console labels below are as they appeared at the time of writing. AWS renames buttons from time to time; if a label differs, look for the same idea nearby and tell your lecturer.</p>
+<p>You need the same terminal as on Day 4, opened in the folder that holds <code>thara-key.pem</code>.</p>
+<h3 id="the-ideas-behind-todays-lab">The ideas behind today's lab</h3>
+<h4 id="fixing-day-2">Fixing Day 2</h4>
+<p>On Day 2 you typed a long-lived access key into <code>thara-web-1</code>, on purpose, and the lab sheet called it the insecure method. On Day 4 you typed it in again. Today it goes for good, and two rules govern how.</p>
+<ul>
+<li><strong>The long-lived key on <code>thara-web-1</code> is removed today and replaced with an instance <a class="term" data-term="role" href="../../glossary.html#role">role</a>.</strong> The key carried the whole power of your admin user and sat in a text file on a server. The role carries two permissions on one bucket, and the server never stores it: the instance is handed short-lived credentials that expire by themselves and are renewed for it.</li>
+<li><strong>The role's policy is written first, tested in the simulator, then attached. Never the other way round.</strong> A policy that has never been tested and is attached to a live server gets its first test from the patients. So segment 1 goes in a fixed order: write, simulate, create the role, attach it. Only then does segment 2 take the key away.</li>
+</ul>
+<figure class="art"><svg aria-labelledby="www-t www-d" role="img" style="min-width:640px" viewbox="0 0 640 316"><title id="www-t">What is attached to what</title><desc id="www-d">A chain from left to right. The instance thara-web-1 is given an instance profile. Inside the instance profile is the role thara-web-role, and inside the role is the policy thara-reports-read. Two arrows leave the role: the action s3:ListBucket reaches the bucket thara-reports, and the action s3:GetObject reaches the objects in it.</desc><rect fill="#FFFFFF" height="316" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">What is attached to what</text><rect fill="#0D2B45" height="52" rx="6" width="96" x="22" y="78"></rect><rect fill="#48C9B0" height="11" rx="2" width="80" x="30" y="86"></rect><rect fill="#133B50" height="11" rx="2" width="80" x="30" y="104"></rect><circle cx="38" cy="109.5" fill="#F4B942" r="2.8"></circle><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="70" y="150">thara-web-1</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="70" y="168">the instance</text><path d="M118 104 L142 104" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M140 98 L150 104 L140 110 Z" fill="#0D2B45"></path><rect fill="#DEF5F1" height="150" rx="8" stroke="#2A7A7A" stroke-dasharray="7 5" stroke-width="1.8" width="196" x="150" y="50"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="162" y="70">instance profile</text><rect fill="#FFFFFF" height="108" rx="6" stroke="#0D2B45" stroke-width="2.5" width="172" x="162" y="80"></rect><text fill="#2A7A7A" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="start" x="174" y="100">thara-web-role</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="174" y="118">the role</text><rect fill="#48C9B0" height="46" rx="5" stroke="#0D2B45" stroke-width="1.5" width="148" x="174" y="130"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="248" y="150">thara-reports-read</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="248" y="167">the policy</text><path d="M346 96 L462 96" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M460 90 L470 96 L460 102 Z" fill="#0D2B45"></path><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="408" y="86">s3:ListBucket</text><path d="M346 162 L462 162" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M460 156 L470 162 L460 168 Z" fill="#0D2B45"></path><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="408" y="152">s3:GetObject</text><path d="M484 66 L616 66 L606 124 L494 124 Z" fill="#FFFFFF" stroke="#0D2B45" stroke-width="2.5"></path><ellipse cx="550.0" cy="66" fill="#DEF5F1" rx="66.0" ry="9" stroke="#0D2B45" stroke-width="2.5"></ellipse><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="550" y="104">the bucket</text><rect fill="#FFFFFF" height="42" rx="6" stroke="#0D2B45" stroke-width="2" width="132" x="484" y="142"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="550" y="168">the objects in it</text><text fill="#2A7A7A" font-family="Courier New, monospace" font-size="12" font-weight="400" text-anchor="end" x="626" y="204">thara-reports-&lt;student id&gt;</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="236">The instance is given an instance profile. The profile holds one role. The role carries the policy.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="254">The policy names two actions: one on the bucket, one on the objects in it.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="272">The role's trust policy says who may assume it: the EC2 service, for this instance.</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="296">Nothing in this chain is a file on the server. The credentials arrive, expire and are renewed.</text></svg><figcaption>Four things with similar names, each attached to the next. The instance is given a profile, the profile holds the role, the role carries the policy, and the policy names the bucket. <a class="full" href="img/what-wears-what.svg">Open this diagram at full size</a></figcaption></figure>
+<p>Three things are worth knowing before you start.</p>
+<p><strong>The role does not replace the key by being attached.</strong> The command line on <code>thara-web-1</code> looks for credentials in a fixed order, and a credentials file comes before an instance role. While the file from Day 4 is still there, the command line uses it, finds a key that is switched off, and fails. Step 7 shows you this before step 8 fixes it.</p>
+<p><strong>Removing the file does not remove the key.</strong> The file is one copy. The key itself lives in IAM, and so does every other copy that anyone ever made of it. A key is finished only when it is deleted in IAM.</p>
+<p><strong><code>thara-web-1</code> can reach S3 and nothing else.</strong> It has no NAT gateway today. Its one path out of the VPC is the gateway endpoint from Day 4, which leads to S3. So every proof you run on the server is an S3 command, and a command for any other AWS service would wait and time out.</p>
+<p>Two things today carry no name, only the three tags: the encrypted volume and the Access Analyzer analyzer, which takes the name the console offers. Every other name comes from Thara's naming table or is given in the step that uses it.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">In step 7 the role is attached to <code>thara-web-1</code>, the Day 4 credentials file is still on the server, and the bucket listing fails. Why?</p><ol class="qc-opts"><li>A new role needs some hours before an instance can use it</li><li>The gateway endpoint refuses requests that are signed by a role</li><li data-right="">The command line reads the file first, and that key is inactive<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> The command line looks for credentials in a fixed order, and a credentials file comes before an instance role. It finds the old key, signs with it, and is refused. Nothing is wrong with the role or the endpoint.</p></div>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">Suppose someone copied the credentials file from <code>thara-web-1</code> last week. Today you delete the file from the server, and you leave the key itself in IAM. What can the copy do?</p><ol class="qc-opts"><li data-right="">Whatever the key allows, once the key is active again<span class="qc-key"> (answer)</span></li><li>Nothing: removing the file on the server cancelled the key</li><li>Only requests that are sent from inside <code>thara-vpc</code></li></ol><p class="qc-why"><strong>Why:</strong> The file is a copy and the key lives in IAM. An inactive key can be switched on again by anyone who can administer the account, and then every copy works, from anywhere. Only deleting the key in IAM ends it.</p></div>
+<div class="box mistake"><p>"A role is a user." It is not. A user has a password or a key of its own and signs in. A role has neither: it is assumed, by whoever its trust policy names, and each time it issues temporary credentials that expire.</p></div>
+<div class="box mistake"><p>"Deleting a key from the instance revokes it." It does not. The file on the server is a copy. The key works from anywhere until it is deleted in IAM, which is what step 8 does.</p></div>
+<h2 id="1-objective">1. Objective</h2>
+<p>At the end of this lab <code>thara-web-1</code> reads the laboratory reports bucket through a role and holds no stored credential, the Day 2 access key no longer exists, a volume is encrypted with a <a class="term" data-term="customer-managed-key" href="../../glossary.html#customer-managed-key">customer-managed key</a>, a <a class="term" data-term="trail" href="../../glossary.html#trail">trail</a> records every administrative action to an audit bucket, and your capstone group's members can sign in to the host account with a policy for each tier: component 10, with component 3 read through the new role. The role is used by the Day 7 launch template and the key by the Day 6 database; the lab serves Thara's requirements that every administrative action is attributable to a named person and that records and reports are encrypted at rest.</p>
+<h2 id="2-timed-segments">2. Timed segments</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Minutes</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Policy, simulator, role, instance profile</td>
+<td>45</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Remove the key; prove access still works</td>
+<td>15</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>KMS key and encrypted volume</td>
+<td>30</td>
+<td>customer-managed key about USD 1 per month, prorated by the hour</td>
+</tr>
+<tr>
+<td>CloudTrail trail</td>
+<td>20</td>
+<td>first trail free; audit bucket negligible</td>
+</tr>
+<tr>
+<td>GuardDuty and Access Analyzer</td>
+<td>15</td>
+<td>30-day trial</td>
+</tr>
+<tr>
+<td>Group member access in the host account</td>
+<td>25</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Optional credit harvest; ledger; evidence</td>
+<td>15</td>
+<td>nil</td>
+</tr>
+</tbody>
+</table></div>
+<p>Segments containing a NAT gateway, a load balancer or a database are created, used and deleted inside the segment. Do not carry them across the break. Today has none of the three. What bills today is quieter: the two Thara instances by the hour while they run, and the key from segment 3, which costs about USD 0.03 a day for as long as it exists. The key is kept on purpose, because Day 6 needs it. Prices are for ap-south-1 at the time of writing.</p>
+<h2 id="3-steps">3. Steps</h2>
+<p>Each step states what to do and what you should see. If you do not see it, stop and diagnose before moving on.</p>
+<p class="segment">Segment 1: Policy, simulator, role, instance profile</p>
+<ol class="steps">
+<li data-n="1">
+<p><strong>Check where and who you are.</strong> Confirm the region selector shows <strong>Asia Pacific (Mumbai) ap-south-1</strong> and the top bar shows <code>admin-&lt;student id&gt;</code>. <span class="expect"><b class="expect-label">You should see</b> both are correct.</span></p>
+</li>
+<li data-n="2">
+<p><strong>Start the two instances and reopen the door.</strong> In EC2, <strong>Instances</strong>, select <code>thara-bastion</code> and <code>thara-web-1</code>, then <strong>Instance state</strong>, <strong>Start instance</strong>. The bastion comes back with a <strong>new</strong> public address, and your own address may have changed since Day 4. So open <strong>Security groups</strong>, <code>thara-bastion-sg</code>, <strong>Edit inbound rules</strong>, set the source of the SSH rule to <strong>My IP</strong> again, and save. Note the bastion's new <strong>Public IPv4 address</strong>, connect to it, and hop to <code>thara-web-1</code> with the method you used on Day 3 and Day 4:</p>
+<pre tabindex="0"><code class="language-bash">ssh-add thara-key.pem
+ssh -A ec2-user@&lt;bastion public IPv4 address&gt;
+ssh ec2-user@&lt;web private address&gt;    # typed on the bastion
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> a prompt on <code>thara-web-1</code> of the form <code class="long">[ec2-user@ip-10-0-11-... ~]$</code>. If the first connection waits and times out, check the SSH source of <code>thara-bastion-sg</code> before anything else.</span></p>
+</li>
+<li data-n="3">
+<p><strong>Write the policy.</strong> Decide first what the web tier needs. It lists the reports bucket and it downloads reports. It never uploads, never deletes and never touches another bucket. That is two actions on one bucket. Open IAM, <strong>Policies</strong>, <strong>Create policy</strong>, and choose the <strong>JSON</strong> editor. The editor opens with a <code>Version</code> line and an empty <code>Statement</code> list. Leave the <code>Version</code> line exactly as it is, and make the <code>Statement</code> list read:</p>
+<pre tabindex="0"><code class="language-json">"Statement": [
+  {
+    "Sid": "ListTheReportsBucket",
+    "Effect": "Allow",
+    "Action": "s3:ListBucket",
+    "Resource": "arn:aws:s3:::thara-reports-&lt;student id&gt;"
+  },
+  {
+    "Sid": "ReadTheReports",
+    "Effect": "Allow",
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::thara-reports-&lt;student id&gt;/*"
+  }
+]
+</code></pre>
+<p>Choose <strong>Next</strong>. Policy name <code>thara-reports-read</code>, description <code class="long">Web tier: list and read the laboratory reports bucket</code>, the three tags. Choose <strong>Create policy</strong>. <span class="expect"><b class="expect-label">You should see</b> <code>thara-reports-read</code> is listed with the type <strong>Customer managed</strong>. Look at the two <code>Resource</code> lines: listing is an action on the <strong>bucket</strong>, and reading is an action on the <strong>objects</strong> in it, which is what <code>/*</code> means. A statement that puts <code>s3:GetObject</code> on the bucket's own name matches nothing. Copy the finished JSON into your evidence pack.</span></p>
+</li>
+<li data-n="4">
+<p><strong>Test it before it is attached to anything.</strong> In the IAM navigation pane choose <strong>Policy simulator</strong>. Choose the custom mode, in which you paste a policy that is attached to nothing, and paste the whole of <code>thara-reports-read</code>. Then run three simulations, each with the action and the resource shown:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Resource</th>
+<th>You expect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s3:GetObject</code></td>
+<td><code class="long">arn:aws:s3:::thara-reports-&lt;student id&gt;/reports-index.txt</code></td>
+<td>allowed</td>
+</tr>
+<tr>
+<td><code>s3:PutObject</code></td>
+<td><code class="long">arn:aws:s3:::thara-reports-&lt;student id&gt;/reports-index.txt</code></td>
+<td>implicitly denied</td>
+</tr>
+<tr>
+<td><code>s3:ListBucket</code></td>
+<td><code class="long">arn:aws:s3:::thara-audit-&lt;student id&gt;</code></td>
+<td>implicitly denied</td>
+</tr>
+</tbody>
+</table></div>
+<p><span class="expect"><b class="expect-label">You should see</b> the three results in the table. Write your prediction for each before you run it. Nothing in the policy says "deny": the second and third are refused because no statement allows them, which is what an implicit deny is. Take one screenshot that shows all three results.</span></p>
+</li>
+<li data-n="5">
+<p><strong>Create the role.</strong> In IAM choose <strong>Roles</strong>, <strong>Create role</strong>. Trusted entity type <strong>AWS service</strong>; service or use case <strong>EC2</strong>; choose <strong>Next</strong>. Tick <code>thara-reports-read</code> and nothing else; <strong>Next</strong>. Role name <code>thara-web-role</code>, the three tags, <strong>Create role</strong>. Open the role and read its <strong>Trust relationships</strong> tab. <span class="expect"><b class="expect-label">You should see</b> the role lists one permissions policy, <code>thara-reports-read</code>. Its trust policy names the principal <code>ec2.amazonaws.com</code> and the action <code>sts:AssumeRole</code>: this is the statement that says who may assume the role, and the answer is the EC2 service, on behalf of an instance. Now look down the list of roles for the one the console created for your flow log on Day 3. It is the same kind of thing: a role that a service assumes, so that nobody has to give that service a key.</span></p>
+</li>
+<li data-n="6">
+<p><strong>Give the role to the server.</strong> In EC2, <strong>Instances</strong>, select <code>thara-web-1</code>, then <strong>Actions</strong>, <strong>Security</strong>, <strong>Modify IAM role</strong>. Choose <code>thara-web-role</code> and <strong>Update IAM role</strong>. <span class="expect"><b class="expect-label">You should see</b> the instance's <strong>Security</strong> tab shows <strong>IAM Role</strong> <code>thara-web-role</code>. What you chose from that list was an <a class="term" data-term="instance-profile" href="../../glossary.html#instance-profile">instance profile</a>: the IAM console made one with the role's name when you created the role, and it is the container that hands a role to an instance.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 2: Remove the key; prove access still works</p>
+<ol class="steps" start="7">
+<li data-n="7">
+<p><strong>Find out which credentials the server is using.</strong> On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">aws s3 ls s3://thara-reports-&lt;student id&gt;
+aws configure list
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the listing <strong>fails</strong>, with an error that names the access key. The second command prints a small table: in the <code>access_key</code> row, the <strong>Type</strong> column reads <code>shared-credentials-file</code>. The role is attached and is not being used, because the command line reads the credentials file first, and that file holds a key that is switched off. Keep this output. If the listing works at once and the Type column reads <code>iam-role</code>, your server has no credentials file; note that, and carry on from step 8.</span></p>
+</li>
+<li data-n="8">
+<p><strong>Remove the file, then delete the key.</strong> On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">rm ~/.aws/credentials
+aws configure list
+</code></pre>
+<p>Then open IAM, <strong>Users</strong>, <code>admin-&lt;student id&gt;</code>, <strong>Security credentials</strong>, <strong>Access keys</strong>. For the Day 2 key choose <strong>Actions</strong>, <strong>Delete</strong>, type the key id to confirm, and delete it. Delete the key's <code>.csv</code> file from your computer as well. <span class="expect"><b class="expect-label">You should see</b> in the table the Type column of <code>access_key</code> now reads <code>iam-role</code>, and the <code>region</code> row still reads <code>ap-south-1</code>, because the region is kept in a different file, <code>~/.aws/config</code>, which you leave alone. In IAM your admin user has <strong>no access keys</strong>. Write the row in your ledger: "Day 2 access key deleted".</span></p>
+</li>
+<li data-n="9">
+<p><strong>Prove the role, and prove its limits.</strong> On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">aws s3 ls s3://thara-reports-&lt;student id&gt;
+echo "upload test" &gt; /tmp/upload-test.txt
+aws s3 cp /tmp/upload-test.txt s3://thara-reports-&lt;student id&gt;/
+aws s3 ls
+TOKEN=$(curl -s -X PUT http://169.254.169.254/latest/api/token \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/iam/security-credentials/thara-web-role \
+  | grep Expiration
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the first command lists <code>reports-index.txt</code>. The upload fails with <code>AccessDenied</code>: the message names a user of the form <code class="long">assumed-role/thara-web-role/i-...</code> and says that no identity-based policy allows the <code>s3:PutObject</code> action. The third command is refused in the same way: the role may list one bucket, and not even the names of the others. The last command prints one line, <code>"Expiration"</code>, with a time a few hours ahead: the credentials the server is using right now will stop working by themselves, and the instance will have been handed new ones before then. Nobody typed a secret into this server, and there is no file to steal.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 3: KMS key and encrypted volume</p>
+<ol class="steps" start="10">
+<li data-n="10">
+<p><strong>Create a key that you own.</strong> Open the Key Management Service (KMS) console and check the region is Mumbai. Choose <strong>Customer managed keys</strong>, <strong>Create key</strong>. Key type <strong>Symmetric</strong>, key usage <strong>Encrypt and decrypt</strong>; <strong>Next</strong>. Alias <code>thara-records</code>; add the three tags; <strong>Next</strong>. Key administrators: tick <code>admin-&lt;student id&gt;</code>; <strong>Next</strong>. Key users: tick <code>admin-&lt;student id&gt;</code> and nothing else; <strong>Next</strong>. Read the key policy on the review page, then choose <strong>Finish</strong>. Write the time in your ledger. <span class="expect"><b class="expect-label">You should see</b> the key is listed as <strong>Enabled</strong> with the alias <code>thara-records</code>; elsewhere in AWS it is written <code>alias/thara-records</code>. The review page showed you a <strong><a class="term" data-term="key-policy" href="../../glossary.html#key-policy">key policy</a></strong>: a policy attached to the key itself, saying who may manage it and who may use it. Notice who is not in it: <code>thara-web-role</code>. The role may read the reports bucket, and it may not use this key. Those are two separate questions with two separate answers.</span></p>
+</li>
+<li data-n="11">
+<p><strong>Encrypt a volume with it, and read the old data.</strong> In EC2 choose <strong>Snapshots</strong>, select the snapshot with the description <code>Day 2 data volume</code>, then <strong>Actions</strong>, <strong>Create volume from snapshot</strong>. Volume type <strong>gp3</strong>, size 8 GiB, Availability Zone <code>ap-south-1a</code>, tick <strong>Encrypt this volume</strong>, and for <strong>KMS key</strong> choose <code>thara-records</code>. Add the three tags and create it. Open <strong>Volumes</strong>; when the new volume is <strong>Available</strong>, select it, <strong>Actions</strong>, <strong>Attach volume</strong>, instance <code>thara-web-1</code>, device name <code>/dev/sdf</code>. On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">lsblk
+sudo mkdir -p /data
+sudo mount /dev/nvme1n1 /data
+cat /data/reports-index.txt
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> <code>lsblk</code> lists an 8G disk, <code>nvme1n1</code>; the last command prints <code class="long">Thara Hospitals laboratory reports index</code>, the line you wrote on Day 2. In the console the volume's details show <strong>Encryption: Encrypted</strong> and the <strong>KMS key alias</strong> <code>thara-records</code>. The snapshot was not encrypted and the volume made from it is: every block is now stored encrypted, and nothing on the server changed, because encryption and decryption happen underneath the operating system. One more observation, with no change to make: open S3, <code class="long">thara-reports-&lt;student id&gt;</code>, <strong>Properties</strong>, and find <strong>Default encryption</strong>. It is already on, with keys that S3 manages. Buckets are encrypted without being asked; volumes are encrypted when you ask.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 4: CloudTrail trail</p>
+<ol class="steps" start="12">
+<li data-n="12">
+<p><strong>Create the trail and its bucket.</strong> Open the CloudTrail console and check the region is Mumbai. Choose <strong>Trails</strong>, <strong>Create trail</strong>. Trail name <code>thara-trail</code>. Storage location <strong>Create new S3 bucket</strong>, and replace the bucket name that is offered with <code>thara-audit-&lt;student id&gt;</code>. Under <strong>Log file SSE-KMS encryption</strong>, <strong>clear</strong> the <strong>Enabled</strong> box: left ticked, it creates a second key, with a charge of its own, that nothing in this module uses. Leave CloudWatch Logs off. Add the three tags; <strong>Next</strong>. Keep <strong>Management events</strong> ticked with <strong>Read</strong> and <strong>Write</strong>; <strong>Next</strong>; <strong>Create trail</strong>. Then open S3, <code>thara-audit-&lt;student id&gt;</code>: on <strong>Permissions</strong> confirm <strong>Block all public access: On</strong>, and on <strong>Properties</strong> add the three tags. <span class="expect"><b class="expect-label">You should see</b> the trail's status is <strong>Logging</strong> and it is a multi-region trail. The audit bucket is private. The trail created the bucket so that it could also write the bucket policy that lets CloudTrail, and nothing else, deliver log files into it.</span></p>
+</li>
+<li data-n="13">
+<p><strong>Make a change, then find yourself.</strong> In EC2 open <strong>Security groups</strong>, <code>thara-web-sg</code>, <strong>Edit inbound rules</strong>, <strong>Add rule</strong>: type <strong>HTTPS</strong>, source <strong>Custom</strong>, <code>thara-bastion-sg</code>. Save, and note the time. Then <strong>Edit inbound rules</strong> again, delete that one rule, and save. Copy the group's id, which begins <code>sg-</code>. Now do step 14, and come back here afterwards: an event takes a few minutes to appear. In CloudTrail choose <strong>Event history</strong>, set the filter to <strong>Resource name</strong> and paste the group's id. <span class="expect"><b class="expect-label">You should see</b> two events from the event source <code>ec2.amazonaws.com</code>, one for the rule you added and one for the rule you removed, with names that begin <code class="long">AuthorizeSecurityGroupIngress</code> and <code class="long">RevokeSecurityGroupIngress</code>. Open the first. It shows the <strong>User name</strong> <code>admin-&lt;student id&gt;</code>, the <strong>Event time</strong>, and the <strong>Source IP address</strong>, which is your own public address. Take a screenshot of that event. <code>thara-web-sg</code> is back to its two rules from Day 3.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 5: GuardDuty and Access Analyzer</p>
+<ol class="steps" start="14">
+<li data-n="14"><strong>Switch on two watchers.</strong> Open the GuardDuty console, check the region, choose <strong>Get started</strong> and <strong>Enable GuardDuty</strong>. <span class="expect"><b class="expect-label">You should see</b> a summary page with no <a class="term" data-term="finding" href="../../glossary.html#finding">findings</a> yet, and a count of the trial days remaining. Write the trial's last day in your ledger: after it, GuardDuty bills for what it analyses. If the console refuses because of your account's plan, copy the message into your evidence pack and carry on; your lecturer shows the findings page. Then open IAM, and under <strong>Access analyzer</strong> choose <strong>Analyzer settings</strong>, <strong>Create analyzer</strong>. Analysis <strong>Resource analysis - External access</strong>; keep the name the page offers; zone of trust <strong>Current account</strong>; the three tags; <strong>Create analyzer</strong>. <span class="expect"><b class="expect-label">You should see</b> the analyzer's status becomes <strong>Active</strong>. Its list of findings may take up to half an hour to settle, and it is likely to stay empty: nothing you have built can be reached from outside your account. Record what each service shows. An empty list is a result, and it is the one you want.</span></span></li>
+</ol>
+<p class="segment">Segment 6: Group member access in the host account</p>
+<p>This segment is done once for each capstone group, <strong>in the host account only</strong>. The host works at the console; the other members sit beside the host until their own sign-in test.</p>
+<ol class="steps" start="15">
+<li data-n="15">
+<p><strong>Create the group and the members' users.</strong> In IAM choose <strong>User groups</strong>, <strong>Create group</strong>, name <code>thara-capstone</code>, with no policy attached. Then <strong>Users</strong>, <strong>Create user</strong>, once for each member other than the host. The user name is the member's tier and student id: <code>network-&lt;student id&gt;</code>, <code>security-&lt;student id&gt;</code> or <code>data-&lt;student id&gt;</code>. Tick <strong>Provide user access to the AWS Management Console</strong>, choose <strong>I want to create an IAM user</strong>, an autogenerated password, and leave <strong>Users must create a new password at next sign-in</strong> ticked. Add the user to <code>thara-capstone</code>, add the three tags, and create it. Give each member their password in person, and the account's sign-in address from the IAM <strong>Dashboard</strong>. <span class="expect"><b class="expect-label">You should see</b> <code>thara-capstone</code> lists one user for each member other than the host. So far a member can sign in and can do nothing, which is the right place to start.</span></p>
+</li>
+<li data-n="16">
+<p><strong>Complete, test and attach one policy for each tier.</strong> Create three customer managed policies as you did in step 3, named <code>thara-capstone-network</code>, <code>thara-capstone-security</code> and <code>thara-capstone-data</code>, each with the three tags. The <code>Statement</code> list of each is given below with one or two gaps, marked <code>____</code>. The group agrees what goes in each gap before the host types it.</p>
+<p><code>thara-capstone-network</code>: read the network, and change only what carries the module's tag.</p>
+<pre tabindex="0"><code class="language-json">"Statement": [
+  {
+    "Sid": "ReadTheNetwork",
+    "Effect": "Allow",
+    "Action": "ec2:Describe*",
+    "Resource": "*"
+  },
+  {
+    "Sid": "ChangeOnlyWhatIsTagged",
+    "Effect": "Allow",
+    "Action": [
+      "ec2:CreateRoute", "ec2:DeleteRoute", "ec2:ReplaceRoute",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:StartInstances", "ec2:StopInstances"
+    ],
+    "Resource": "*",
+    "Condition": {
+      "StringEquals": { "aws:ResourceTag/Module": "____" }
+    }
+  }
+]
+</code></pre>
+<p><code>thara-capstone-security</code>: read identities, work with keys and trails, and never be able to destroy a key or silence the audit.</p>
+<pre tabindex="0"><code class="language-json">"Statement": [
+  {
+    "Sid": "ReadIdentities",
+    "Effect": "Allow",
+    "Action": ["iam:Get*", "iam:List*"],
+    "Resource": "*"
+  },
+  {
+    "Sid": "KeysAndTrails",
+    "Effect": "Allow",
+    "Action": ["kms:*", "cloudtrail:*"],
+    "Resource": "*"
+  },
+  {
+    "Sid": "NeverDestroyOrSilence",
+    "Effect": "____",
+    "Action": [
+      "kms:ScheduleKeyDeletion", "kms:DisableKey",
+      "cloudtrail:StopLogging", "cloudtrail:DeleteTrail"
+    ],
+    "Resource": "*"
+  }
+]
+</code></pre>
+<p><code>thara-capstone-data</code>: work with buckets, databases and backups, and never touch the audit bucket.</p>
+<pre tabindex="0"><code class="language-json">"Statement": [
+  {
+    "Sid": "BucketsDatabasesBackups",
+    "Effect": "Allow",
+    "Action": ["s3:*", "rds:*", "backup:*"],
+    "Resource": "*"
+  },
+  {
+    "Sid": "HandsOffTheAuditBucket",
+    "Effect": "Deny",
+    "Action": "s3:*",
+    "Resource": [
+      "____",
+      "____"
+    ]
+  }
+]
+</code></pre>
+<p>Attach each policy to its member's user: open the user, <strong>Add permissions</strong>, <strong>Attach policies directly</strong>. The host's own tier has no user; test that policy in the simulator's custom mode, as in step 4. For each of the other two, open <strong>Policy simulator</strong>, choose the mode that tests an existing user, role or group, select the member's user, and run the two simulations in its row:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Expect allowed</th>
+<th>Expect refused</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>network</td>
+<td><code>ec2:DescribeVpcs</code></td>
+<td><code>iam:CreateUser</code>, implicitly denied</td>
+</tr>
+<tr>
+<td>security</td>
+<td><code>iam:ListUsers</code></td>
+<td><code>kms:ScheduleKeyDeletion</code>, explicitly denied</td>
+</tr>
+<tr>
+<td>data</td>
+<td><code>s3:GetObject</code> on an object in <code class="long">thara-reports-&lt;student id&gt;</code></td>
+<td><code>s3:DeleteObject</code> on an object in <code>thara-audit-&lt;student id&gt;</code>, explicitly denied</td>
+</tr>
+</tbody>
+</table></div>
+<p>Then each member signs in to the host account, in a private browser window so that their own account stays signed in elsewhere, sets a new password, and tries one thing their tier allows and one it does not: the network member opens <strong>Your VPCs</strong> and then S3; the security member opens IAM <strong>Users</strong> and then EC2 <strong>Instances</strong>; the data member opens S3 and then IAM <strong>Users</strong>. Last, the host opens each policy's <strong>JSON</strong> view and saves the three documents as files for the capstone evidence. <span class="expect"><b class="expect-label">You should see</b> every simulation matches its row; every member sees one page that works and one that says they are not authorised; and the group holds three JSON files. Record each sign-in test: who, which page worked, which was refused. These policies are a first version. As the capstone build goes on, each refusal a member meets is a question for the group: is this something that tier should be able to do? Change the policy on purpose, never by attaching a wider one.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 7: Optional credit harvest; ledger; evidence</p>
+<ol class="steps" start="17">
+<li data-n="17"><strong>Optional, 15 minutes, not examined: bank the remaining credits.</strong> The <strong>Explore AWS</strong> widget on Console Home lists activities that each add credits to a Free Plan account. Budgets and EC2 you have done, and the database activity comes with Day 6. The two that remain are "Create a web app using Lambda" and "Use a foundational model in the Amazon Bedrock playground". Follow the widget's own instructions for each, delete whatever it had you create, and write a ledger row for each. Neither service is part of this module. <span class="expect"><b class="expect-label">You should see</b> the widget shows the activities as completed; the credits may take some days to appear.</span></li>
+</ol>
+<p>Then write the ledger rows (section 7), do sections 4 and 5, tear down (section 6), and collect the evidence (section 8).</p>
+<section class="mark prove"><h2 id="4-prove-it"><span class="mark-chip">PROVE IT</span> 4. Prove it</h2>
+<p>Paste the output of each into your evidence pack.</p>
+<ul>
+<li>On <code>thara-web-1</code>, with no credentials file present (<code>ls ~/.aws</code> shows <code>config</code> only): <code class="long">aws s3 ls s3://thara-reports-&lt;student id&gt;</code> succeeds, and <code class="long">aws s3 cp /tmp/upload-test.txt s3://thara-reports-&lt;student id&gt;/</code> is denied.</li>
+<li>The encrypted volume's details show the KMS key alias <code>thara-records</code>.</li>
+<li>The CloudTrail event for the change to <code>thara-web-sg</code>, showing your user name.</li>
+<li>For the group: each member's sign-in test, with one action allowed and one refused.</li>
+</ul>
+</section><section class="mark break"><h2 id="5-break-it"><span class="mark-chip">BREAK IT</span> 5. Break it</h2>
+<p><strong>Fault:</strong> the bucket listing stops working, although the role is attached and its policy has not changed.</p>
+<ol>
+<li>
+<p>In IAM open <strong>Roles</strong>, <code>thara-web-role</code>, <strong>Add permissions</strong>, <strong>Create inline policy</strong>, and choose the <strong>JSON</strong> editor. Make the <code>Statement</code> list read:</p>
+<pre tabindex="0"><code class="language-json">"Statement": [
+  {
+    "Sid": "DenyEverythingInS3",
+    "Effect": "Deny",
+    "Action": "s3:*",
+    "Resource": "*"
+  }
+]
+</code></pre>
+<p>Name it <code>thara-deny-test</code> and create it.</p>
+</li>
+<li>
+<p>On <code>thara-web-1</code> run <code class="long">aws s3 ls s3://thara-reports-&lt;student id&gt;</code>. If it still works, wait a few seconds and repeat. <strong>Symptom:</strong> <code>AccessDenied</code>.</p>
+</li>
+<li>
+<p><strong>Locate it</strong> with what you already know. Read the whole message: it ends "with an explicit deny in an identity-based policy". The allow in <code>thara-reports-read</code> is still there, and it has lost. Confirm it in the <strong>Policy simulator</strong>: choose the mode that tests an existing role, select <code>thara-web-role</code>, and simulate <code>s3:ListBucket</code> on <code class="long">arn:aws:s3:::thara-reports-&lt;student id&gt;</code>. The result is explicitly denied, and the simulator names the statement that did it.</p>
+</li>
+<li>
+<p><strong>Fix:</strong> on the role's <strong>Permissions</strong> tab, remove <code>thara-deny-test</code>. Repeat the listing until it works.</p>
+</li>
+</ol>
+<p>Record the fault, the symptom, the evidence that located it and the fix in the table in section 4 of your evidence pack. Say in one sentence why adding a second allow would not have fixed it.</p>
+</section><section class="mark teardown"><h2 id="6-teardown"><span class="mark-chip">TEARDOWN</span> 6. Teardown</h2>
+<p>Do these in order. Check your ledger rows are written first.</p>
+<ol>
+<li><strong>Remove the encrypted volume.</strong> On <code>thara-web-1</code> run <code>sudo umount /data</code>. In EC2, <strong>Volumes</strong>, select the encrypted volume, <strong>Actions</strong>, <strong>Detach volume</strong>; when it is <strong>Available</strong>, <strong>Actions</strong>, <strong>Delete volume</strong>. <span class="expect"><b class="expect-label">You should see</b> the volume is gone and the snapshot <code>Day 2 data volume</code> is still listed.</span></li>
+<li><strong>Confirm that the break-it left nothing behind.</strong> <code>thara-web-role</code> lists one policy, <code>thara-reports-read</code>, and no inline policy.</li>
+<li><strong>Confirm that <code>thara-web-sg</code> has its two rules</strong> from Day 3 and no HTTPS rule.</li>
+<li><strong>If you ever copied <code>thara-key.pem</code> to the bastion</strong>, check that it is gone: on the bastion, <code>ls ~</code> should not list it. If it does, <code>rm ~/thara-key.pem</code>.</li>
+<li><strong>If you did step 17</strong>, delete anything the two activities created.</li>
+<li><strong>Stop <code>thara-bastion</code> and <code>thara-web-1</code></strong>: <strong>Instance state</strong>, <strong>Stop instance</strong>. Do not terminate them. <span class="expect"><b class="expect-label">You should see</b> both show <strong>Stopped</strong>.</span></li>
+</ol>
+<p>What you keep, and why:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thara-web-role</code> and <code>thara-reports-read</code></td>
+<td>The server uses them from now on. The Day 7 launch template gives the same role to every web server</td>
+</tr>
+<tr>
+<td><code>alias/thara-records</code></td>
+<td>Day 6 encrypts the patient records database with it. It costs about USD 0.03 a day</td>
+</tr>
+<tr>
+<td><code>thara-trail</code> and <code>thara-audit-&lt;student id&gt;</code></td>
+<td>The record of who did what. Kept until marking is complete</td>
+</tr>
+<tr>
+<td>GuardDuty and the Access Analyzer analyzer</td>
+<td>Day 7 uses their findings. Watch the trial's last day in your ledger</td>
+</tr>
+<tr>
+<td>The group <code>thara-capstone</code>, its users and the three tier policies, in the host account</td>
+<td>The capstone is built with them</td>
+</tr>
+<tr>
+<td>The snapshot <code>Day 2 data volume</code></td>
+<td>Day 6 restores from it</td>
+</tr>
+<tr>
+<td><code>thara-bastion</code> and <code>thara-web-1</code>, stopped</td>
+<td>Day 6 starts them again</td>
+</tr>
+</tbody>
+</table></div>
+<p>The Day 2 access key is not on this list. It no longer exists.</p>
+</section><section class="mark cost"><h2 id="7-cost-line"><span class="mark-chip">COST</span> 7. Cost line</h2>
+<p>Estimate for today: <strong>USD 0.80</strong>. The afternoon itself comes to about USD 0.10: two <code>t3.micro</code> instances for three hours, the bastion's public IPv4 address, and an hour of the encrypted volume. The key is the new kind of line: about USD 0.03 a day for as long as it exists, so about USD 0.23 for the week to Day 6. A week of the two stopped root volumes adds about USD 0.35. The trail's first copy of management events is free, the audit bucket holds a few kilobytes, and GuardDuty is inside its trial.</p>
+<p>Add one ledger row for each of: <code>thara-bastion</code> and <code>thara-web-1</code> (start and stop times), the KMS key (created, with the note "kept; about USD 1 a month"), the encrypted volume (created and deleted), the trail and the audit bucket (cost 0.00), GuardDuty (enabled, with the trial's last day), the Access Analyzer analyzer (cost 0.00), and the Day 2 access key (deleted). Write the day's total against the estimate. If it is higher than the estimate, write why in one line.</p>
+</section><h2 id="8-evidence-required">8. Evidence required</h2>
+<ol>
+<li>The JSON of <code>thara-reports-read</code>, and the screenshot of its three simulator results (steps 3 and 4).</li>
+<li>The CloudTrail event for the change to <code>thara-web-sg</code>, with user name, time and source address (step 13).</li>
+<li>A one-page security review memo: the findings from this morning's threat walk, and which of today's steps remedied each one. Say what is still open.</li>
+<li>For the group: the three tier policies as JSON, and the record of each member's sign-in test (step 16).</li>
+<li>The outputs listed in section 4, and your saved output from step 7.</li>
+<li>Your break-it row from section 5, with your sentence on why a second allow would not have fixed it.</li>
+</ol>
+<p>Check every screenshot before you submit it: no secret access key, no password, and the middle digits of your account id masked.</p>
+<h2 id="9-thara-connection">9. Thara connection</h2>
+<p>This lab answers the Data Protection Officer, who asks three things: who can read patient data, what protects it, and how the hospital would know. Until this afternoon the honest answer to the first was "anyone holding that access key". Now the web tier reads the reports through a role that can list and read one bucket and nothing else, and there is no stored secret on the server to copy. Every administrative action must be attributable to a named person: the trail records each change with a user name, a time and an address, and you have found your own. Records and reports must be encrypted at rest: the reports bucket already was, and the key that Day 6 gives to the patient records database now exists and is yours. The Head of IT would ask whether the group's members can break each other's work, and the three tier policies are the answer, tested before anyone signed in. The CFO would ask what all this costs each month: one key, at about USD 1.</p>
+
+<script type="application/json" id="glossary-data">{"customer-managed-key":{"d":"An encryption key in the AWS Key Management Service that you create and control: you write its policy, and you can disable it or schedule its deletion. It has a monthly charge.","t":"Customer-managed key","x":"<code>alias/thara-records<\/code> encrypts today's volume and Day 6's patient records database."},"finding":{"d":"A report from a detection service that something looks wrong or is exposed. It has a severity, and it waits to be read. It changes nothing by itself.","t":"Finding","x":"GuardDuty would write a finding if <code>thara-web-1<\/code> contacted an address known for malware."},"instance-profile":{"d":"The container that hands a role to an EC2 instance. The IAM console creates one with the role's name, and it is what you choose when you give an instance a role.","t":"Instance profile","x":"<code>thara-web-1<\/code> receives <code>thara-web-role<\/code> through its instance profile, and the Day 7 launch template names the same one."},"key-policy":{"d":"The policy attached to a KMS key itself. It says who may manage the key and who may use it, which is a separate question from who may read the data.","t":"Key policy","x":"<code>admin-&lt;student id&gt;<\/code> is in the key policy of <code>alias/thara-records<\/code>, and <code>thara-web-role<\/code> is not."},"role":{"d":"An identity with no password or key of its own. It is assumed by whoever its trust policy names, and each time it hands out credentials that expire.","t":"Role","x":"<code>thara-web-role<\/code> is assumed by the EC2 service on behalf of <code>thara-web-1<\/code>."},"trail":{"d":"A CloudTrail setting that delivers a continuous record of the account's API events to a bucket. Without one, the events are kept for 90 days and are then gone.","t":"Trail","x":"<code>thara-trail<\/code> writes to <code>thara-audit-&lt;student id&gt;<\/code>, where the record the Data Protection Officer relies on is kept."}}</script>
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this afternoon</h2><ul><li><a href="slides/day-5-afternoon.pdf">Slides for this afternoon (PDF)</a></li><li><a href="artefacts/role-vs-key.html">Role versus key: what an attacker holds on the Day 2 path and on the Day 5 path</a> (visual)</li><li><a href="plays/p5-words.html">Words ladder: Day 5</a> (12 minutes)</li><li><a href="plays/p5-1-write-the-statement.html">Write the statement</a> (8 minutes)</li><li><a href="plays/p5-2-retire-the-key.html">Retire the key</a> (5 minutes)</li><li><a href="plays/p5-quiz.html">Day quiz: who, what protects it, how would we know</a> (10 minutes)</li><li><a href="../../templates/cost-ledger.csv">Cost ledger template</a> and <a href="../../templates/evidence-pack.html">evidence pack template</a> (also as a <a href="../../templates/evidence-pack.pdf">PDF form</a>)</li><li><a href="../../practice/PQ5.html">Practice question 5</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d5a">Mark this afternoon as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-5/notes.html">Day 5 morning</a></span><span><a href="index.html">Day 5</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

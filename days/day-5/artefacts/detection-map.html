@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detection map: what CloudTrail, GuardDuty, Access Analyzer, WAF and Shield each see</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 74rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 .3rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button[aria-pressed=true] { background: var(--navy); color: var(--white); }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
+  @media (max-width: 60rem) { .cols { grid-template-columns: 1fr; } }
+  .draw { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .5rem; overflow-x: auto; }
+  svg { display: block; width: 100%; min-width: 560px; height: auto; }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .panel dl { margin: 0; }
+  .panel dt { font-weight: 700; margin-top: .7rem; }
+  .panel dd { margin: 0; }
+  .panel .acts { display: inline-block; font-weight: 700; font-size: .85rem; border-radius: 4px; padding: .1rem .6rem; border: 1px solid var(--navy); }
+  .panel .acts.stops { background: var(--signal-amber); }
+  .panel .acts.reports { background: var(--turquoise-tint); }
+  .thara { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .6rem .8rem; margin-top: .9rem; }
+  /* drawing */
+  .t { font-family: "Open Sans", Arial, sans-serif; font-size: 13px; fill: var(--navy); }
+  .t.s { font-size: 12px; fill: var(--ink-muted); }
+  .t.b { font-weight: 700; }
+  .t.w { fill: var(--white); }
+  .frame { fill: var(--paper); stroke: var(--silver); stroke-width: 1.5; }
+  .vpc { fill: none; stroke: var(--turquoise); stroke-width: 3; }
+  .sub { fill: var(--turquoise-wash); stroke: var(--turquoise-deep); stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .node { fill: var(--navy); }
+  .res { fill: var(--white); stroke: var(--navy); stroke-width: 2; }
+  .num { fill: var(--turquoise); stroke: var(--navy); stroke-width: 1.5; }
+  .wire { fill: none; stroke: var(--navy); stroke-width: 2; }
+  .zone { transition: opacity .25s; }
+  .zone .glow { fill: none; stroke: none; }
+  svg.has .zone { opacity: .28; }
+  svg.has .zone.lit { opacity: 1; }
+  svg.has .zone.lit .glow { stroke: var(--signal-amber); stroke-width: 5; }
+  .mark { fill: var(--white); stroke: var(--navy); stroke-width: 2; }
+  .mk.on .mark { fill: var(--signal-amber); }
+  @media (prefers-reduced-motion: reduce) { .zone { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Detection map</h1>
+  <p class="lede">Five services watch the Thara pilot, and each one reads something different. Point at a service, or move to it with the Tab key, to light up what it can see. Everything that stays dim is something it cannot.</p>
+
+  <div class="tools" id="tools" role="group" aria-label="Choose a service"></div>
+
+  <div class="cols">
+    <div class="draw">
+      <svg id="map" viewBox="0 0 760 470" role="img" aria-labelledby="mT mD">
+        <title id="mT">The Thara architecture with five detection and protection services placed where they observe</title>
+        <desc id="mD">Patients reach the portal through the edge and the load balancer. The VPC holds the bastion and the web tier. Outside it are the reports bucket, the audit bucket, the role, the key and the AWS API through which every administrative action passes.</desc>
+
+        <!-- the edge -->
+        <g class="zone" data-z="edge">
+          <rect class="frame" x="150" y="14" width="330" height="92" rx="8"/>
+          <rect class="glow" x="150" y="14" width="330" height="92" rx="8"/>
+          <circle class="num" cx="170" cy="34" r="12"/><text class="t b" x="170" y="38.5" text-anchor="middle">13</text>
+          <text class="t b" x="190" y="38">The edge</text>
+          <text class="t s" x="190" y="56">Traffic arriving, by volume</text>
+        </g>
+        <g class="zone" data-z="web">
+          <rect class="glow" x="24" y="56" width="120" height="44" rx="6"/>
+          <rect class="res" x="24" y="56" width="120" height="44" rx="6"/>
+          <text class="t b" x="84" y="75" text-anchor="middle">Patients</text>
+          <text class="t s" x="84" y="91" text-anchor="middle">web requests</text>
+          <path class="wire" d="M144 78 L300 78"/><path class="node" d="M300 78 L290 72 L290 84 Z"/>
+          <rect class="glow" x="302" y="62" width="160" height="34" rx="17"/>
+          <rect class="num" x="302" y="62" width="160" height="34" rx="17"/>
+          <text class="t b" x="382" y="84" text-anchor="middle">Load balancer (Day 7)</text>
+          <path class="wire" d="M382 96 L382 252"/><path class="node" d="M382 252 L376 242 L388 242 Z"/>
+        </g>
+
+        <!-- the VPC -->
+        <rect class="vpc" x="150" y="132" width="330" height="320" rx="10"/>
+        <circle class="num" cx="170" cy="152" r="12"/><text class="t b" x="170" y="156.5" text-anchor="middle">4</text>
+        <text class="t b" x="190" y="156.5">thara-vpc</text>
+        <g class="zone" data-z="flow">
+          <rect class="sub" x="164" y="172" width="150" height="92" rx="6"/>
+          <rect class="glow" x="164" y="172" width="302" height="210" rx="6"/>
+          <text class="t s" x="174" y="190">public subnet</text>
+          <rect class="node" x="178" y="200" width="122" height="50" rx="6"/>
+          <text class="t b w" x="239" y="222" text-anchor="middle">Bastion</text>
+          <text class="t w" x="239" y="240" text-anchor="middle">component 5</text>
+          <rect class="sub" x="164" y="276" width="302" height="106" rx="6"/>
+          <text class="t s" x="174" y="294">private subnets</text>
+          <rect class="node" x="318" y="258" width="130" height="50" rx="6"/>
+          <text class="t b w" x="383" y="280" text-anchor="middle">Web tier</text>
+          <text class="t w" x="383" y="298" text-anchor="middle">component 6</text>
+          <path class="wire" d="M239 250 L239 330 L318 330" stroke-dasharray="5 4"/>
+          <text class="t s" x="180" y="350">flow records: who talked to whom</text>
+        </g>
+        <g class="zone" data-z="dns">
+          <rect class="glow" x="178" y="396" width="288" height="40" rx="6"/>
+          <rect class="res" x="178" y="396" width="288" height="40" rx="6"/>
+          <text class="t" x="322" y="421" text-anchor="middle">DNS lookups made by the instances</text>
+        </g>
+
+        <!-- the API -->
+        <g class="zone" data-z="api">
+          <rect class="glow" x="24" y="132" width="106" height="320" rx="8"/>
+          <rect class="frame" x="24" y="132" width="106" height="320" rx="8"/>
+          <text class="t b" x="77" y="156" text-anchor="middle">The AWS API</text>
+          <text class="t s" x="77" y="178" text-anchor="middle">every console</text>
+          <text class="t s" x="77" y="194" text-anchor="middle">click and</text>
+          <text class="t s" x="77" y="210" text-anchor="middle">CLI call</text>
+          <rect class="res" x="36" y="232" width="82" height="40" rx="6"/>
+          <text class="t" x="77" y="257" text-anchor="middle">admin user</text>
+          <rect class="res" x="36" y="286" width="82" height="40" rx="6"/>
+          <text class="t" x="77" y="311" text-anchor="middle">members</text>
+          <text class="t s" x="77" y="352" text-anchor="middle">who, when,</text>
+          <text class="t s" x="77" y="368" text-anchor="middle">from where,</text>
+          <text class="t s" x="77" y="384" text-anchor="middle">what</text>
+        </g>
+
+        <!-- resources and their policies -->
+        <g class="zone" data-z="pol">
+          <rect class="glow" x="510" y="132" width="226" height="320" rx="8"/>
+          <rect class="frame" x="510" y="132" width="226" height="320" rx="8"/>
+          <text class="t b" x="623" y="156" text-anchor="middle">Resources and their policies</text>
+          <rect class="res" x="524" y="172" width="198" height="52" rx="6"/>
+          <circle class="num" cx="544" cy="198" r="12"/><text class="t b" x="544" y="202.5" text-anchor="middle">3</text>
+          <text class="t b" x="564" y="194">Reports bucket</text><text class="t s" x="564" y="212">bucket policy</text>
+          <rect class="res" x="524" y="236" width="198" height="52" rx="6"/>
+          <circle class="num" cx="544" cy="262" r="12"/><text class="t b" x="544" y="266.5" text-anchor="middle">10</text>
+          <text class="t b" x="564" y="258">Audit bucket</text><text class="t s" x="564" y="276">bucket policy</text>
+          <rect class="res" x="524" y="300" width="198" height="52" rx="6"/>
+          <text class="t b" x="536" y="322">thara-web-role</text><text class="t s" x="536" y="340">trust policy</text>
+          <rect class="res" x="524" y="364" width="198" height="52" rx="6"/>
+          <text class="t b" x="536" y="386">alias/thara-records</text><text class="t s" x="536" y="404">key policy</text>
+          <text class="t s" x="623" y="438" text-anchor="middle">reachable from outside the account?</text>
+        </g>
+
+        <!-- where each service stands -->
+        <g class="mk" data-m="shield"><rect class="mark" x="330" y="22" width="66" height="28" rx="14"/><text class="t b" x="363" y="41" text-anchor="middle">Shield</text></g>
+        <g class="mk" data-m="waf"><rect class="mark" x="404" y="22" width="60" height="28" rx="14"/><text class="t b" x="434" y="41" text-anchor="middle">WAF</text></g>
+        <g class="mk" data-m="ct"><rect class="mark" x="30" y="410" width="94" height="28" rx="14"/><text class="t b" x="77" y="429" text-anchor="middle">CloudTrail</text></g>
+        <g class="mk" data-m="gd"><rect class="mark" x="372" y="140" width="96" height="28" rx="14"/><text class="t b" x="420" y="159" text-anchor="middle">GuardDuty</text></g>
+        <g class="mk" data-m="aa"><rect class="mark" x="560" y="98" width="126" height="28" rx="14"/><text class="t b" x="623" y="117" text-anchor="middle">Access Analyzer</text></g>
+      </svg>
+    </div>
+
+    <div class="panel" id="panel" role="status" aria-live="polite"></div>
+  </div>
+
+  <footer>The drawing is a simplified view of the module's canonical architecture, with its component numbers. The load balancer is built on Day 7, where WAF is demonstrated in front of it. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const S = [
+    { id: 'ct', name: 'CloudTrail', zones: ['api'], acts: 'reports', does: 'Records. Changes nothing.',
+      reads: 'Every call to the AWS API: each console click and each CLI command, with who made it, when, from which address and whether it was allowed.',
+      not: 'Network traffic. It does not know that a packet reached port 22, only who changed the rule that let it. It does not judge anything either: it keeps the record.',
+      thara: 'The rule you add to <code>thara-web-sg</code> this afternoon appears as an event with your user name. This is the Data Protection Officer\'s "who".' },
+    { id: 'gd', name: 'GuardDuty', zones: ['flow', 'dns', 'api'], acts: 'reports', does: 'Writes findings. Blocks nothing.',
+      reads: 'Three streams that AWS already holds: the flow records of the VPC, the DNS lookups made by your instances, and CloudTrail events. Nothing is installed.',
+      not: 'The contents of a connection, the policies on your resources, or web requests at the edge. And it is not in the path of any traffic, so it cannot stop a packet.',
+      thara: 'If <code>thara-web-1</code> began talking to an address known for malware, GuardDuty would write a finding. Somebody still has to read it and act.' },
+    { id: 'aa', name: 'IAM Access Analyzer', zones: ['pol'], acts: 'reports', does: 'Writes findings. Changes nothing.',
+      reads: 'The resource-based policies in the account: bucket policies, the trust policy of each role, key policies. It reports every resource that a principal outside the account could reach.',
+      not: 'Traffic of any kind, or whether anyone has used the access. It tells you that a door is open, not that someone has walked through it.',
+      thara: 'A policy that made <code>thara-reports-&lt;student id&gt;</code> public would appear here as a finding, before anyone downloaded a report.' },
+    { id: 'waf', name: 'WAF', zones: ['web'], acts: 'stops', does: 'Blocks requests that match its rules.',
+      reads: 'Web requests on their way to the portal: addresses, paths, headers and bodies, compared with rules.',
+      not: 'Anything that does not pass through it: SSH to the bastion, calls to the AWS API, traffic inside the VPC.',
+      thara: 'On Day 7 a web ACL stands in front of the load balancer, and a probing request is shown blocked in its log. It is the one service on this map that says no.' },
+    { id: 'shield', name: 'Shield', zones: ['edge', 'web'], acts: 'stops', does: 'Absorbs floods at the edge.',
+      reads: 'The volume and shape of traffic arriving at the edge, looking for a distributed denial-of-service attack.',
+      not: 'A single malicious request, which looks like any other. It knows nothing of identities, policies or API calls.',
+      thara: 'A flood aimed at the portal in dengue season would be absorbed before it reached <code>thara-vpc</code>.' }
+  ];
+  let cur = null;
+  $('tools').innerHTML = S.map(s => '<button type="button" data-s="' + s.id + '" aria-pressed="false">' + s.name + '</button>').join('') + '<button type="button" data-s="" aria-pressed="false">Show everything</button>';
+  function show(id) {
+    cur = id || null; const s = S.find(x => x.id === cur);
+    $('map').classList.toggle('has', !!s);
+    document.querySelectorAll('.zone').forEach(z => z.classList.toggle('lit', !!s && s.zones.includes(z.dataset.z)));
+    document.querySelectorAll('.mk').forEach(m => m.classList.toggle('on', !!s && m.dataset.m === s.id));
+    document.querySelectorAll('#tools button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === (cur || '') && !!cur));
+    $('panel').innerHTML = s
+      ? '<h2>' + s.name + '</h2><span class="acts ' + s.acts + '">' + s.does + '</span><dl><dt>What it reads</dt><dd>' + s.reads + '</dd><dt>What it does not see</dt><dd>' + s.not + '</dd></dl><div class="thara"><b>Thara.</b> ' + s.thara + '</div>'
+      : '<h2>Five services, five fields of view</h2><p>Choose a service. Three of them read and report: CloudTrail, GuardDuty and IAM Access Analyzer. Two stand in the path at the edge and stop traffic: WAF and Shield.</p><p>No one of them sees everything, which is why the answer to "how would we know?" is never one service.</p>';
+  }
+  document.querySelectorAll('#tools button').forEach(b => {
+    b.addEventListener('click', () => show(b.dataset.s));
+    b.addEventListener('focus', () => show(b.dataset.s));
+    b.addEventListener('mouseenter', () => show(b.dataset.s));
+  });
+  document.querySelectorAll('.mk').forEach(m => { m.style.cursor = 'pointer'; m.addEventListener('mouseenter', () => show(m.dataset.m)); m.addEventListener('click', () => show(m.dataset.m)); });
+  show('');
+</script>
+</body>
+</html>
