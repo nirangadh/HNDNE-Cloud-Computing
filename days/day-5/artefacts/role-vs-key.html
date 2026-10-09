@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Role versus key: what an attacker holds on the Day 2 path and on the Day 5 path</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 .1rem; }
+  h3 { font-size: 1rem; margin: 1rem 0 .3rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; overflow-wrap: anywhere; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .clock { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .8rem 1.1rem; margin-bottom: 1rem; }
+  .clock label { display: grid; gap: .15rem; font-weight: 700; }
+  .clock input[type=range] { width: 100%; min-height: 44px; accent-color: var(--navy); }
+  .clock output { font-size: 1.3rem; font-weight: 800; }
+  .clock[hidden] { display: none; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 52rem) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--white); border: 2px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .card .sub { color: var(--ink-muted); font-size: .9rem; margin: 0 0 .7rem; }
+  .path { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+  .path li { border: 2px solid var(--navy); border-radius: 6px; padding: .4rem .65rem; font-size: .93rem; background: var(--white); }
+  .path li.cred { background: var(--signal-amber); font-weight: 600; }
+  .path li.arrow { border: 0; padding: 0 0 0 1rem; color: var(--ink-muted); font-size: .85rem; background: none; }
+  .card.stolen .path li.cred { outline: 4px solid var(--signal-coral); outline-offset: 2px; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1.2rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); margin-top: .9rem; }
+  button.primary { background: var(--navy); color: var(--white); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .loot { margin-top: .9rem; border-top: 1px solid var(--silver); padding-top: .2rem; }
+  .loot[hidden] { display: none; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; vertical-align: top; padding: .4rem .5rem; border-bottom: 1px solid var(--silver); font-size: .93rem; }
+  td.mark { width: 5.6rem; font-weight: 700; white-space: nowrap; }
+  tr.can td.mark { border-left: 5px solid var(--signal-coral); }
+  tr.cannot td.mark { border-left: 5px solid var(--turquoise-deep); }
+  .state { border-radius: 6px; padding: .6rem .8rem; margin-top: .7rem; border: 2px solid var(--navy); font-weight: 600; }
+  .state.live { background: var(--white); border-color: var(--signal-coral); border-width: 3px; }
+  .state.dead { background: var(--turquoise-tint); }
+  .verdict { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .8rem 1rem; margin: 1rem 0 0; }
+  .verdict b { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Role versus key</h1>
+  <p class="lede"><code>thara-web-1</code> has to read the laboratory reports bucket. On Day 2 it did so with an access key typed into a file. From Day 5 it does so with a role. Suppose somebody gets a copy of the server's disk, or a shell on it. Steal the credential on each path and see what the attacker is holding, and for how long.</p>
+
+  <div class="clock" id="clock" hidden>
+    <label for="hrs">Hours since the theft: <output id="hv" for="hrs">0</output></label>
+    <input type="range" id="hrs" min="0" max="48" value="0" step="1">
+  </div>
+
+  <div class="grid">
+    <section class="card" id="key" aria-labelledby="kT">
+      <h2 id="kT">Day 2: a long-lived key</h2>
+      <p class="sub">An access key of <code>admin-&lt;student id&gt;</code>, typed in with <code>aws configure</code></p>
+      <ol class="path">
+        <li class="cred">The key id and its secret, in plain text in <code>~/.aws/credentials</code></li>
+        <li class="arrow">is read by</li>
+        <li>the command line on <code>thara-web-1</code></li>
+        <li class="arrow">which signs requests as</li>
+        <li>your admin user, with every permission it has</li>
+      </ol>
+      <button type="button" class="primary" data-steal="key">Steal the credential</button>
+      <div class="loot" id="lootKey" hidden></div>
+    </section>
+
+    <section class="card" id="role" aria-labelledby="rT">
+      <h2 id="rT">Day 5: an instance role</h2>
+      <p class="sub"><code>thara-web-role</code>, handed to the server by its instance profile</p>
+      <ol class="path">
+        <li>No file. The server asks its own metadata service</li>
+        <li class="arrow">which hands it</li>
+        <li class="cred">temporary credentials: a key, a secret and a token, with an expiry time</li>
+        <li class="arrow">which sign requests as</li>
+        <li><code>thara-web-role</code>, with the two permissions in <code>thara-reports-read</code></li>
+      </ol>
+      <button type="button" class="primary" data-steal="role">Steal the credential</button>
+      <div class="loot" id="lootRole" hidden></div>
+    </section>
+  </div>
+
+  <div class="verdict" id="verdict" role="status" aria-live="polite"><b>Nothing has been stolen yet.</b>Choose "Steal the credential" on each path.</div>
+
+  <footer>Temporary credentials from an instance profile last for a few hours at most, at the time of writing; six is used here as the outer limit. A stolen key can also be stopped early by deleting it in IAM, and nothing stops it otherwise. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const stolen = { key: false, role: false };
+  const LIFE = 6;
+  const row = (can, what, why) => '<tr class="' + (can ? 'can' : 'cannot') + '"><td class="mark">' + (can ? '&#10003; Can' : '&#10007; Cannot') + '</td><td><b>' + what + '</b><br>' + why + '</td></tr>';
+  function draw() {
+    const h = +$('hrs').value; $('hv').textContent = h === 0 ? 'the moment of the theft' : h + (h === 1 ? ' hour' : ' hours');
+    $('clock').hidden = !(stolen.key || stolen.role);
+    if (stolen.key) {
+      $('key').classList.add('stolen'); $('lootKey').hidden = false;
+      $('lootKey').innerHTML = '<h3>What the attacker holds</h3><table>'
+        + row(true, 'Read every laboratory report', 'The admin user may read any bucket.')
+        + row(true, 'Delete the reports, and the bucket', 'The admin user may delete anything.')
+        + row(true, 'Create users and keys of their own', 'So that deleting this key would no longer lock them out.')
+        + row(true, 'Launch servers at Thara\'s expense', 'In any region, until someone reads the bill.')
+        + row(true, 'Stop the trail that would record all of it', 'An administrator may switch off the audit.')
+        + '</table><div class="state live">After ' + (h === 0 ? '0 hours' : h + (h === 1 ? ' hour' : ' hours')) + ': the key still works, from anywhere on the internet. It works until someone deletes it in IAM. Removing the file from the server changes nothing.</div>';
+    }
+    if (stolen.role) {
+      const dead = h >= LIFE;
+      $('role').classList.add('stolen'); $('lootRole').hidden = false;
+      $('lootRole').innerHTML = '<h3>What the attacker holds</h3><table>'
+        + row(!dead, 'List the reports bucket and download reports', dead ? 'Not any more: the credentials have expired.' : 'The role allows <code>s3:ListBucket</code> and <code>s3:GetObject</code> on that one bucket.')
+        + row(false, 'Upload, overwrite or delete a report', 'No statement allows it: an implicit deny.')
+        + row(false, 'Touch any other bucket, or even see its name', 'The policy names one bucket.')
+        + row(false, 'Create users, launch servers, stop the trail', 'The role has no permission outside S3.')
+        + '</table><div class="state ' + (dead ? 'dead' : 'live') + '">' + (dead
+          ? '&#10003; After ' + h + ' hours: the stolen credentials have expired by themselves. The server was handed fresh ones long ago, and the attacker was not.'
+          : 'After ' + (h === 0 ? '0 hours' : h + (h === 1 ? ' hour' : ' hours')) + ': the credentials still work, for reading one bucket. They stop by themselves within about ' + (LIFE - h) + (LIFE - h === 1 ? ' hour.' : ' hours.')) + '</div>';
+    }
+    const v = $('verdict');
+    if (stolen.key && stolen.role) v.innerHTML = '<b>The same theft, two different incidents.</b>The key is the whole account, for ever. The role is read access to one bucket, for a few hours. Reading the reports is still a breach, and that is what encryption, the trail and GuardDuty are for. Move the clock and watch which side changes.';
+    else if (stolen.key) v.innerHTML = '<b>The attacker holds your account.</b>Every permission of the admin user, with no expiry. Now steal the credential on the Day 5 path.';
+    else if (stolen.role) v.innerHTML = '<b>The attacker holds two permissions, on a timer.</b>Now steal the credential on the Day 2 path and compare.';
+  }
+  document.querySelectorAll('[data-steal]').forEach(b => b.addEventListener('click', () => { stolen[b.dataset.steal] = true; b.textContent = 'Stolen'; b.disabled = true; draw(); $('hrs').focus(); }));
+  $('hrs').addEventListener('input', draw);
+</script>
+</body>
+</html>

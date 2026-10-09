@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Policy evaluator: explicit deny, then allow, then implicit deny</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .5rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; overflow-wrap: anywhere; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+  @media (max-width: 56rem) { .cols { grid-template-columns: 1fr; } }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  fieldset { border: 0; margin: 0 0 1rem; padding: 0; min-width: 0; }
+  legend { font-weight: 700; padding: 0; margin-bottom: .4rem; }
+  label.opt { display: flex; gap: .6rem; align-items: flex-start; min-height: 44px; padding: .45rem .6rem; border: 2px solid var(--ink-muted); border-radius: 6px; margin-bottom: .45rem; cursor: pointer; background: var(--white); }
+  label.opt input { width: 1.3rem; height: 1.3rem; accent-color: var(--navy); flex: none; margin-top: .15rem; }
+  label.opt.on { border-color: var(--navy); background: var(--turquoise-wash); }
+  label.opt .from { display: block; font-size: .85rem; color: var(--ink-muted); }
+  .eff { display: inline-block; font-weight: 700; font-size: .8rem; border-radius: 4px; padding: 0 .45rem; border: 1px solid var(--navy); margin-right: .3rem; }
+  .eff.allow { background: var(--turquoise); }
+  .eff.deny { background: var(--white); border: 2px solid var(--signal-coral); }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1.2rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  ol.steps li { border: 2px solid var(--silver); border-radius: 6px; padding: .7rem .9rem; background: var(--white); }
+  ol.steps li.decides { border-color: var(--navy); }
+  ol.steps li.skipped { color: var(--ink-muted); background: var(--paper); }
+  ol.steps .q { font-weight: 700; display: block; }
+  ol.steps .a { display: block; font-size: .93rem; }
+  .verdict { border-radius: 6px; padding: .9rem 1rem; margin-top: 1rem; border: 2px solid var(--navy); }
+  .verdict b { display: block; font-size: 1.25rem; }
+  .verdict.allowed { background: var(--turquoise); }
+  .verdict.explicit { background: var(--white); border-color: var(--signal-coral); border-width: 4px; }
+  .verdict.implicit { background: var(--white); border-style: dashed; }
+  .req { font-family: var(--font-code); background: var(--navy-deep); color: var(--paper); border-radius: 6px; padding: .6rem .8rem; margin: 0 0 1rem; overflow-wrap: anywhere; font-size: .93rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Policy evaluator</h1>
+  <p class="lede">The web tier, as <code>thara-web-role</code>, sends a request to S3. Choose the request, then attach and detach statements. AWS gathers every statement that applies and decides in a fixed order: an explicit deny first, then an allow, and if neither matches the answer is no.</p>
+
+  <div class="cols">
+    <div class="panel">
+      <fieldset>
+        <legend>1. The request</legend>
+        <div id="reqs"></div>
+      </fieldset>
+      <fieldset>
+        <legend>2. The statements attached to the role</legend>
+        <div id="stmts"></div>
+      </fieldset>
+      <button type="button" id="reset">Reset to this afternoon's policy</button>
+    </div>
+
+    <div class="panel">
+      <h2>How AWS decides</h2>
+      <p class="req" id="reqline"></p>
+      <ol class="steps" id="steps"></ol>
+      <div class="verdict" id="verdict" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <footer>This shows one account and identity-based statements only, which is all this afternoon's lab needs. The policy simulator in the IAM console runs the same check on your real policies. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const B = 'arn:aws:s3:::thara-reports-&lt;student id&gt;', A = 'arn:aws:s3:::thara-audit-&lt;student id&gt;';
+  const REQS = [
+    { id: 'get', action: 's3:GetObject', res: 'reports-obj', label: 'Download a laboratory report', show: B + '/reports-index.txt' },
+    { id: 'list', action: 's3:ListBucket', res: 'reports-bucket', label: 'List the reports bucket', show: B },
+    { id: 'put', action: 's3:PutObject', res: 'reports-obj', label: 'Upload a file to the reports bucket', show: B + '/upload-test.txt' },
+    { id: 'audit', action: 's3:ListBucket', res: 'audit-bucket', label: 'List the audit bucket', show: A }
+  ];
+  // res: which resources a statement's Resource line matches
+  const STMTS = [
+    { id: 'a', effect: 'Allow', action: 's3:GetObject', res: ['reports-obj'], show: B + '/*', from: 'thara-reports-read', on: true },
+    { id: 'b', effect: 'Allow', action: 's3:ListBucket', res: ['reports-bucket'], show: B, from: 'thara-reports-read', on: true },
+    { id: 'c', effect: 'Allow', action: 's3:*', res: ['*'], show: '*', from: 'a wide policy that somebody attached "to make it work"', on: false },
+    { id: 'd', effect: 'Deny', action: 's3:PutObject', res: ['reports-obj'], show: B + '/*', from: 'a guard: never upload to the reports bucket', on: false },
+    { id: 'e', effect: 'Deny', action: 's3:*', res: ['*'], show: '*', from: 'thara-deny-test, the lab\'s break-it policy', on: false }
+  ];
+  let req = 'get';
+  const matches = (s, r) => (s.action === 's3:*' || s.action === r.action) && (s.res[0] === '*' || s.res.includes(r.res));
+  const line = s => '<span class="eff ' + s.effect.toLowerCase() + '">' + s.effect + '</span><code>' + s.action + '</code> on <code>' + s.show + '</code>';
+
+  function build() {
+    $('reqs').innerHTML = REQS.map(r => '<label class="opt"><input type="radio" name="req" value="' + r.id + '"' + (r.id === req ? ' checked' : '') + '><span>' + r.label + '<span class="from"><code>' + r.action + '</code></span></span></label>').join('');
+    $('stmts').innerHTML = STMTS.map(s => '<label class="opt"><input type="checkbox" value="' + s.id + '"' + (s.on ? ' checked' : '') + '><span>' + line(s) + '<span class="from">From ' + s.from + '</span></span></label>').join('');
+    document.querySelectorAll('input[name=req]').forEach(i => i.addEventListener('change', () => { req = i.value; draw(); }));
+    document.querySelectorAll('#stmts input').forEach(i => i.addEventListener('change', () => { STMTS.find(s => s.id === i.value).on = i.checked; draw(); }));
+  }
+
+  function draw() {
+    document.querySelectorAll('label.opt').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+    const r = REQS.find(x => x.id === req), live = STMTS.filter(s => s.on);
+    const denies = live.filter(s => s.effect === 'Deny' && matches(s, r)), allows = live.filter(s => s.effect === 'Allow' && matches(s, r));
+    $('reqline').innerHTML = 'thara-web-role asks: ' + r.action + '<br>on ' + r.show;
+    const list = xs => xs.map(s => line(s)).join('<br>');
+    const steps = [];
+    steps.push({ q: 'Step 1. Does an explicit deny match?', a: denies.length ? 'Yes:<br>' + list(denies) : 'No statement with the effect Deny matches this request.', decides: denies.length > 0 });
+    if (denies.length) steps.push({ q: 'Step 2. Does an allow match?', a: allows.length ? 'Not asked. There ' + (allows.length === 1 ? 'is a matching allow' : 'are matching allows') + ', and it makes no difference.' : 'Not asked.', skipped: true });
+    else steps.push({ q: 'Step 2. Does an allow match?', a: allows.length ? 'Yes:<br>' + list(allows) : 'No. Nothing attached allows this action on this resource.', decides: allows.length > 0 });
+    if (denies.length || allows.length) steps.push({ q: 'Step 3. Otherwise, refuse.', a: 'Not reached.', skipped: true });
+    else steps.push({ q: 'Step 3. Otherwise, refuse.', a: 'Reached. Nothing denied the request and nothing allowed it.', decides: true });
+    $('steps').innerHTML = steps.map(s => '<li class="' + (s.decides ? 'decides' : '') + (s.skipped ? ' skipped' : '') + '"><span class="q">' + (s.decides ? '&#8594; ' : '') + s.q + '</span><span class="a">' + s.a + '</span></li>').join('');
+    const v = $('verdict');
+    if (denies.length) { v.className = 'verdict explicit'; v.innerHTML = '<b>&#10007; Explicitly denied</b>' + (allows.length ? 'An allow matches too, and it loses. An explicit deny always wins, whichever statement is more specific and whichever was attached last. The only cure is to remove the deny.' : 'A statement says no. Adding an allow would not change the answer.'); }
+    else if (allows.length) { v.className = 'verdict allowed'; v.innerHTML = '<b>&#10003; Allowed</b>' + (allows.some(s => s.action === 's3:*') ? 'It works, and look at what allowed it: every S3 action on every resource. Try the other three requests. Least privilege is the statement that allows this request and no other.' : 'One statement allows exactly this action on exactly this resource, and no deny matches.'); }
+    else { v.className = 'verdict implicit'; v.innerHTML = '<b>&#10007; Implicitly denied</b>' + (r.id === 'get' || r.id === 'list' ? 'Nothing allows it. Look at the Resource lines: listing is an action on the bucket, and reading is an action on the objects in it. Each needs its own statement.' : 'Nothing allows it, and nothing has to forbid it. Everything is refused until a statement allows it. The cure, if the work needs it, is to add an allow.'); }
+  }
+  $('reset').addEventListener('click', () => { STMTS.forEach(s => s.on = s.id === 'a' || s.id === 'b'); req = 'get'; build(); draw(); });
+  build(); draw();
+</script>
+</body>
+</html>

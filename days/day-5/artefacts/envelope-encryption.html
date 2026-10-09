@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Envelope encryption: the KMS key, the data key and the sealed data key</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .1rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: center; background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .8rem 1rem; margin-bottom: 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1.2rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.primary { background: var(--navy); color: var(--white); }
+  button[disabled] { border-color: var(--ink-muted); color: var(--ink-muted); background: var(--paper); cursor: default; }
+  button[aria-pressed=true] { background: var(--turquoise); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  label.opt { display: flex; gap: .6rem; align-items: center; min-height: 44px; font-weight: 600; }
+  label.opt input { width: 1.3rem; height: 1.3rem; accent-color: var(--navy); flex: none; }
+  .count { font-weight: 700; margin-left: auto; }
+  .boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 52rem) { .boxes { grid-template-columns: 1fr; } }
+  .box { background: var(--white); border: 2px solid var(--silver); border-radius: 6px; padding: .9rem 1rem; min-height: 13rem; }
+  .box.active { border-color: var(--navy); }
+  .box .sub { color: var(--ink-muted); font-size: .9rem; margin: 0 0 .7rem; }
+  .chip { display: flex; gap: .5rem; align-items: center; border-radius: 6px; padding: .45rem .6rem; margin-bottom: .45rem; border: 2px solid var(--navy); font-weight: 600; font-size: .93rem; transition: background-color .3s; }
+  .chip small { display: block; font-weight: 400; color: inherit; }
+  .chip.kms { background: var(--navy); color: var(--white); }
+  .chip.dk { background: var(--signal-amber); }
+  .chip.wdk { background: var(--turquoise-tint); border-style: dashed; }
+  .chip.plain { background: var(--white); }
+  .chip.enc { background: var(--navy-raised); color: var(--white); }
+  .chip.new { outline: 3px solid var(--turquoise-deep); outline-offset: 2px; }
+  .chip.gone { background: var(--paper); border-color: var(--ink-muted); color: var(--ink-muted); border-style: dotted; text-decoration: line-through; }
+  .chip.refused { background: var(--white); border-color: var(--signal-coral); border-width: 3px; }
+  @media (prefers-reduced-motion: reduce) { .chip { transition: none; } }
+  .say { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .8rem 1rem; margin: 1rem 0 0; min-height: 5.5rem; }
+  .say b { display: block; }
+  .say.bad { border-left-color: var(--signal-coral); background: var(--white); border: 1px solid var(--silver); border-left: 5px solid var(--signal-coral); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Envelope encryption</h1>
+  <p class="lede">Three boxes and three things called a key. Step through what happens when the volume for <code>thara-web-1</code> is encrypted with <code>alias/thara-records</code>, and then what happens when the server reads it back. Watch which key is where, and which one never moves.</p>
+
+  <div class="bar">
+    <button type="button" id="mEnc" aria-pressed="true">Encrypt</button>
+    <button type="button" id="mDec" aria-pressed="false">Decrypt</button>
+    <button type="button" id="back">Back</button>
+    <button type="button" id="next" class="primary">Next step</button>
+    <label class="opt"><input type="checkbox" id="nokey"> The key policy does not allow this principal</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="boxes">
+    <section class="box" id="bK" aria-labelledby="hK"><h2 id="hK">KMS</h2><p class="sub">Holds the keys. Never gives one out.</p><div id="cK"></div></section>
+    <section class="box" id="bM" aria-labelledby="hM"><h2 id="hM">The host's memory</h2><p class="sub">Where the storage service works. Nothing here is kept.</p><div id="cM"></div></section>
+    <section class="box" id="bS" aria-labelledby="hS"><h2 id="hS">The volume, as stored</h2><p class="sub">What a copied disk or snapshot would contain.</p><div id="cS"></div></section>
+  </div>
+
+  <div class="say" id="say" role="status" aria-live="polite"></div>
+
+  <footer>The picture is the same for an encrypted volume, an encrypted bucket and an encrypted database: only the box in the middle changes. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const C = {
+    kms: ['kms', 'KMS key', '<code>alias/thara-records</code>'],
+    dk: ['dk', 'Data key, in the clear', 'opens the data'],
+    wdk: ['wdk', 'Data key, sealed', 'encrypted under the KMS key'],
+    plain: ['plain', 'Data, readable', '<code>reports-index.txt</code>'],
+    enc: ['enc', 'Data, encrypted', 'every block of the volume']
+  };
+  // each step: k, m, s are lists of [chip, state]; state is '', 'new', 'gone' or 'refused'
+  const ENC = [
+    { t: 'Before anything happens', x: 'The KMS key exists inside KMS. The data to be written is readable, in memory, on its way to the volume. The volume is empty.', k: [['kms']], m: [['plain']], s: [], a: 'M' },
+    { t: 'Step 1. The service asks KMS for a data key', x: 'KMS makes a new data key and returns it twice: once in the clear and once sealed, which means encrypted under the KMS key. The KMS key itself stays where it is.', k: [['kms']], m: [['plain'], ['dk', 'new'], ['wdk', 'new']], s: [], a: 'K' },
+    { t: 'Step 2. The data is encrypted with the clear data key', x: 'This happens on the host, not in KMS: a volume of many gigabytes is never sent to KMS. The readable data becomes encrypted data.', k: [['kms']], m: [['enc', 'new'], ['dk'], ['wdk']], s: [], a: 'M' },
+    { t: 'Step 3. The clear data key is thrown away', x: 'It has done its work. Nothing that can open the data is kept in the clear.', k: [['kms']], m: [['enc'], ['dk', 'gone'], ['wdk']], s: [], a: 'M' },
+    { t: 'Step 4. The encrypted data and the sealed key are stored together', x: 'This is the envelope: the key travels with the data, sealed. A copy of this volume holds encrypted blocks and a key that only KMS can open.', k: [['kms']], m: [], s: [['enc', 'new'], ['wdk', 'new']], a: 'S' }
+  ];
+  const DEC = [
+    { t: 'Before anything happens', x: 'The volume holds encrypted data and the sealed data key. Memory is empty. The server wants to read a file.', k: [['kms']], m: [], s: [['enc'], ['wdk']], a: 'S' },
+    { t: 'Step 1. The sealed data key is sent to KMS', x: 'Only the small sealed key travels. KMS checks the key policy: may this principal use this key?', k: [['kms']], m: [['wdk', 'new']], s: [['enc'], ['wdk']], a: 'K' },
+    { t: 'Step 2. KMS opens it and returns the clear data key', x: 'The KMS key was used inside KMS and never left. The clear data key now exists in memory only.', k: [['kms']], m: [['wdk'], ['dk', 'new']], s: [['enc'], ['wdk']], a: 'M',
+      no: { t: 'Step 2. KMS refuses', x: 'The key policy does not allow this principal to use the key, so KMS returns nothing. It does not matter what the bucket policy or the IAM policy says about the data: without the key there is nothing to read. Two questions, two answers.', k: [['kms']], m: [['wdk', 'refused']], s: [['enc'], ['wdk']], a: 'K' } },
+    { t: 'Step 3. The data is decrypted in memory', x: 'The server reads the file. To the operating system nothing looks different: encryption and decryption happen underneath it.', k: [['kms']], m: [['dk'], ['plain', 'new']], s: [['enc'], ['wdk']], a: 'M' },
+    { t: 'Step 4. The clear data key is dropped when it is no longer needed', x: 'What is stored has not changed at all: encrypted data and a sealed key. Disable the KMS key, and step 2 fails for everything it protects, at once.', k: [['kms']], m: [['dk', 'gone']], s: [['enc'], ['wdk']], a: 'S' }
+  ];
+  let mode = 'enc', i = 0;
+  const chip = ([id, st]) => { const c = C[id]; return '<div class="chip ' + c[0] + (st ? ' ' + st : '') + '"><span>' + c[1] + (st === 'gone' ? ' (discarded)' : st === 'refused' ? ' (not opened)' : st === 'new' ? ' (new here)' : '') + '<small>' + c[2] + '</small></span></div>'; };
+  function draw() {
+    const seq = mode === 'enc' ? ENC : DEC, blocked = mode === 'dec' && $('nokey').checked;
+    const last = blocked ? 2 : seq.length - 1; if (i > last) i = last;
+    let s = seq[i]; if (blocked && i === 2) s = s.no;
+    $('cK').innerHTML = s.k.map(chip).join(''); $('cM').innerHTML = s.m.map(chip).join('') || '<p class="sub">Empty.</p>'; $('cS').innerHTML = s.s.map(chip).join('') || '<p class="sub">Empty.</p>';
+    ['K', 'M', 'S'].forEach(b => $('b' + b).classList.toggle('active', s.a === b));
+    $('say').className = 'say' + (blocked && i === 2 ? ' bad' : ''); $('say').innerHTML = '<b>' + s.t + '</b>' + s.x;
+    $('count').textContent = (mode === 'enc' ? 'Encrypt' : 'Decrypt') + ': ' + i + ' of ' + last;
+    $('back').disabled = i === 0; $('next').disabled = i === last;
+    $('mEnc').setAttribute('aria-pressed', mode === 'enc'); $('mDec').setAttribute('aria-pressed', mode === 'dec');
+    $('nokey').disabled = mode === 'enc'; $('nokey').parentElement.style.opacity = mode === 'enc' ? .55 : 1;
+  }
+  $('next').addEventListener('click', () => { i++; draw(); });
+  $('back').addEventListener('click', () => { i--; draw(); });
+  $('mEnc').addEventListener('click', () => { mode = 'enc'; i = 0; draw(); });
+  $('mDec').addEventListener('click', () => { mode = 'dec'; i = 0; draw(); });
+  $('nokey').addEventListener('change', draw);
+  draw();
+</script>
+</body>
+</html>
