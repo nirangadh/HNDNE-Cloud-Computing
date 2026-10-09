@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Lab 6: Reports, records and a proven restore | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Day 6 afternoon lab sheet: Reports, records and a proven. Day 6, afternoon session. Duration 3 hours. Builds component 11 (Patient records database and Backup plan)...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/lab.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Lab 6: Reports, records and a proven restore">
+<meta property="og:description" content="Day 6 afternoon lab sheet: Reports, records and a proven. Day 6, afternoon session. Duration 3 hours. Builds component 11 (Patient records database and Backup plan)...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/lab.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"Day 6 afternoon lab sheet: Reports, records and a proven. Day 6, afternoon session. Duration 3 hours. Builds component 11 (Patient records database and Backup plan)...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Lab sheet","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Lab 6: Reports, records and a proven restore","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/lab.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/","name":"Day 6","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/lab.html","name":"Lab 6: Reports, records and a proven restore","position":3}]}</script>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Reports, records and a proven restore</h1><p class="sub">Day 6, afternoon lab</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 5">LO5</span><span class="badge" title="Learning outcome 6">LO6</span><span class="chip">You build: component 3</span><span class="chip">You build: component 11</span><span class="chip cost">Credit use: USD 1.20</span></div>
+<p><strong>Day 6, afternoon session. Duration 3 hours. Builds component 11 (Patient records database and Backup plan) and adds to component 3 (Laboratory reports bucket) of the Thara Hospitals architecture.</strong></p>
+<div class="table-wrap"><table class="meta-table">
+
+<tbody>
+<tr>
+<td>Learning outcomes</td>
+<td>LO5, LO6</td>
+</tr>
+<tr>
+<td>Sub-outcomes</td>
+<td>S6.1, S6.2, S6.3</td>
+</tr>
+<tr>
+<td>Prerequisites</td>
+<td>From Day 5: <code>thara-bastion</code> and <code>thara-web-1</code>, both stopped, <code>thara-web-role</code> on <code>thara-web-1</code>, the key <code>alias/thara-records</code>, and the S3 gateway endpoint on <code>thara-private-rt</code>. From Day 2: the bucket <code class="long">thara-reports-&lt;student id&gt;</code> and the snapshot of the data volume. From this morning: your pair's classification table. On your computer: <code>thara-key.pem</code></td>
+</tr>
+<tr>
+<td>Estimated credit consumption</td>
+<td>USD 1.20</td>
+</tr>
+<tr>
+<td>Evidence pack</td>
+<td>Pack 6, due before the next teaching day</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="0-before-you-start">0. Before you start</h2>
+<ol>
+<li>Region check: the console shows <strong>Asia Pacific (Mumbai) ap-south-1</strong>. If not, change it now.</li>
+<li>You are signed in as your <strong>admin IAM user</strong>, not root.</li>
+<li>Tags for everything today: <code>Module=CC</code>, <code>Day=6</code>, <code>Owner=&lt;student id&gt;</code>.</li>
+<li>Open your cost ledger. Write today's date and the segment names below with a blank cost column.</li>
+</ol>
+<p>Console labels below are as they appeared at the time of writing. AWS renames buttons from time to time; if a label differs, look for the same idea nearby and tell your lecturer.</p>
+<p>You need the same terminal as on Day 5, opened in the folder that holds <code>thara-key.pem</code>, and a clock you can read to the minute. Today the ledger is a stopwatch.</p>
+<h3 id="the-ideas-behind-todays-lab">The ideas behind today's lab</h3>
+<h4 id="timed-segments-again">Timed segments again</h4>
+<p>On Day 4 one resource billed by the hour, and the lab was built round the minutes it existed. Today has another: a database. Two things govern the afternoon.</p>
+<ul>
+<li><strong>RDS takes several minutes to create and to restore; the segments overlap with bucket work while it provisions.</strong> You start the database first, and you do not watch it. While it is being created you configure the reports bucket. The same happens during the restore: there is always something to do while a status reads <strong>Creating</strong>.</li>
+<li><strong>The database is deleted twice today; the snapshot is what persists.</strong> You build <code>thara-records</code>, put three rows in it, take a snapshot, and delete the database on purpose. You restore it under a new name, prove that the rows came back, and delete that one too. At the end of the day no database exists and nothing bills by the hour. The snapshot <code>thara-records-snap1</code> is the thing you keep.</li>
+</ul>
+<figure class="art"><svg aria-labelledby="dtk-t dtk-d" role="img" style="min-width:640px" viewbox="0 0 640 330"><title id="dtk-t">The afternoon: deleted twice, kept once</title><desc id="dtk-d">Two lanes across the afternoon. In the database lane, thara-records is created and given three rows, a snapshot named thara-records-snap1 is taken, and the database is deleted. A second database, thara-records-r1, is restored from the snapshot, its rows are checked, and it is deleted as well. The time from the first deletion to the checked rows is the measured RTO. The snapshot runs on to the end of the afternoon and is kept. In the bucket lane, versioning, the lifecycle rule and the bucket policy are done while the database is being created, and the Backup plan thara-daily comes last.</desc><rect fill="#FFFFFF" height="330" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">The afternoon: deleted twice, kept once</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" x="14" y="62">The database</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" x="14" y="206">The reports bucket</text><path d="M14 182 L626 182" stroke="#BBBBBB" stroke-dasharray="4 4" stroke-width="1.5"></path><rect fill="#DEF5F1" height="42" rx="6" stroke="#0D2B45" stroke-width="2" width="196" x="14" y="74"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="112.0" y="92">thara-records</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="112.0" y="108">created, three rows</text><circle cx="226" cy="95" fill="#FFFFFF" r="11" stroke="#E86A5B" stroke-width="3"></circle><path d="M221 90 L231 100 M231 90 L221 100" stroke="#0D2B45" stroke-width="2.5"></path><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="226" y="126">deleted</text><path d="M226 60 L424 60 M226 54 L226 66 M424 54 L424 66" fill="none" stroke="#546472" stroke-width="1.5"></path><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="325" y="52">your measured RTO</text><rect fill="#DEF5F1" height="42" rx="6" stroke="#0D2B45" stroke-width="2" width="156" x="268" y="74"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="346.0" y="92">thara-records-r1</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="346.0" y="108">restored, rows checked</text><circle cx="440" cy="95" fill="#FFFFFF" r="11" stroke="#E86A5B" stroke-width="3"></circle><path d="M435 90 L445 100 M445 90 L435 100" stroke="#0D2B45" stroke-width="2.5"></path><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="440" y="126">deleted</text><rect fill="#48C9B0" height="30" rx="6" stroke="#0D2B45" stroke-width="2" width="466" x="160" y="138"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="start" x="172" y="158">thara-records-snap1</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="end" x="614" y="158">kept</text><path d="M160 116 L160 130" fill="none" stroke="#0D2B45" stroke-width="2.5"></path><path d="M154 128 L160 138 L166 128 Z" fill="#0D2B45"></path><path d="M300 138 L300 124" fill="none" stroke="#0D2B45" stroke-width="2.5"></path><path d="M294 126 L300 116 L306 126 Z" fill="#0D2B45"></path><rect fill="#FFFFFF" height="42" rx="6" stroke="#0D2B45" stroke-width="2" width="130" x="14" y="218"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="79.0" y="236">versioning</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="79.0" y="252">two, then three</text><rect fill="#FFFFFF" height="42" rx="6" stroke="#0D2B45" stroke-width="2" width="130" x="152" y="218"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="217.0" y="236">lifecycle rule</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="217.0" y="252">enabled, not watched</text><rect fill="#FFFFFF" height="42" rx="6" stroke="#0D2B45" stroke-width="2" width="130" x="290" y="218"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="355.0" y="236">bucket policy</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="355.0" y="252">names the role</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="284">The bucket work fills the minutes in which the database is being created.</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="302">At the end no database exists and nothing bills by the hour. The snapshot is what remains.</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="end" x="626" y="206">Backup plan, last</text><rect fill="#FFFFFF" height="42" rx="6" stroke="#0D2B45" stroke-width="2" width="130" x="496" y="218"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="561.0" y="236">thara-daily</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="561.0" y="252">back up, restore</text></svg><figcaption>The database exists twice and is deleted twice. The snapshot is taken once and is still there at the end. The bucket work fills the minutes in which the database is being created. <a class="full" href="img/deleted-twice-kept-once.svg">Open this diagram at full size</a></figcaption></figure>
+<p>Three things are worth knowing before you start.</p>
+<p><strong>The clock starts at the failure.</strong> The measured <a class="term" data-term="rto" href="../../glossary.html#rto">RTO</a> is the time for which the service was down: from the moment you delete <code>thara-records</code> to the moment the three rows print from the restored copy. It is not the time the restore took, and it is not over when the console says <strong>Available</strong>. Write down four times: deleted, restore started, available, rows confirmed.</p>
+<p><strong>A restore makes a new database.</strong> A snapshot is never restored into the database it came from. It becomes a new instance, with a new name and a new endpoint, and the restore page offers the default network settings, not the ones you chose this afternoon. If you accept them, the copy lands where the web tier cannot reach it.</p>
+<p><strong><code>thara-web-1</code> can reach S3 and the VPC, and nothing else.</strong> It has no NAT gateway. It reaches the database because the database is inside <code>thara-vpc</code>. It installs the MySQL client through the gateway endpoint from Day 4, because the package repositories of Amazon Linux are kept in S3 in your region. If the install waits and times out, tell your lecturer before you try anything else.</p>
+<p>Three things today carry no name, only the three tags: the two volumes, and the recovery point that AWS Backup creates. Backups go to the vault that AWS Backup offers, which is called <strong>Default</strong>. Every other name comes from Thara's naming table or is given in the step that uses it.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">At 15:00 you take <code>thara-records-snap1</code>. At 16:00 you delete <code>thara-records</code> without a final snapshot. What is left?</p><ol class="qc-opts"><li>Nothing: a snapshot belongs to its database and goes with it</li><li data-right="">The manual snapshot, which stays until you delete it yourself<span class="qc-key"> (answer)</span></li><li>The snapshot, but only for the seven days of its retention</li></ol><p class="qc-why"><strong>Why:</strong> A manual snapshot is a separate resource and outlives the database it was taken from. What goes with the database is its automated backups, unless you ask to retain them. Seven days is the retention of today's Backup plan, which is a different thing.</p></div>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">You delete <code>thara-records</code> at 14:00 and choose <strong>Restore snapshot</strong> at 14:05. The copy shows <strong>Available</strong> at 14:19, and the three rows print at 14:23. What is the measured RTO?</p><ol class="qc-opts"><li>14 minutes, from the restore to <strong>Available</strong></li><li>18 minutes, from the restore to the rows</li><li data-right="">23 minutes, from the deletion to the rows<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> An RTO counts the whole time the service was down, so the clock starts at the failure and not when you begin to fix it. It stops when the data is proven readable: a status of <strong>Available</strong> says the database is running, not that the rows are in it.</p></div>
+<div class="box mistake"><p>"Deleting an RDS instance deletes its manual snapshots." It does not. A manual snapshot stays, and is charged for, until you delete it yourself. The automated backups are what go with the instance.</p></div>
+<div class="box mistake"><p>"A security group on the database is the only thing keeping it private." Placement in a private subnet does the most. The database has no public address, and its subnets have no route to the internet gateway, so a packet from outside has no path to it whatever the group says. Section 5 has you prove it.</p></div>
+<h2 id="1-objective">1. Objective</h2>
+<p>At the end of this lab the laboratory reports bucket keeps every version of a report, moves old reports to a cheaper <a class="term" data-term="storage-class" href="../../glossary.html#storage-class">storage class</a> and names the web tier's role in a policy of its own; a private, encrypted patient records database has been built, deleted, restored from a snapshot and timed; and a <a class="term" data-term="backup-plan" href="../../glossary.html#backup-plan">backup plan</a> has produced a backup that you restored and read: component 11, and component 3 in depth. The snapshot is kept for the capstone and the plan stays in place for Day 7. The lab serves Thara's requirement of an RPO of one hour and an RTO of two hours for patient records, with a restore that has been tested.</p>
+<h2 id="2-timed-segments">2. Timed segments</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Minutes</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Start the RDS create, then bucket versioning and lifecycle</td>
+<td>35</td>
+<td><code>db.t3.micro</code> about USD 0.02 per hour</td>
+</tr>
+<tr>
+<td>Bucket policy scoped to the role; confirm Block Public Access</td>
+<td>20</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Connect to RDS, create a table, snapshot, delete</td>
+<td>35</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>Restore from snapshot; measure RTO; delete again</td>
+<td>35</td>
+<td>nil</td>
+</tr>
+<tr>
+<td>AWS Backup plan on an EBS volume; restore; measure</td>
+<td>25</td>
+<td>negligible</td>
+</tr>
+<tr>
+<td>Ledger, teardown, evidence</td>
+<td>15</td>
+<td>nil</td>
+</tr>
+</tbody>
+</table></div>
+<p>Segments containing a NAT gateway, a load balancer or a database are created, used and deleted inside the segment. Do not carry them across the break. Today the database runs across segments 1 to 4, in two lives, and both are over before segment 5 begins. If you take a break, take it after step 18, when no database exists. A database left running costs about USD 0.50 a day with its storage. Prices are for ap-south-1 at the time of writing.</p>
+<h2 id="3-steps">3. Steps</h2>
+<p>Each step states what to do and what you should see. If you do not see it, stop and diagnose before moving on.</p>
+<p class="segment">Segment 1: Start the RDS create, then bucket versioning and lifecycle</p>
+<ol class="steps">
+<li data-n="1">
+<p><strong>Check where and who you are.</strong> Confirm the region selector shows <strong>Asia Pacific (Mumbai) ap-south-1</strong> and the top bar shows <code>admin-&lt;student id&gt;</code>. <span class="expect"><b class="expect-label">You should see</b> both are correct.</span></p>
+</li>
+<li data-n="2">
+<p><strong>Start the two instances and reopen the door.</strong> In EC2, <strong>Instances</strong>, select <code>thara-bastion</code> and <code>thara-web-1</code>, then <strong>Instance state</strong>, <strong>Start instance</strong>. The bastion comes back with a <strong>new</strong> public address, and your own address may have changed since Day 5. So open <strong>Security groups</strong>, <code>thara-bastion-sg</code>, <strong>Edit inbound rules</strong>, set the source of the SSH rule to <strong>My IP</strong> again, and save. Note the bastion's new <strong>Public IPv4 address</strong>, connect to it, and hop to <code>thara-web-1</code> with the method you used on Day 5:</p>
+<pre tabindex="0"><code class="language-bash">ssh-add thara-key.pem
+ssh -A ec2-user@&lt;bastion public IPv4 address&gt;
+ssh ec2-user@&lt;web private address&gt;    # typed on the bastion
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> a prompt on <code>thara-web-1</code> of the form <code class="long">[ec2-user@ip-10-0-11-... ~]$</code>. Keep this terminal open all afternoon. If the first connection waits and times out, check the SSH source of <code>thara-bastion-sg</code> before anything else.</span></p>
+</li>
+<li data-n="3">
+<p><strong>Tell RDS where the database may live.</strong> Open the RDS console and check the region is Mumbai. Choose <strong>Subnet groups</strong>, <strong>Create DB subnet group</strong>. Name <code>thara-db-subnets</code>, description <code class="long">Private subnets for the patient records database</code>, VPC <code>thara-vpc</code>. Under <strong>Add subnets</strong> choose both availability zones, then the two private subnets, <code>10.0.11.0/24</code> and <code>10.0.12.0/24</code>, and nothing else. Create it. <span class="expect"><b class="expect-label">You should see</b> <code>thara-db-subnets</code> is listed with two subnets in two zones. A <a class="term" data-term="db-subnet-group" href="../../glossary.html#db-subnet-group">DB subnet group</a> is a list of the subnets RDS is allowed to use. You gave it only private ones, so the database cannot be placed anywhere public, whatever else is chosen later.</span></p>
+</li>
+<li data-n="4">
+<p><strong>Give the database its own firewall.</strong> In EC2 choose <strong>Security groups</strong>, <strong>Create security group</strong>. Name <code>thara-db-sg</code>, description <code class="long">MySQL from the web tier only</code>, VPC <code>thara-vpc</code>. Add one inbound rule: type <strong>Custom TCP</strong>, port range <code>3306</code>, which is the port MySQL listens on, and for the source choose <strong>Custom</strong> and select <code>thara-web-sg</code>. Add the three tags and create it. <span class="expect"><b class="expect-label">You should see</b> <code>thara-db-sg</code> has one inbound rule whose source is a security group id, not an address. As on Day 3, naming a group means "any instance that wears that group", so the rule still holds when Day 7 adds more web servers.</span></p>
+</li>
+<li data-n="5">
+<p><strong>Start the database, and write down the time.</strong> In RDS choose <strong>Databases</strong>, <strong>Create database</strong>, and set the page as follows. Leave anything not listed as it is offered.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Choose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Creation method</td>
+<td><strong>Standard create</strong></td>
+</tr>
+<tr>
+<td>Engine</td>
+<td><strong>MySQL</strong>, with the version that is offered</td>
+</tr>
+<tr>
+<td>Templates</td>
+<td><strong>Free tier</strong></td>
+</tr>
+<tr>
+<td>DB instance identifier</td>
+<td><code>thara-records</code></td>
+</tr>
+<tr>
+<td>Master username</td>
+<td><code>admin</code>, as offered</td>
+</tr>
+<tr>
+<td>Credentials management</td>
+<td><strong>Self managed</strong>; clear <strong>Auto generate password</strong> and type a password of your own</td>
+</tr>
+<tr>
+<td>Instance class</td>
+<td><strong>Burstable classes</strong>, <code>db.t3.micro</code></td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>General purpose SSD, <strong>20</strong> GiB; clear <strong>Enable storage autoscaling</strong></td>
+</tr>
+<tr>
+<td>Compute resource</td>
+<td><strong>Don't connect to an EC2 compute resource</strong></td>
+</tr>
+<tr>
+<td>VPC and subnet group</td>
+<td><code>thara-vpc</code> and <code>thara-db-subnets</code></td>
+</tr>
+<tr>
+<td>Public access</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>VPC security group</td>
+<td><strong>Choose existing</strong>: <code>thara-db-sg</code>. Remove <code>default</code></td>
+</tr>
+<tr>
+<td>Additional configuration: encryption</td>
+<td><strong>Enable encryption</strong>, AWS KMS key <code>thara-records</code></td>
+</tr>
+<tr>
+<td>Additional configuration: the rest</td>
+<td>clear <strong>Enable RDS Extended Support</strong> and <strong>Enable deletion protection</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Add the three tags and choose <strong>Create database</strong>. If a panel of suggested add-ons appears, close it. Write the time in your ledger. <span class="expect"><b class="expect-label">You should see</b> <code>thara-records</code> is listed with the status <strong>Creating</strong>. It will take about five to ten minutes, and you do not wait for it: go straight to step 6. Creating it also completes the activity "Create an Amazon RDS database" in the <strong>Explore AWS</strong> widget on Console Home; the credits may take some days to appear. Choose the password as you would for any lab: at least eight characters, not one you use anywhere else, written on paper and never in a screenshot. Three of these settings exist to stop a charge you did not ask for. Storage autoscaling grows the disk by itself. Extended Support is a paid service for old engine versions. And the credentials option that AWS recommends stores the password in another service, with a monthly price of its own, that this module does not use.</span></p>
+</li>
+<li data-n="6">
+<p><strong>Keep every version of a report.</strong> Open S3, <code class="long">thara-reports-&lt;student id&gt;</code>, <strong>Properties</strong>, <strong>Bucket Versioning</strong>, <strong>Edit</strong>, <strong>Enable</strong>, and save. On your own computer, make a text file named <code>reports-index.txt</code> containing one line: <code class="long">Thara Hospitals laboratory reports index, overwritten by mistake</code>. In the bucket's <strong>Objects</strong> tab choose <strong>Upload</strong>, add that file, and upload it. Then switch on <strong>Show versions</strong>. <span class="expect"><b class="expect-label">You should see</b> <code>reports-index.txt</code> is listed twice. The new one carries a long <strong>Version ID</strong> and is marked as the current version. The one from Day 2 has the version ID <code>null</code>, because it was written before <a class="term" data-term="versioning" href="../../glossary.html#versioning">versioning</a> was on. The overwrite did not destroy anything: it added a version on top. Take a screenshot that shows both. You uploaded from the console, as your admin user, because the web tier's role cannot: Day 5 proved that.</span></p>
+</li>
+<li data-n="7">
+<p><strong>Bring the earlier version back.</strong> With <strong>Show versions</strong> still on, tick the version whose ID is <code>null</code> and choose <strong>Download</strong>. Then <strong>Upload</strong> that downloaded file to the bucket again. On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">aws s3 cp s3://thara-reports-&lt;student id&gt;/reports-index.txt -
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the bucket now lists <strong>three</strong> versions, and the newest has the old content. The command prints <code class="long">Thara Hospitals laboratory reports index</code>, the line from Day 2, read by the web tier through its role. Take a screenshot of the three versions. You restored by adding, so nothing was lost on the way: the mistaken version is still there to be examined. The console's other method is to delete the newer version for good, which works and leaves no record of the mistake.</span></p>
+</li>
+<li data-n="8">
+<p><strong>Move old reports to a cheaper class, by rule.</strong> In the bucket choose <strong>Management</strong>, <strong>Create lifecycle rule</strong>. Name <code>thara-reports-lifecycle</code>. Scope <strong>Apply to all objects in the bucket</strong>, and tick the acknowledgement. Tick two actions: <strong>Move current versions of objects between storage classes</strong>, and <strong>Permanently delete noncurrent versions of objects</strong>. For the first, choose <strong>Standard-IA</strong> and <code>90</code> days after object creation. For the second, <code>180</code> days after objects become noncurrent. Read the timeline the page draws, then create the rule. <span class="expect"><b class="expect-label">You should see</b> <code>thara-reports-lifecycle</code> is listed with the status <strong>Enabled</strong>. Take a screenshot. That is all you can see today. A <a class="term" data-term="lifecycle-rule" href="../../glossary.html#lifecycle-rule">lifecycle rule</a> is carried out in the background, over hours to days, and nothing in this bucket is 90 days old. Notice the warning the page showed: an object smaller than 128 KB is not moved at all, so your one-line index file will stay in S3 Standard for good. A real report PDF is larger and would move.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 2: Bucket policy scoped to the role; confirm Block Public Access</p>
+<ol class="steps" start="9">
+<li data-n="9">
+<p><strong>Let the bucket say who may read it.</strong> Find your twelve-digit account id in the menu under your user name at the top right. In the bucket choose <strong>Permissions</strong>, <strong>Bucket policy</strong>, <strong>Edit</strong>. Choose <strong>Add new statement</strong>, so that the editor writes a skeleton with a <code>Version</code> line. Leave the <code>Version</code> line exactly as it is, and make the <code>Statement</code> list read:</p>
+<pre tabindex="0"><code class="language-json">"Statement": [
+  {
+    "Sid": "WebTierListsTheBucket",
+    "Effect": "Allow",
+    "Principal": { "AWS": "arn:aws:iam::&lt;account id&gt;:role/thara-web-role" },
+    "Action": "s3:ListBucket",
+    "Resource": "arn:aws:s3:::thara-reports-&lt;student id&gt;"
+  },
+  {
+    "Sid": "WebTierReadsTheReports",
+    "Effect": "Allow",
+    "Principal": { "AWS": "arn:aws:iam::&lt;account id&gt;:role/thara-web-role" },
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::thara-reports-&lt;student id&gt;/*"
+  }
+]
+</code></pre>
+<p>Save the changes. Then, on <code>thara-web-1</code>, run <code class="long">aws s3 ls s3://thara-reports-&lt;student id&gt;</code>. <span class="expect"><b class="expect-label">You should see</b> the policy is saved, and the listing still prints <code>reports-index.txt</code>. If the console answers "Invalid principal in policy", the role's name or the account id is mistyped. This is the resource-based policy that Day 5 promised: it is attached to the bucket and it has a <code>Principal</code> line, because it must say who it is talking about. Read it carefully for what it does not do. It names the role as the only principal the bucket itself admits. It does not shut out your admin user, which still reaches the bucket through its own identity-based policy: inside one account, an allow in either place is enough. Keeping everyone else out would take an explicit deny, and a mistake in one of those can lock you out of your own bucket. Take a screenshot of the saved <a class="term" data-term="bucket-policy" href="../../glossary.html#bucket-policy">bucket policy</a> with the middle digits of the account id masked.</span></p>
+</li>
+<li data-n="10">
+<p><strong>Confirm that nothing became public.</strong> Stay on the <strong>Permissions</strong> tab. <span class="expect"><b class="expect-label">You should see</b> <strong>Block all public access</strong> is <strong>On</strong>, and the bucket's access reads <strong>Bucket and objects not public</strong>. A bucket policy is the usual way a bucket is made public by accident, so this is the moment to look. Yours names one role in your own account, and Block Public Access would have refused a policy that named everyone. Take a screenshot that shows the setting.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 3: Connect to RDS, create a table, snapshot, delete</p>
+<ol class="steps" start="11">
+<li data-n="11">
+<p><strong>Connect from the web tier.</strong> In RDS, <strong>Databases</strong>, wait until <code>thara-records</code> shows <strong>Available</strong>, and write the time in your ledger beside the start time. Open the database, and on <strong>Connectivity &amp; security</strong> copy the <strong>Endpoint</strong>. Confirm on the same tab that <strong>Publicly accessible</strong> reads <strong>No</strong>, and on <strong>Configuration</strong> that <strong>Encryption</strong> reads <strong>Enabled</strong> with the key <code>thara-records</code>. On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">sudo dnf install -y mariadb105
+mysql -h &lt;endpoint&gt; -u admin -p --ssl
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the install ends with <code>Complete!</code>, and after you type your password you see a prompt that ends <code>&gt;</code>. The client is the MariaDB one, which speaks to MySQL; it is the client Amazon Linux provides. You connected to a name, not an address. Leave the session open for step 12. If the connection waits and times out, check that <code>thara-db-sg</code> names <code>thara-web-sg</code> as its source and that the database is in <code>thara-db-subnets</code>.</span></p>
+</li>
+<li data-n="12">
+<p><strong>Put three rows in it.</strong> At the database prompt:</p>
+<pre tabindex="0"><code class="language-sql">CREATE DATABASE thara;
+USE thara;
+CREATE TABLE patients (id INT PRIMARY KEY, name VARCHAR(40), branch VARCHAR(20));
+INSERT INTO patients VALUES
+  (1, 'Test Patient A', 'Colombo'),
+  (2, 'Test Patient B', 'Kandy'),
+  (3, 'Test Patient C', 'Galle');
+SELECT * FROM patients;
+exit
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> a table of three rows, then <code>Bye</code>. These three rows are the patient records for the rest of the afternoon. Every later step asks one question: are they still there? Use test names only, never a real person's.</span></p>
+</li>
+<li data-n="13">
+<p><strong>Take a snapshot that you own.</strong> In RDS select <code>thara-records</code>, <strong>Actions</strong>, <strong>Take snapshot</strong>, snapshot name <code>thara-records-snap1</code>. Open <strong>Snapshots</strong>, and on the <strong>Manual</strong> tab wait for it. <span class="expect"><b class="expect-label">You should see</b> <code>thara-records-snap1</code> moves from <strong>Creating</strong> to <strong>Available</strong> in a few minutes, and its details show that it is encrypted with <code>thara-records</code>. Look at the <strong>System</strong> tab as well: RDS has already taken an <a class="term" data-term="automated-backup" href="../../glossary.html#automated-backup">automated backup</a> of its own. You now have two copies of the same data, and step 14 shows which one survives.</span></p>
+</li>
+<li data-n="14">
+<p><strong>Delete the database, on purpose.</strong> Select <code>thara-records</code>, <strong>Actions</strong>, <strong>Delete</strong>. Clear <strong>Create final snapshot</strong>, clear <strong>Retain automated backups</strong>, tick the acknowledgement, type <code>delete me</code>, and delete. <strong>Write the time, to the minute.</strong> This is the failure, and the clock for your RTO starts now. <span class="expect"><b class="expect-label">You should see</b> the status reads <strong>Deleting</strong>, and within a few minutes the database is gone from the list. Open <strong>Snapshots</strong>: the <strong>System</strong> tab is empty, and the <strong>Manual</strong> tab still lists <code>thara-records-snap1</code>. The automated backups went with the database. The snapshot you took yourself did not. Do not wait for the deletion to finish before you start step 15.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 4: Restore from snapshot; measure RTO; delete again</p>
+<ol class="steps" start="15">
+<li data-n="15">
+<p><strong>Restore it, into the right place.</strong> In <strong>Snapshots</strong>, <strong>Manual</strong>, select <code>thara-records-snap1</code>, then <strong>Actions</strong>, <strong>Restore snapshot</strong>. Write the time. On the restore page set:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Choose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DB instance identifier</td>
+<td><code>thara-records-r1</code></td>
+</tr>
+<tr>
+<td>Instance class</td>
+<td><strong>Burstable classes</strong>, <code>db.t3.micro</code></td>
+</tr>
+<tr>
+<td>VPC and subnet group</td>
+<td><code>thara-vpc</code> and <code>thara-db-subnets</code></td>
+</tr>
+<tr>
+<td>Public access</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>VPC security group</td>
+<td><strong>Choose existing</strong>: <code>thara-db-sg</code>. Remove <code>default</code></td>
+</tr>
+<tr>
+<td>Deletion protection</td>
+<td>cleared</td>
+</tr>
+</tbody>
+</table></div>
+<p>Add the three tags and choose <strong>Restore DB instance</strong>. <span class="expect"><b class="expect-label">You should see</b> <code>thara-records-r1</code> is listed with the status <strong>Creating</strong>. Read the page before you leave it: it offered the default security group, and it never asked for the password or the key, because both come with the snapshot. A restore that lands in the default group is running and unreachable, which is the commonest way to lose twenty minutes of an RTO. While it is created, write your ledger rows for segments 1 to 3.</span></p>
+</li>
+<li data-n="16">
+<p><strong>Prove the rows came back, and stop the clock.</strong> When <code>thara-records-r1</code> shows <strong>Available</strong>, write the time. Copy its <strong>Endpoint</strong>, which is not the one you used before, and on <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">mysql -h &lt;new endpoint&gt; -u admin -p --ssl -e "SELECT * FROM thara.patients;"
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the same three rows, with the same password as before. <strong>Write the time.</strong> Take a screenshot of the rows. Now do the sum in your ledger: the minutes from the deletion in step 14 to this moment are your <strong>measured RTO</strong>. Thara's target is two hours. Write a second figure beside it: the minutes from <strong>Restore snapshot</strong> to <strong>Available</strong>, which is the part of the RTO that the restore itself took. The difference between the two is people: noticing, finding the snapshot, filling in a page. Your data loss today was nothing, because the snapshot was taken a moment before the failure. In real life it would be everything written since the last backup.</span></p>
+</li>
+<li data-n="17">
+<p><strong>Do section 5 now.</strong> The break-it needs a database, and this one is about to go. Turn to section 5, do it, and come back here.</p>
+</li>
+<li data-n="18">
+<p><strong>Delete the copy, and keep the snapshot.</strong> Select <code>thara-records-r1</code>, <strong>Actions</strong>, <strong>Delete</strong>. Clear <strong>Create final snapshot</strong> and <strong>Retain automated backups</strong>, acknowledge, type <code>delete me</code>, and delete. Write the time. <span class="expect"><b class="expect-label">You should see</b> when the deletion completes, <strong>Databases</strong> is empty, and <strong>Snapshots</strong>, <strong>Manual</strong>, still lists <code>thara-records-snap1</code>. Nothing bills by the hour any more. Do not delete the snapshot.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 5: AWS Backup plan on an EBS volume; restore; measure</p>
+<ol class="steps" start="19">
+<li data-n="19">
+<p><strong>Make something small to back up.</strong> In EC2 choose <strong>Snapshots</strong>, select the snapshot with the description <code>Day 2 data volume</code>, then <strong>Actions</strong>, <strong>Create volume from snapshot</strong>. Volume type <strong>gp3</strong>, size 8 GiB, Availability Zone <code>ap-south-1a</code>, and the three tags with <code>Day=6</code>. Create it. <span class="expect"><b class="expect-label">You should see</b> in <strong>Volumes</strong>, a new 8 GiB volume shows <strong>Available</strong>. Copy its volume id. You do not attach it. It is here to be backed up.</span></p>
+</li>
+<li data-n="20">
+<p><strong>Write the plan.</strong> Open the AWS Backup console and check the region is Mumbai. Choose <strong>Backup plans</strong>, <strong>Create backup plan</strong>, <strong>Build a new plan</strong>. Backup plan name <code>thara-daily</code>. Backup rule name <code>thara-daily</code>. Backup vault <strong>Default</strong>. Backup frequency <strong>Daily</strong>. Leave the backup window at its defaults. Set the total retention period to <code>7</code> days. Leave everything else off and choose <strong>Create plan</strong>. The console moves on to <strong>Assign resources</strong>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Choose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resource assignment name</td>
+<td><code>thara-daily</code></td>
+</tr>
+<tr>
+<td>IAM role</td>
+<td><strong>Default role</strong></td>
+</tr>
+<tr>
+<td>Define resource selection</td>
+<td><strong>Include specific resource types</strong>, and select <strong>EBS</strong></td>
+</tr>
+<tr>
+<td>Refine selection using tags</td>
+<td>Key <code>Module</code>, condition <strong>Equals</strong>, value <code>CC</code>; then <strong>Add tag</strong>: key <code>Day</code>, condition <strong>Equals</strong>, value <code>6</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Choose <strong>Assign resources</strong>. <span class="expect"><b class="expect-label">You should see</b> the plan <code>thara-daily</code> shows one rule and one resource assignment. A plan is a schedule, a place and a retention, and the assignment says what it applies to. Two tags together mean "both", so the plan covers the volume you made in step 19 and nothing else. <code>Module=CC</code> alone would also have matched every other tagged thing in your account, every night. A <a class="term" data-term="backup-vault" href="../../glossary.html#backup-vault">backup vault</a> is where the backups are kept; <strong>Default</strong> is the one AWS Backup provides. If the console refuses because of your account's plan, copy the message into your evidence pack and carry on from section 4; your lecturer shows the restore.</span></p>
+</li>
+<li data-n="21">
+<p><strong>Back it up now, without waiting for tonight.</strong> Choose <strong>Protected resources</strong>, <strong>Create on-demand backup</strong>. Resource type <strong>EBS</strong>, and the volume id from step 19. <strong>Create backup now</strong>. Total retention period <code>7</code> days. Backup vault <strong>Default</strong>, IAM role <strong>Default role</strong>. Create it. <span class="expect"><b class="expect-label">You should see</b> under <strong>Jobs</strong>, <strong>Backup jobs</strong>, a job moves to <strong>Completed</strong> within a few minutes. The schedule would have done this tonight; an on-demand backup uses the same vault and the same rules, at a moment you choose.</span></p>
+</li>
+<li data-n="22">
+<p><strong>Restore it, and read the file.</strong> In <strong>Protected resources</strong> choose the volume's id, select its recovery point, and choose <strong>Restore</strong>. Write the time. Resource type <strong>EBS volume</strong>, volume type <strong>gp3</strong>, size 8 GiB, Availability Zone <code>ap-south-1a</code>, restore role <strong>Default role</strong>. Choose <strong>Restore backup</strong>. Under <strong>Jobs</strong>, <strong>Restore jobs</strong>, wait for <strong>Completed</strong>. In EC2, <strong>Volumes</strong>, find the new 8 GiB volume, add the three tags to it, then <strong>Actions</strong>, <strong>Attach volume</strong>, instance <code>thara-web-1</code>, device name <code>/dev/sdf</code>. On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">lsblk
+sudo mkdir -p /data
+sudo mount /dev/nvme1n1 /data
+cat /data/reports-index.txt
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the restore job shows <strong>Completed</strong>, <code>lsblk</code> lists an 8G disk, <code>nvme1n1</code>, and the last command prints <code class="long">Thara Hospitals laboratory reports index</code>. Write the time, and the minutes from <strong>Restore backup</strong> to the printed line. That is your second measured restore of the day, and the first that went through a plan. Take a screenshot of the restore job.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 6: Ledger, teardown, evidence</p>
+<p>Write the ledger rows (section 7), do section 4, tear down (section 6), and collect the evidence (section 8). Section 5 you did at step 17.</p>
+<section class="mark prove"><h2 id="4-prove-it"><span class="mark-chip">PROVE IT</span> 4. Prove it</h2>
+<p>Paste the output of each into your evidence pack.</p>
+<ul>
+<li>Two versions of <code>reports-index.txt</code> visible in the bucket (the screenshot from step 6), and the earlier one restored as current: <code class="long">aws s3 cp s3://thara-reports-&lt;student id&gt;/reports-index.txt -</code> on <code>thara-web-1</code> prints the Day 2 line.</li>
+<li>The three patient rows present after the restore from <code>thara-records-snap1</code> (step 16).</li>
+<li>The Backup restore job shows <strong>Completed</strong>, and <code class="long">cat /data/reports-index.txt</code> reads the file on the restored volume (step 22).</li>
+</ul>
+</section><section class="mark break"><h2 id="5-break-it"><span class="mark-chip">BREAK IT</span> 5. Break it</h2>
+<p>Do this at step 17, while <code>thara-records-r1</code> exists.</p>
+<p><strong>Fault:</strong> someone "opens up" the database's security group so that it can be reached from anywhere.</p>
+<ol>
+<li>
+<p>In EC2 open <strong>Security groups</strong>, <code>thara-db-sg</code>, <strong>Edit inbound rules</strong>, <strong>Add rule</strong>: type <strong>Custom TCP</strong>, port range <code>3306</code>, source <strong>Anywhere-IPv4</strong>, which is <code>0.0.0.0/0</code>. Save. Leave the rule for <code>thara-web-sg</code> in place.</p>
+</li>
+<li>
+<p>Predict, in writing, whether your laptop can now connect. Then test a TCP connection from your <strong>laptop</strong>, not from the bastion, to port 3306 of the endpoint of <code>thara-records-r1</code>:</p>
+<pre tabindex="0"><code class="language-bash">Test-NetConnection &lt;new endpoint&gt; -Port 3306     # Windows PowerShell
+nc -vz -w 5 &lt;new endpoint&gt; 3306                  # macOS or Linux
+</code></pre>
+<p><strong>Symptom:</strong> the test fails or times out, although the group now allows the whole internet.</p>
+</li>
+<li>
+<p><strong>Locate it</strong> with what you already know. On your laptop run <code>nslookup &lt;new endpoint&gt;</code>. The name resolves to an address that begins <code>10.0.11.</code> or <code>10.0.12.</code>: a private address in one of the private subnets. Your laptop has no route to that address, so the packet never reaches <code>thara-vpc</code>, and the security group is never asked. It is the Day 3 lesson again, and for the same reason your flow log holds no record of the attempt. Now run the query from step 16 again on <code>thara-web-1</code>: it still works, because the web tier is inside the VPC. The database was protected by three things in order: no public address, subnets with no route to the internet gateway, and only then the group.</p>
+</li>
+<li>
+<p><strong>Fix:</strong> remove the <code>0.0.0.0/0</code> rule from <code>thara-db-sg</code>, so that it has its one rule from <code>thara-web-sg</code> again.</p>
+</li>
+</ol>
+<p>Record the fault, the symptom, the evidence that located it and the fix in the table in section 4 of your evidence pack. Say in one sentence why the open rule was still a fault worth fixing, although nothing could use it today.</p>
+</section><section class="mark teardown"><h2 id="6-teardown"><span class="mark-chip">TEARDOWN</span> 6. Teardown</h2>
+<p>Do these in order. Check your ledger rows are written first.</p>
+<ol>
+<li><strong>Remove the restored volume.</strong> On <code>thara-web-1</code> run <code>sudo umount /data</code>. In EC2, <strong>Volumes</strong>, select the volume attached to <code>thara-web-1</code> as <code>/dev/sdf</code>, <strong>Actions</strong>, <strong>Detach volume</strong>; when it is <strong>Available</strong>, <strong>Actions</strong>, <strong>Delete volume</strong>. <span class="expect"><b class="expect-label">You should see</b> the volume is gone.</span></li>
+<li><strong>Remove the temporary volume</strong> from step 19: select it, <strong>Actions</strong>, <strong>Delete volume</strong>. <span class="expect"><b class="expect-label">You should see</b> <strong>Volumes</strong> lists only the two root volumes of the Thara instances, and the snapshot <code>Day 2 data volume</code> is still listed under <strong>Snapshots</strong>.</span></li>
+<li><strong>Confirm that no database exists.</strong> In RDS, <strong>Databases</strong> is empty. <strong>Snapshots</strong>, <strong>Manual</strong>, lists <code>thara-records-snap1</code>. <strong>Automated backups</strong>, <strong>Retained</strong>, is empty.</li>
+<li><strong>Confirm that <code>thara-db-sg</code> has one inbound rule</strong>, from <code>thara-web-sg</code>, and no rule for <code>0.0.0.0/0</code>.</li>
+<li><strong>If you ever copied <code>thara-key.pem</code> to the bastion</strong>, check that it is gone: on the bastion, <code>ls ~</code> should not list it.</li>
+<li><strong>Stop <code>thara-bastion</code> and <code>thara-web-1</code></strong>: <strong>Instance state</strong>, <strong>Stop instance</strong>. Do not terminate them. <span class="expect"><b class="expect-label">You should see</b> both show <strong>Stopped</strong>.</span></li>
+</ol>
+<p>What you keep, and why:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thara-records-snap1</code></td>
+<td>The proof that the records can be brought back, and the starting point for your capstone group's own. It costs a few cents a month</td>
+</tr>
+<tr>
+<td>The Backup plan <code>thara-daily</code> and the recovery point in the <strong>Default</strong> vault</td>
+<td>The plan now matches nothing, so it costs nothing. The recovery point is removed by its seven-day retention</td>
+</tr>
+<tr>
+<td><code>thara-db-subnets</code> and <code>thara-db-sg</code></td>
+<td>They cost nothing, and a database restored from the snapshot needs both</td>
+</tr>
+<tr>
+<td>Versioning, <code>thara-reports-lifecycle</code> and the bucket policy on <code class="long">thara-reports-&lt;student id&gt;</code></td>
+<td>They are the reports bucket's configuration from now on</td>
+</tr>
+<tr>
+<td><code>alias/thara-records</code></td>
+<td>The snapshot is encrypted with it. Without the key the snapshot cannot be restored. About USD 0.03 a day</td>
+</tr>
+<tr>
+<td><code>thara-bastion</code> and <code>thara-web-1</code>, stopped</td>
+<td>Day 7 starts them again</td>
+</tr>
+</tbody>
+</table></div>
+<p>No database is on this list. Both are gone, and the snapshot is what remains of them.</p>
+</section><section class="mark cost"><h2 id="7-cost-line"><span class="mark-chip">COST</span> 7. Cost line</h2>
+<p>Estimate for today: <strong>USD 1.20</strong>. The afternoon itself comes to about USD 0.15: two <code>t3.micro</code> instances for three hours with the bastion's public IPv4 address, about an hour and a half of <code>db.t3.micro</code> with its 20 GiB of storage, and the two small volumes. The week to Day 7 adds about USD 0.23 for the key, about USD 0.35 for the two stopped root volumes, and a few cents for <code>thara-records-snap1</code> and the recovery point. That leaves room, and it is there for one reason: a database left running by mistake would use it up within a day.</p>
+<p>Add one ledger row for each of: <code>thara-bastion</code> and <code>thara-web-1</code> (start and stop times); <code>thara-records</code> (create started, available, deleted); <code>thara-records-snap1</code> (created, with the note "kept"); <code>thara-records-r1</code> (restore started, available, rows confirmed, deleted), with the <strong>measured RTO</strong> in minutes; the temporary volume and the restored volume (created and deleted); the Backup plan <code>thara-daily</code> (cost 0.00), the on-demand backup, and the Backup restore with its minutes. Write the day's total against the estimate. If it is higher than the estimate, write why in one line.</p>
+</section><h2 id="8-evidence-required">8. Evidence required</h2>
+<ol>
+<li>The version list of <code>reports-index.txt</code> showing the restore: the screenshot of two versions (step 6) and of three (step 7).</li>
+<li>Screenshots of the lifecycle rule <code>thara-reports-lifecycle</code> and of the bucket policy, and <strong>Block all public access</strong> shown <strong>On</strong> (steps 8 to 10).</li>
+<li>Ledger rows with the RDS create time, delete time, restore time and the measured RTO, and the Backup restore time (steps 5, 11, 14 to 16 and 22).</li>
+<li>The screenshot of the three rows after the restore (step 16), and of the completed Backup restore job (step 22).</li>
+<li>Your break-it row from section 5, with your sentence on why the open rule still mattered.</li>
+</ol>
+<p>Check every screenshot before you submit it: no password, and the middle digits of your account id masked.</p>
+<h2 id="9-thara-connection">9. Thara connection</h2>
+<p>This lab meets the requirement that began with the flood: an RPO of one hour and an RTO of two hours for patient records, so that consultants never work from paper again. Until this afternoon the two hours was a figure in a document. Now you have deleted the records database and brought it back, and you hold a number of your own to set against it. The Head of IT would ask the question he could not answer about the tape in the third-floor cupboard: has anyone restored from it? You have, twice. The Data Protection Officer would ask where the records were while they were a snapshot: encrypted with <code>alias/thara-records</code>, in Mumbai, and unreachable from outside the VPC, which you tested with the door apparently wide open. The database is to be reachable from the web tier and by the IT team; today the team reaches it by connecting through the bastion to the web tier, which is the only source <code>thara-db-sg</code> names. The CFO would ask why the database is not simply left running: about USD 15 a month for an instance this small at the time of writing, against a few cents for the snapshot, and the pilot runs it only when it is being used. One number is still unproven. Your snapshot was a moment old; meeting an RPO of one hour needs a backup at least every hour, and that is an argument your capstone group must make from a schedule.</p>
+
+<script type="application/json" id="glossary-data">{"automated-backup":{"d":"The backup RDS takes of a database every day without being asked, kept for a set number of days. It is deleted with the database unless you choose to retain it. A manual snapshot is not.","t":"Automated backup","x":"deleting <code>thara-records<\/code> removes its automated backups, and <code>thara-records-snap1<\/code> stays."},"backup-plan":{"d":"A schedule in AWS Backup that says which resources are backed up, how often, and how long each backup is kept.","t":"Backup plan","x":"<code>thara-daily<\/code> backs up once a day and keeps each backup for 7 days."},"backup-vault":{"d":"The container in AWS Backup that holds the backups a plan creates, with access controls of its own.","t":"Backup vault","x":"the backups made by <code>thara-daily<\/code> are kept in a vault, apart from the volume they protect."},"bucket-policy":{"d":"A resource-based policy attached to a bucket. It names principals and says what each may do to the bucket and to the objects in it.","t":"Bucket policy","x":"the policy on the reports bucket names <code>thara-web-role<\/code> and allows it to list the bucket and read its objects."},"db-subnet-group":{"d":"A named list of subnets, in at least two availability zones, that tells RDS where a database may be placed.","t":"DB subnet group","x":"<code>thara-db-subnets<\/code> lists <code>thara-private-a<\/code> and <code>thara-private-b<\/code>, so the records database cannot land in a public subnet."},"lifecycle-rule":{"d":"A rule on a bucket that moves objects to a cheaper storage class, or deletes them, when they reach a set age. S3 carries it out in the background, over hours to days.","t":"Lifecycle rule","x":"<code>thara-reports-lifecycle<\/code> moves reports after 90 days and removes old versions after 180."},"rto":{"d":"Recovery time objective: the longest a service may stay down, from the failure to working again. You find your own figure by restoring and timing it.","t":"RTO","x":"two hours for patient records. The Day 6 lab deletes the database and measures how long it takes to return."},"storage-class":{"d":"The tier an object in S3 is stored in. Each class trades the monthly price of keeping the object against the cost, and the time, of getting it back.","t":"Storage class","x":"report PDFs start in S3 Standard and move to Standard-Infrequent Access after 90 days."},"versioning":{"d":"A bucket setting that keeps every version of an object. An overwrite adds a version and a delete adds a marker, so earlier content can be made current again.","t":"Versioning","x":"with versioning on <code>thara-reports-&lt;student id&gt;<\/code>, a report that a doctor overwrites by mistake can be brought back."}}</script>
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this afternoon</h2><ul><li><a href="slides/day-6-afternoon.pdf">Slides for this afternoon (PDF)</a></li><li><a href="artefacts/thara-vpc-builder.html">Thara VPC builder: what Day 6 adds to the architecture</a> (visual)</li><li><a href="plays/p6-words.html">Words ladder: Day 6</a> (12 minutes)</li><li><a href="plays/p6-1-what-saves-you.html">What saves you?</a> (7 minutes)</li><li><a href="plays/p6-2-two-hours-on-the-clock.html">Two hours on the clock</a> (10 minutes)</li><li><a href="plays/p6-quiz.html">Day quiz: keep it, find it, get it back</a> (10 minutes)</li><li><a href="../../templates/cost-ledger.csv">Cost ledger template</a> and <a href="../../templates/evidence-pack.html">evidence pack template</a> (also as a <a href="../../templates/evidence-pack.pdf">PDF form</a>)</li><li><a href="../../practice/PQ6.html">Practice question 6</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d6a">Mark this afternoon as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-6/notes.html">Day 6 morning</a></span><span><a href="index.html">Day 6</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

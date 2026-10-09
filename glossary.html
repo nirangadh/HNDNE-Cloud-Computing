@@ -205,6 +205,43 @@
 <h3 id="finding">Finding</h3>
 <p>A report from a detection service that something looks wrong or is exposed. It has a severity, and it waits to be read. It changes nothing by itself.</p>
 <p><em>Thara example:</em> GuardDuty would write a finding if <code>thara-web-1</code> contacted an address known for malware.</p>
+<h2 id="day-6">Day 6</h2>
+<h3 id="storage-class">Storage class</h3>
+<p>The tier an object in S3 is stored in. Each class trades the monthly price of keeping the object against the cost, and the time, of getting it back.</p>
+<p><em>Thara example:</em> report PDFs start in S3 Standard and move to Standard-Infrequent Access after 90 days.</p>
+<h3 id="versioning">Versioning</h3>
+<p>A bucket setting that keeps every version of an object. An overwrite adds a version and a delete adds a marker, so earlier content can be made current again.</p>
+<p><em>Thara example:</em> with versioning on <code class="long">thara-reports-&lt;student id&gt;</code>, a report that a doctor overwrites by mistake can be brought back.</p>
+<h3 id="lifecycle-rule">Lifecycle rule</h3>
+<p>A rule on a bucket that moves objects to a cheaper storage class, or deletes them, when they reach a set age. S3 carries it out in the background, over hours to days.</p>
+<p><em>Thara example:</em> <code>thara-reports-lifecycle</code> moves reports after 90 days and removes old versions after 180.</p>
+<h3 id="bucket-policy">Bucket policy</h3>
+<p>A resource-based policy attached to a bucket. It names principals and says what each may do to the bucket and to the objects in it.</p>
+<p><em>Thara example:</em> the policy on the reports bucket names <code>thara-web-role</code> and allows it to list the bucket and read its objects.</p>
+<h3 id="db-subnet-group">DB subnet group</h3>
+<p>A named list of subnets, in at least two availability zones, that tells RDS where a database may be placed.</p>
+<p><em>Thara example:</em> <code>thara-db-subnets</code> lists <code>thara-private-a</code> and <code>thara-private-b</code>, so the records database cannot land in a public subnet.</p>
+<h3 id="multi-az">Multi-AZ</h3>
+<p>An RDS option that keeps a standby copy of a database in a second availability zone and fails over to it automatically. The standby answers no queries while it waits.</p>
+<p><em>Thara example:</em> it would let <code>thara-records</code> ride out the loss of one zone. The pilot is shown it and does not build it.</p>
+<h3 id="read-replica">Read replica</h3>
+<p>A copy of a database that follows the primary a little behind and answers read queries at an endpoint of its own. It adds capacity for reading and does not take over by itself.</p>
+<p><em>Thara example:</em> slow report look-ups on OPD mornings are a question for a read replica, not for a standby.</p>
+<h3 id="automated-backup">Automated backup</h3>
+<p>The backup RDS takes of a database every day without being asked, kept for a set number of days. It is deleted with the database unless you choose to retain it. A manual snapshot is not.</p>
+<p><em>Thara example:</em> deleting <code>thara-records</code> removes its automated backups, and <code>thara-records-snap1</code> stays.</p>
+<h3 id="rpo">RPO</h3>
+<p>Recovery point objective: the most data, measured as time, that an organisation accepts losing. How often you back up decides whether you meet it.</p>
+<p><em>Thara example:</em> one hour for patient records, so the records must be backed up at least every hour.</p>
+<h3 id="rto">RTO</h3>
+<p>Recovery time objective: the longest a service may stay down, from the failure to working again. You find your own figure by restoring and timing it.</p>
+<p><em>Thara example:</em> two hours for patient records. The Day 6 lab deletes the database and measures how long it takes to return.</p>
+<h3 id="backup-plan">Backup plan</h3>
+<p>A schedule in AWS Backup that says which resources are backed up, how often, and how long each backup is kept.</p>
+<p><em>Thara example:</em> <code>thara-daily</code> backs up once a day and keeps each backup for 7 days.</p>
+<h3 id="backup-vault">Backup vault</h3>
+<p>The container in AWS Backup that holds the backups a plan creates, with access controls of its own.</p>
+<p><em>Thara example:</em> the backups made by <code>thara-daily</code> are kept in a vault, apart from the volume they protect.</p>
 <nav class="pager" aria-label="Page navigation"><span></span><span><a href="index.html">All days</a></span><span></span></nav>
 </div>
 </main>

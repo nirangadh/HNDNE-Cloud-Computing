@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Day 6 notes: Storage strategy, databases, recovery | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Day 6 morning notes: Storage strategy, databases, recovery. These notes go with the morning slides. They build the ideas you need before this afternoon&#x27;s lab, where you...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/notes.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Day 6 notes: Storage strategy, databases, recovery">
+<meta property="og:description" content="Day 6 morning notes: Storage strategy, databases, recovery. These notes go with the morning slides. They build the ideas you need before this afternoon&#x27;s lab, where you...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/notes.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"Day 6 morning notes: Storage strategy, databases, recovery. These notes go with the morning slides. They build the ideas you need before this afternoon's lab, where you...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Lecture notes","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Day 6 notes: Storage strategy, databases, recovery","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/notes.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/","name":"Day 6","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-6/notes.html","name":"Day 6 notes: Storage strategy, databases, recovery","position":3}]}</script>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Storage strategy, databases, recovery</h1><p class="sub">Day 6, morning notes</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 4">LO4</span><span class="badge" title="Learning outcome 6">LO6</span></div>
+<p>These notes go with the morning slides. They build the ideas you need before this afternoon's lab, where you build component 11 (the patient records database and its Backup plan) of the Thara architecture and finish component 3, the laboratory reports bucket.</p>
+<h2 id="where-you-are-starting">Where you are starting</h2>
+<p>So far you have built components 1 to 10. The network is finished, and since Day 5 the web tier reads the reports bucket through <code>thara-web-role</code>, a key called <code>alias/thara-records</code> is waiting for a database that does not exist yet, and <code>thara-trail</code> records who did what.</p>
+<p>Three things have been left as they were. The reports bucket has only the settings it was born with on Day 2: it holds one file, in one class of storage, and an overwrite would replace it for good. Day 5 showed you a table with one empty promise in it, "Day 6: a bucket policy". And you have restored from the Day 2 snapshot twice without anyone asking how long it took. That last point is the one Thara cares about most. Its backups were a tape each night, carried to a cupboard on the third floor, and when the basement flooded the hospital was on paper for three days.</p>
+<p>Today has three parts. Storage is a set of choices about cost and time, not one bucket. A managed database moves a large share of the work to AWS and leaves you the part that matters. And recovery is two numbers, of which you will measure one this afternoon.</p>
+<h2 id="1-s3-as-a-strategy-not-a-bucket">1. S3 as a strategy, not a bucket</h2>
+<p>On Day 2 a bucket was a place to put a file. A storage strategy answers four more questions: how much does it cost to keep an object, how long does it take to get one back, what happens when someone overwrites or deletes it, and who can read it.</p>
+<p><strong>Storage classes.</strong> Every object is stored in a <a class="term" data-term="storage-class" href="../../glossary.html#storage-class">storage class</a>. All the classes below keep your data with the same very high durability, spread over at least three availability zones. They differ in two things that pull against each other: what you pay each month to keep a gigabyte, and what it costs, in money and in time, to get it back.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Keeping it</th>
+<th>Getting it back</th>
+<th>You pay for at least</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S3 Standard</td>
+<td>Dearest</td>
+<td>At once, no charge for retrieval</td>
+<td>Nothing</td>
+</tr>
+<tr>
+<td>S3 Standard-Infrequent Access</td>
+<td>Cheaper</td>
+<td>At once, with a charge for each gigabyte read</td>
+<td>30 days</td>
+</tr>
+<tr>
+<td>S3 Glacier Instant Retrieval</td>
+<td>Cheaper still</td>
+<td>At once, with a higher charge</td>
+<td>90 days</td>
+</tr>
+<tr>
+<td>S3 Glacier Flexible Retrieval</td>
+<td>Very cheap</td>
+<td>Minutes to hours, after you ask for a restore</td>
+<td>90 days</td>
+</tr>
+<tr>
+<td>S3 Glacier Deep Archive</td>
+<td>Cheapest</td>
+<td>Hours, after you ask for a restore</td>
+<td>180 days</td>
+</tr>
+</tbody>
+</table></div>
+<p>Read the table from top to bottom and one rule appears: the cheaper it is to keep, the dearer or slower it is to fetch. The three Glacier classes are vocabulary for this module. You should be able to say what each is for, and you do not configure them. The last column matters more than it looks: move an object into a class and delete it a week later, and you still pay for the minimum. So the right class depends on how long you keep an object and how often you open it. Move the slider in <a href="artefacts/storage-class-tradeoff.html">storage-class-tradeoff</a> and watch the order change.</p>
+<p><strong>Versioning.</strong> By default, uploading an object under a key that already exists replaces it, and deleting it removes it. With <a class="term" data-term="versioning" href="../../glossary.html#versioning">versioning</a> switched on, the bucket keeps every version. An overwrite adds a new version on top of the old one. A delete adds a marker that hides the object, and the versions underneath are still there. Either can be undone by making an earlier version current again. Versioning is a setting of the whole bucket, and each kept version is stored and paid for.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">A doctor uploads a corrected report, and by mistake the file replaces a different patient's report. Versioning is on. What can the IT team do?</p><ol class="qc-opts"><li>Nothing: an overwrite replaces the object for good</li><li data-right="">Make the earlier version of that report current again<span class="qc-key"> (answer)</span></li><li>Wait for the lifecycle rule to bring the old report back</li></ol><p class="qc-why"><strong>Why:</strong> With versioning on, an overwrite adds a version and the earlier one is still in the bucket. A lifecycle rule moves objects between classes and removes old versions; it never restores anything.</p></div>
+<p><strong>Lifecycle rules.</strong> A <a class="term" data-term="lifecycle-rule" href="../../glossary.html#lifecycle-rule">lifecycle rule</a> tells S3 what to do with objects as they age: move them to a cheaper class after so many days, and delete old versions after so many more. You write the rule once, and S3 carries it out in the background. Two things follow. Transitions act asynchronously, over hours to days, so a lifecycle rule is something you configure and verify. It is not something you watch happen. And the rule is where versioning and cost meet: without a rule that expires old versions, a versioned bucket grows for ever.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">Thara's rule moves report PDFs to S3 Standard-Infrequent Access after 90 days. A patient opens a report that is a year old. What happens?</p><ol class="qc-opts"><li data-right="">It opens at once, and Thara pays a small charge for the retrieval<span class="qc-key"> (answer)</span></li><li>It must be restored first, and that takes some hours</li><li>It fails, because the object has left the reports bucket</li></ol><p class="qc-why"><strong>Why:</strong> Infrequent Access serves an object at once; what changes is the price of reading it. Waiting for a restore belongs to the two archive classes. And a class is a property of the object: it stays in the same bucket under the same key.</p></div>
+<p><strong>Replication, at concept level.</strong> Replication copies every new object to a second bucket, in the same region or in another. It needs versioning, and it is the answer to a question that versioning cannot answer: what if the bucket itself is lost? You do not build it. Thara's pilot is pinned to one region, so a second copy elsewhere is a choice for a later phase.</p>
+<p><strong>Who can read it.</strong> Three controls sit on a bucket, and you have met the first. Block Public Access, on since Day 2, overrides anything that would make the bucket public. A <strong><a class="term" data-term="bucket-policy" href="../../glossary.html#bucket-policy">bucket policy</a></strong> is the resource-based policy from Day 5's table: a JSON document on the bucket that names principals and says what each may do. An <strong>access control list</strong> (ACL) is an older mechanism that grants access object by object. Use bucket policies, not ACLs: a policy is one document that can be read and tested, while ACLs scatter the answer over every object. New buckets have ACLs disabled, as yours has had since you created it.</p>
+<p><strong>EFS, and when a file system beats an object store.</strong> The Elastic File System (EFS) is a shared file system that many instances mount at the same time, as they would a network share. It has folders, files can be changed in place, and two servers can work in the same directory. An object store has none of that: you put and get whole objects. So the choice is made by the application. Data that is written once and read whole, such as a report PDF, belongs in S3, which is cheaper and has no size to manage. Software that expects a folder it can edit in, shared between servers, needs a file system. EFS is a concept in this module; Thara's pilot has no use for one.</p>
+<div class="box know"><p>Tiered storage on a SAN with archive to tape. Fast disks for what is used every day, slower and cheaper disks for what is kept, and tape for what must not be thrown away. A lifecycle rule is the policy that moves data down the tiers by age, and the wait to get a tape back from the cupboard is the retrieval time of an archive class.</p></div>
+<div class="box thara"><p>Report PDFs to Infrequent Access after 90 days; versioning so a doctor's overwritten report is recoverable. A laboratory report is read in the days after it is issued and hardly ever again, yet it must open at once when a consultant asks for it. That is the description of Infrequent Access, and it rules out the classes that take hours.</p></div>
+<div class="box mistake"><p>"Versioning is a backup." It protects against overwrite and delete, not against bucket loss or region loss. Every version lives in the same bucket, so whatever takes the bucket takes all of them. A backup is a copy kept somewhere else.</p></div>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">The Data Protection Officer asks whether switching on versioning means that the laboratory reports are now backed up. What is the honest answer?</p><ol class="qc-opts"><li>Yes: every version is a second copy of the report</li><li>Yes, once the lifecycle rule has run for the first time</li><li data-right="">No: every version is in the same bucket and goes with it<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> Versioning undoes an overwrite or a delete inside the bucket. It keeps no copy anywhere else, so it does nothing if the bucket is lost. The lifecycle rule moves and expires versions; it does not copy them.</p></div>
+<h2 id="2-managed-databases">2. Managed databases</h2>
+<p>Thara's patient records are relational data: patients, appointments and results, tied to one another. They need a relational database, and there are two ways to run one on AWS.</p>
+<p><strong>RDS against a database you run yourself.</strong> You could install MySQL on an EC2 instance, as you installed a web server on Day 2. Or you could use the Relational Database Service (RDS), which runs the same engine for you. The difference is the Shared Responsibility Model from Day 1, applied to one service.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Job</th>
+<th>MySQL on your own EC2 instance</th>
+<th>RDS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hardware, and the operating system and its patches</td>
+<td>AWS, then you</td>
+<td>AWS</td>
+</tr>
+<tr>
+<td>Installing and patching the database engine</td>
+<td>You</td>
+<td>AWS, in a window you choose</td>
+</tr>
+<tr>
+<td>Backups every day, and keeping them</td>
+<td>You, with scripts you write</td>
+<td>AWS, switched on by a setting</td>
+</tr>
+<tr>
+<td>A standby in a second zone, and failing over to it</td>
+<td>You, by hand</td>
+<td>AWS, by a setting</td>
+</tr>
+<tr>
+<td>Who may connect, and from where</td>
+<td>You</td>
+<td>You</td>
+</tr>
+<tr>
+<td>Whether the data is encrypted, and with which key</td>
+<td>You</td>
+<td>You</td>
+</tr>
+<tr>
+<td>The tables, the data and the database users</td>
+<td>You</td>
+<td>You</td>
+</tr>
+</tbody>
+</table></div>
+<p>RDS takes the work that is the same for every customer and leaves you the work that is about your data. The price is control: you cannot log in to the server, and you pay more for each hour than for the bare instance.</p>
+<p><strong>Three groups, and one rule.</strong> An RDS database is placed and shaped by three things with similar names.</p>
+<ul>
+<li>A <strong><a class="term" data-term="db-subnet-group" href="../../glossary.html#db-subnet-group">DB subnet group</a></strong> lists the subnets the database may be placed in. It must cover at least two availability zones, even for a single database.</li>
+<li>A <strong>security group</strong> is the same firewall you have used since Day 2, here allowing the database's port from the web tier's group and from nothing else.</li>
+<li>A <strong>parameter group</strong> holds the engine's settings. Because you cannot log in and edit a configuration file, this is where such settings are changed.</li>
+</ul>
+<p>The rule is that <strong>the database is never public</strong>. RDS offers a setting called public access. For patient records the answer is no, and the subnet group makes sure of it by listing only private subnets.</p>
+<p><strong>Multi-AZ for availability, read replicas for scale.</strong> <a class="term" data-term="multi-az" href="../../glossary.html#multi-az">Multi-AZ</a> and a <a class="term" data-term="read-replica" href="../../glossary.html#read-replica">read replica</a> both mean "a second copy of the database", and they answer different questions.</p>
+<figure class="art"><svg aria-labelledby="sor-t sor-d" role="img" style="min-width:640px" viewbox="0 0 640 336"><title id="sor-t">A second copy, for two different reasons</title><desc id="sor-d">Two panels, each with the web tier above a primary database and a second copy. On the left, Multi-AZ, for availability: the web tier uses one endpoint, which reaches the primary. Every write is copied to a standby before it is confirmed. The standby answers nothing, and takes over by itself if the primary fails. On the right, a read replica, for scale: the web tier sends writes to the primary and reads to the replica, at an endpoint of its own. Changes follow a moment behind, and if the primary fails a person must promote the replica.</desc><rect fill="#FFFFFF" height="336" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">A second copy, for two different reasons</text><rect fill="#F7F7F7" height="238" rx="8" stroke="#BBBBBB" stroke-width="1.5" width="298" x="14" y="42"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="start" x="28" y="66">Multi-AZ</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="28" y="84">for availability</text><rect fill="#FFFFFF" height="30" rx="15" stroke="#0D2B45" stroke-width="2" width="120" x="103" y="96"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="163" y="116">the web tier</text><rect fill="#DEF5F1" height="58" rx="6" stroke="#0D2B45" stroke-width="2.5" width="112" x="32" y="168"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="88" y="192">Primary</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="88" y="210">reads and writes</text><rect fill="#FFFFFF" height="58" rx="6" stroke="#0D2B45" stroke-dasharray="7 5" stroke-width="2.5" width="112" x="182" y="168"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="238" y="192">Standby</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="238" y="210">answers nothing</text><path d="M144 197 L174 197" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M172 191 L182 197 L172 203 Z" fill="#0D2B45"></path><path d="M124 126 L124 160" fill="none" stroke="#2A7A7A" stroke-width="3"></path><path d="M118 158 L124 168 L130 158 Z" fill="#2A7A7A"></path><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="28" y="152">one endpoint</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="163" y="248">every write is copied before it is confirmed</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="28" y="302">If the primary fails: the standby takes over.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="28" y="320">By itself, usually within a minute or two.</text><rect fill="#F7F7F7" height="238" rx="8" stroke="#BBBBBB" stroke-width="1.5" width="298" x="328" y="42"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="start" x="342" y="66">Read replica</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="342" y="84">for scale</text><rect fill="#FFFFFF" height="30" rx="15" stroke="#0D2B45" stroke-width="2" width="120" x="417" y="96"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="477" y="116">the web tier</text><rect fill="#DEF5F1" height="58" rx="6" stroke="#0D2B45" stroke-width="2.5" width="112" x="346" y="168"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="402" y="192">Primary</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="402" y="210">reads and writes</text><rect fill="#DEF5F1" height="58" rx="6" stroke="#0D2B45" stroke-width="2.5" width="112" x="496" y="168"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="552" y="192">Replica</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="552" y="210">answers reads</text><path d="M458 197 L488 197" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M486 191 L496 197 L486 203 Z" fill="#0D2B45"></path><path d="M438 126 L438 160" fill="none" stroke="#2A7A7A" stroke-width="3"></path><path d="M432 158 L438 168 L444 158 Z" fill="#2A7A7A"></path><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="342" y="152">writes</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="477" y="248">changes follow a moment behind</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="342" y="302">If the primary fails: nothing takes over.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="342" y="320">A person must promote the replica.</text><path d="M518 126 L518 160" fill="none" stroke="#2A7A7A" stroke-dasharray="6 4" stroke-width="3"></path><path d="M512 158 L518 168 L524 158 Z" fill="#2A7A7A"></path><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="end" x="612" y="152">reads</text></svg><figcaption>The same two boxes with different arrows. A standby waits and takes over. A replica works all the time and does not take over by itself. <a class="full" href="img/standby-or-replica.svg">Open this diagram at full size</a></figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Multi-AZ</th>
+<th>Read replica</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it is for</td>
+<td>Availability: staying up when a zone or a server fails</td>
+<td>Scale: more capacity for reading</td>
+</tr>
+<tr>
+<td>How the copy is kept</td>
+<td>Every write reaches the standby before it is confirmed</td>
+<td>Changes follow a little behind</td>
+</tr>
+<tr>
+<td>Who uses the copy</td>
+<td>Nobody, until a failover</td>
+<td>The application, for read queries</td>
+</tr>
+<tr>
+<td>What the application connects to</td>
+<td>One endpoint, which moves to the standby</td>
+<td>A second endpoint, for reads only</td>
+</tr>
+<tr>
+<td>When the primary fails</td>
+<td>The standby takes over by itself, usually within a minute or two</td>
+<td>Nothing happens until a person promotes the replica</td>
+</tr>
+</tbody>
+</table></div>
+<p>Fail the primary, and then add read load, in <a href="artefacts/multi-az-vs-replica.html">multi-az-vs-replica</a>, and predict each result before you press. Neither option is a backup. Both copies follow the primary faithfully, so a mistake written to the primary is written to the copy as well.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">On OPD mornings the portal's report look-ups are slow. The Head of IT proposes switching on Multi-AZ for the records database. Will it help?</p><ol class="qc-opts"><li>Yes: the standby takes a share of the read queries</li><li>Yes, but only for patients served from the second zone</li><li data-right="">No: the standby answers no queries until a failover<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> A Multi-AZ standby exists for availability and serves nothing while the primary is healthy. Slow reads are a question of capacity, and the option built for that is a read replica.</p></div>
+<p><strong>Automated backups and manual snapshots.</strong> RDS backs a database up in two ways. An <strong><a class="term" data-term="automated-backup" href="../../glossary.html#automated-backup">automated backup</a></strong> is taken every day without being asked, and RDS also keeps the changes made in between, so the database can be restored to any minute inside the retention period that you set. A <strong>manual snapshot</strong> is taken when you ask, and it is kept until you delete it. The difference shows when the database is deleted: the automated backups go with it unless you choose to retain them, and a manual snapshot stays. Either way, a restore never repairs the old database. It creates a new one from the copy.</p>
+<p><strong>DynamoDB, placed on the map.</strong> Not every database is relational. DynamoDB is a managed key-value database: you look an item up by its key, there is no instance to size and no engine to patch, and it copes with very large numbers of small requests. It suits data such as the portal's session records, many small items each found by one key. It does not suit patient records, which must be queried by their relations. You should know where it sits; you do not build one.</p>
+<div class="box know"><p>A managed PBX versus running your own. With your own exchange you buy the hardware, apply the firmware, and are called out when it fails. With a managed one the provider does all of that, and you still decide who has an extension and who may dial abroad. RDS is the managed exchange: the engine is somebody else's job, and who may connect is still yours.</p></div>
+<div class="box thara"><p>Patient records need private placement, encryption with alias/thara-records, and a tested restore. Private placement is the subnet group and the security group. Encryption is the key you created on Day 5, chosen when the database is created, because it cannot be added to an existing one afterwards. The tested restore is this afternoon.</p></div>
+<div class="box mistake"><p>"Multi-AZ improves read performance." It does not; replicas do. A standby is a spare that waits. If the problem is that the database is too busy with reads, a second copy that answers nothing does not make it less busy.</p></div>
+<h2 id="3-recovery-as-a-number">3. Recovery as a number</h2>
+<p>"We have backups" is a statement about the past. Recovery is a statement about the future, and it is made in two numbers.</p>
+<p><strong>RPO and RTO.</strong> The <strong><a class="term" data-term="rpo" href="../../glossary.html#rpo">RPO</a></strong>, the recovery point objective, is the most data that the organisation accepts losing, measured as time. If the last good copy is from 10:00 and the failure comes at 10:40, forty minutes of work are gone. The <strong><a class="term" data-term="rto" href="../../glossary.html#rto">RTO</a></strong>, the recovery time objective, is the longest the service may stay down: from the failure to the moment it is working again.</p>
+<figure class="art"><svg aria-labelledby="rol-t rol-d" role="img" style="min-width:640px" viewbox="0 0 640 312"><title id="rol-t">One failure, two spans</title><desc id="rol-d">A time line with four marks in order: the last backup, the failure, the start of the restore and the return of service. The span from the last backup to the failure is the data lost. It is set against the RPO and is decided before the failure, by how often you back up. The span from the failure to the return of service is the time down. It is set against the RTO and is decided after the failure, by how long a restore takes.</desc><rect fill="#FFFFFF" height="312" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">One failure, two spans</text><rect fill="#F4B942" height="26" stroke="#0D2B45" stroke-width="1.5" width="240" x="60" y="109"></rect><rect fill="#133B50" height="26" stroke="#0D2B45" stroke-width="1.5" width="280" x="300" y="109"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="180.0" y="127">data lost</text><text fill="#FFFFFF" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="490.0" y="127">service down</text><path d="M60 90 L60 154" stroke="#0D2B45" stroke-width="2.5"></path><circle cx="60" cy="122" fill="#FFFFFF" r="8" stroke="#0D2B45" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" x="60" y="66">Last backup</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="60" y="83">the last good copy</text><path d="M300 90 L300 154" stroke="#0D2B45" stroke-width="2.5"></path><circle cx="300" cy="122" fill="#E86A5B" r="8" stroke="#0D2B45" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="300" y="174">Failure</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="300" y="191">the clock starts</text><path d="M400 90 L400 154" stroke="#0D2B45" stroke-width="2.5"></path><circle cx="400" cy="122" fill="#FFFFFF" r="8" stroke="#0D2B45" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="400" y="66">Restore starts</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="400" y="83">noticed, and begun</text><path d="M580 90 L580 154" stroke="#0D2B45" stroke-width="2.5"></path><circle cx="580" cy="122" fill="#48C9B0" r="8" stroke="#0D2B45" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" x="580" y="174">Service returns</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" x="580" y="191">the data is checked</text><path d="M60 204 L300 204 M60 198 L60 210 M300 198 L300 210" fill="none" stroke="#546472" stroke-width="1.5"></path><path d="M300 204 L580 204 M580 198 L580 210" fill="none" stroke="#546472" stroke-width="1.5"></path><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="180.0" y="226">set against the RPO</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="440.0" y="226">set against the RTO</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="180.0" y="246">decided before the failure,</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="180.0" y="263">by how often you back up</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="440.0" y="246">decided after the failure,</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="440.0" y="263">by how long a restore takes</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="298">Thara's targets for patient records: at most one hour lost, at most two hours down.</text></svg><figcaption>Two spans that share one moment, the failure. Looking back from it is data loss. Looking forward from it is downtime. <a class="full" href="img/recovery-on-one-line.svg">Open this diagram at full size</a></figcaption></figure>
+<p>The two are set by different things. Data loss is decided before the failure, by how often you back up: a backup every hour cannot lose more than an hour. Downtime is decided after it, by how long it takes to notice, to decide, to restore and to check. So each is measured in its own way. You argue an RPO from the backup schedule. You find your recovery time by doing a restore with a clock running. Drag both in <a href="artefacts/rpo-rto-timeline.html">rpo-rto-timeline</a> and see that moving one leaves the other where it was.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">The records database is backed up every hour, on the hour. It fails at 10:40, and the portal is working again at 12:10. How much data was lost, and for how long was the service down?</p><ol class="qc-opts"><li>90 minutes of data lost, and 40 minutes down</li><li>90 minutes of data lost, and 90 minutes down</li><li data-right="">40 minutes of data lost, and 90 minutes down<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> Data loss runs back from the failure to the last backup, at 10:00. Downtime runs forward from the failure to the return of service. The two spans share only the moment of failure, and both are inside Thara's targets of one hour and two hours.</p></div>
+<p><strong>Backup and restore, the first recovery pattern.</strong> The simplest way to recover from a disaster is to keep backups and, when something is lost, restore from them into new resources. It is the cheapest pattern, because nothing runs until it is needed, and the slowest, because everything has to be created first. Day 7 names the faster and dearer patterns. For a pilot with a two-hour target, backup and restore is the one to prove first.</p>
+<p><strong>AWS Backup, one plane across services.</strong> Each service can back itself up: EBS has snapshots, RDS has automated backups. AWS Backup is a single place to manage them all, with four ideas.</p>
+<ul>
+<li>A <strong><a class="term" data-term="backup-plan" href="../../glossary.html#backup-plan">backup plan</a></strong> is a schedule: what is backed up, how often, and how long each backup is kept.</li>
+<li>A <strong><a class="term" data-term="backup-vault" href="../../glossary.html#backup-vault">backup vault</a></strong> is the container the backups are stored in, with access controls of its own.</li>
+<li><strong>Retention</strong> is how long a backup is kept before it is removed for you.</li>
+<li>An <strong>on-demand backup</strong> is one taken now, outside the schedule, into the same vault under the same rules.</li>
+</ul>
+<p>Resources are assigned to a plan by type or by tag, which is one more use for the tags you have put on everything since Day 2.</p>
+<p><strong>A restore that has never been tested is not a backup.</strong> A backup is a file. Whether it can become a working system again is unknown until someone tries: the copy may be incomplete, the key that encrypts it may be gone, the restore may land in the wrong network, or it may simply take six hours when the target is two. The only evidence that a backup works is a restore that was done, timed and checked. That is what the capstone asks of your group, and it is what you do this afternoon.</p>
+<p><strong>Classifying data.</strong> Not everything deserves a backup, and saying so is part of the design. Sort each kind of data into one of three classes.</p>
+<ul>
+<li><strong>Ephemeral.</strong> Losing it costs nothing that matters. It needs no protection.</li>
+<li><strong>Recoverable.</strong> It can be rebuilt from something else that you do keep. Protect the source, not the thing.</li>
+<li><strong>Critical.</strong> It exists nowhere else. It needs a copy, a recovery target and a tested restore.</li>
+</ul>
+<div class="box know"><p>The tape in the third-floor cupboard, and the day nobody could read it. Every network team has a backup that was taken faithfully for years and failed on the one day it was needed, because restoring was never part of the routine. A schedule tells you that backups are being made. Only a restore tells you that they work.</p></div>
+<div class="box thara"><p>RPO one hour, RTO two hours for records; today's lab measures the RTO. Consultants worked from paper for three days, and the hospital will not accept that again. The one hour is argued from how often the records are backed up. The two hours is tested: this afternoon you delete the database and time its return.</p></div>
+<div class="box mistake"><p>"RPO and RTO are the same number." One is data loss, the other is downtime. A system can come back in ten minutes with a day of work missing, or lose nothing at all and still be down until tomorrow.</p></div>
+<h2 id="classify-tharas-data">Classify Thara's data</h2>
+<p>This morning's activity is done in pairs, and it produces a table that you bring to the lab.</p>
+<p>Thara's pilot holds six kinds of data. For each, decide its class, and then state the storage service that holds it, the protection it needs, and its recovery target: how much may be lost, and how soon it must be back. "None" is an allowed answer, and for some rows it is the right one.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Class</th>
+<th>Storage service</th>
+<th>Protection</th>
+<th>Recovery target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web server operating system and application</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Laboratory report PDFs</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Patient records database</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Audit logs</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Flow logs</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Portal session data</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>Then compare your table with the reference table, and be ready to argue for the two rows on which most pairs disagree. Be exact about protection: "back it up" is not an answer until it says how often, where to, and who has restored from it.</p>
+<h2 id="before-the-lab">Before the lab</h2>
+<ul>
+<li>Find <code>thara-key.pem</code>. Bring your pair's classification table.</li>
+<li>Open <a href="artefacts/thara-vpc-builder.html">thara-vpc-builder</a> and find components 3 and 11. Notice where the database sits and what can reach it.</li>
+<li>Open your cost ledger. The estimate for the day is USD 1.20. Today one resource bills by the hour: the database. It exists twice and is deleted twice.</li>
+<li>Have a clock that you can read to the minute. Today every important step ends with "write the time".</li>
+<li>Be ready to say, before you delete anything, what will still exist afterwards.</li>
+</ul>
+<h2 id="reading">Reading</h2>
+<ul>
+<li>Wittig, A. and Wittig, M. <em>Amazon Web Services in Action</em>, 3rd ed., Manning. The chapter on RDS.</li>
+<li>AWS, <em>Amazon S3 User Guide</em>, "Understanding and managing Amazon S3 storage classes" and "Managing the lifecycle of objects".</li>
+<li>AWS, <em>Amazon RDS User Guide</em>, "Backups and restores" overview.</li>
+<li>For Day 7: AWS, <em>AWS Well-Architected Framework</em>, the summary of the Reliability pillar; Wittig and Wittig, the chapters on Auto Scaling and load balancing.</li>
+</ul>
+<p>Self-check: CLF-C02 bank, Domain 4 set B (10 items) and Domain 1 set B (10 items), issued separately. Practice question: <a href="../../practice/PQ6.html">PQ6</a>.</p>
+<p>Task for Day 7: complete Evidence Pack 6. With your group, complete the capstone data tier in the host account.</p>
+
+<script type="application/json" id="glossary-data">{"automated-backup":{"d":"The backup RDS takes of a database every day without being asked, kept for a set number of days. It is deleted with the database unless you choose to retain it. A manual snapshot is not.","t":"Automated backup","x":"deleting <code>thara-records<\/code> removes its automated backups, and <code>thara-records-snap1<\/code> stays."},"backup-plan":{"d":"A schedule in AWS Backup that says which resources are backed up, how often, and how long each backup is kept.","t":"Backup plan","x":"<code>thara-daily<\/code> backs up once a day and keeps each backup for 7 days."},"backup-vault":{"d":"The container in AWS Backup that holds the backups a plan creates, with access controls of its own.","t":"Backup vault","x":"the backups made by <code>thara-daily<\/code> are kept in a vault, apart from the volume they protect."},"bucket-policy":{"d":"A resource-based policy attached to a bucket. It names principals and says what each may do to the bucket and to the objects in it.","t":"Bucket policy","x":"the policy on the reports bucket names <code>thara-web-role<\/code> and allows it to list the bucket and read its objects."},"db-subnet-group":{"d":"A named list of subnets, in at least two availability zones, that tells RDS where a database may be placed.","t":"DB subnet group","x":"<code>thara-db-subnets<\/code> lists <code>thara-private-a<\/code> and <code>thara-private-b<\/code>, so the records database cannot land in a public subnet."},"lifecycle-rule":{"d":"A rule on a bucket that moves objects to a cheaper storage class, or deletes them, when they reach a set age. S3 carries it out in the background, over hours to days.","t":"Lifecycle rule","x":"<code>thara-reports-lifecycle<\/code> moves reports after 90 days and removes old versions after 180."},"multi-az":{"d":"An RDS option that keeps a standby copy of a database in a second availability zone and fails over to it automatically. The standby answers no queries while it waits.","t":"Multi-AZ","x":"it would let <code>thara-records<\/code> ride out the loss of one zone. The pilot is shown it and does not build it."},"read-replica":{"d":"A copy of a database that follows the primary a little behind and answers read queries at an endpoint of its own. It adds capacity for reading and does not take over by itself.","t":"Read replica","x":"slow report look-ups on OPD mornings are a question for a read replica, not for a standby."},"rpo":{"d":"Recovery point objective: the most data, measured as time, that an organisation accepts losing. How often you back up decides whether you meet it.","t":"RPO","x":"one hour for patient records, so the records must be backed up at least every hour."},"rto":{"d":"Recovery time objective: the longest a service may stay down, from the failure to working again. You find your own figure by restoring and timing it.","t":"RTO","x":"two hours for patient records. The Day 6 lab deletes the database and measures how long it takes to return."},"storage-class":{"d":"The tier an object in S3 is stored in. Each class trades the monthly price of keeping the object against the cost, and the time, of getting it back.","t":"Storage class","x":"report PDFs start in S3 Standard and move to Standard-Infrequent Access after 90 days."},"versioning":{"d":"A bucket setting that keeps every version of an object. An overwrite adds a version and a delete adds a marker, so earlier content can be made current again.","t":"Versioning","x":"with versioning on <code>thara-reports-&lt;student id&gt;<\/code>, a report that a doctor overwrites by mistake can be brought back."}}</script>
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this morning</h2><ul><li><a href="slides/day-6-morning.pdf">Slides for this morning (PDF)</a></li><li><a href="artefacts/storage-class-tradeoff.html">Storage class trade-off: what it costs to keep a report, and how long it takes to get it back</a> (visual)</li><li><a href="artefacts/rpo-rto-timeline.html">RPO and RTO timeline: the last backup, the failure, the restore and the return of service</a> (visual)</li><li><a href="artefacts/multi-az-vs-replica.html">Multi-AZ or read replica: one for availability, one for scale</a> (visual)</li><li><a href="plays/p6-words.html">Words ladder: Day 6</a> (12 minutes)</li><li><a href="plays/p6-1-what-saves-you.html">What saves you?</a> (7 minutes)</li><li><a href="plays/p6-2-two-hours-on-the-clock.html">Two hours on the clock</a> (10 minutes)</li><li><a href="plays/p6-quiz.html">Day quiz: keep it, find it, get it back</a> (10 minutes)</li><li><a href="../../practice/PQ6.html">Practice question 6</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d6m">Mark this morning as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-5/lab.html">Day 5 afternoon</a></span><span><a href="index.html">Day 6</a></span><span>Next: <a href="../../days/day-6/lab.html">Day 6 afternoon</a></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

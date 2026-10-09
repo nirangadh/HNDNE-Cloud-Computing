@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>PQ6: The monsoon returns, and the records are wrong | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Posted after Day 6. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/practice/PQ6.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="PQ6: The monsoon returns, and the records are wrong">
+<meta property="og:description" content="Posted after Day 6. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/practice/PQ6.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/practice/PQ6.html","name":"PQ6: The monsoon returns, and the records are wrong","position":2}]}</script>
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>PQ6: The monsoon returns, and the records are wrong</h1><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<p>Posted after Day 6. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.</p>
+<h2 id="scenario">Scenario</h2>
+<p>The pilot runs as you have built it up to Day 6, with one difference: the patient records database <code>thara-records</code> is left running, as it would be in service. It is a single database in the private subnets, encrypted with <code>alias/thara-records</code>. It holds about 6 GB of data.</p>
+<p>This is how it is protected today.</p>
+<ul>
+<li>A Backup plan takes one backup of the database <strong>each night at 02:00</strong> and keeps it for 7 days.</li>
+<li>The database's own automated backups were switched off some weeks ago, "to save money".</li>
+<li>The reports bucket has versioning on and the lifecycle rule from Day 6.</li>
+<li>The team has restored the database once, as a drill. From choosing <strong>Restore</strong> to seeing the rows took <strong>25 minutes</strong>.</li>
+</ul>
+<p>The monsoon returns, and Colombo loses mains power from 09:00 for six hours. The old hospital system in the basement goes down with it. When the power comes back, the old system restarts, and at <strong>15:20</strong> one of its jobs writes yesterday's values over today's appointments and results in <code>thara-records</code>. A consultant in Kandy notices at <strong>15:50</strong>. The IT team restores from the 02:00 backup, points the portal at the restored database, and checks it. Patients and consultants see correct data again at <strong>16:40</strong>, as it stood at 02:00.</p>
+<p>Constraints you should notice:</p>
+<ul>
+<li>Patient records have an <strong>RPO of one hour</strong> and an <strong>RTO of two hours</strong>.</li>
+<li>The fault was <strong>wrong data written</strong>, not a server that failed.</li>
+<li>The pilot must be recoverable <strong>by the IT team</strong>, without outside help.</li>
+<li>The CFO's ceiling is USD 150 a month, and she wants each new line priced.</li>
+</ul>
+<p>Use these rounded prices. Do not rely on remembered ones.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Price</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The database as it runs today, with its storage</td>
+<td>About USD 15 a month</td>
+</tr>
+<tr>
+<td>The same database with a Multi-AZ standby</td>
+<td>About USD 30 a month</td>
+</tr>
+<tr>
+<td>Automated backups, up to the size of the database</td>
+<td>No charge</td>
+</tr>
+<tr>
+<td>A manual snapshot or a backup kept by a plan</td>
+<td>About USD 0.10 for each GB each month</td>
+</tr>
+<tr>
+<td>A Backup plan, by itself</td>
+<td>No charge</td>
+</tr>
+<tr>
+<td>A kept version of an object in the reports bucket</td>
+<td>The same as any object of its size</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="questions">Questions</h2>
+<p><strong>(a) Explain (6 marks).</strong> Define RPO and RTO, and say what decides each and how each is established. Explain what versioning on the reports bucket protects against and what it does not. Then explain the difference between a Multi-AZ standby and a read replica.</p>
+<p><strong>(b) Apply (8 marks).</strong></p>
+<ul>
+<li>For the six hours without power, say what kept working and what did not, and why.</li>
+<li>From the times in the scenario, state the data lost and the time the service was wrong or down. Compare each with its target.</li>
+<li>Design the backup and recovery arrangement that would have met both targets for the patient records: what is backed up, how often, where it is kept, for how long, and what the restore creates and must be told. Add one line each for the laboratory reports and for the web server.</li>
+<li>Give the monthly cost of what your design adds, from the table.</li>
+</ul>
+<p><strong>(c) Evaluate (6 marks).</strong> Two proposals are made at the review.</p>
+<ol>
+<li>The CFO: "Pay for the Multi-AZ standby and stop the backups. A second copy in another building is what we were missing."</li>
+<li>A colleague: "Keep the nightly backup as it is. Thirteen hours was bad luck: most failures will not come in the afternoon."</li>
+</ol>
+<p>Evaluate each proposal against the scenario: say what is right in it, what is wrong, and how it would fail. Finish with a judgement for the Head of IT: what must be done today, what cannot be got back, what your design costs each month, and what would change your view.</p>
+<h2 id="answer-guidance">Answer guidance</h2>
+<p>This guidance describes what a strong answer covers. It is not a model answer to memorise; the marks go to reasoning applied to Thara.</p>
+<p><strong>(a)</strong> A strong answer says that the RPO is the most data the organisation accepts losing, measured as time, and the RTO is the longest the service may stay down. They share one moment, the failure: data loss runs back from it to the last good copy, and downtime runs forward from it to the return of service. They are decided by different things. Data loss is decided before the failure, by how often a copy is taken, so an RPO is argued from the backup schedule. Downtime is decided after it, by how long it takes to notice, decide, restore and check, so a recovery time is established only by doing a restore with a clock running. Versioning keeps every version of an object, so an overwrite or a delete in the bucket can be undone by making an earlier version current. It keeps no copy anywhere else, so it does not protect against the loss of the bucket, and it is not a backup. A Multi-AZ standby is a second copy in another availability zone that receives every write before it is confirmed and takes over by itself if the primary fails; it answers no queries while it waits, and it is for availability. A read replica follows the primary a little behind, answers read queries at its own endpoint, and does not take over by itself; it is for scale. Neither is a backup, because both copy whatever is written to the primary.</p>
+<p><strong>(b)</strong> A strong answer starts with what the power cut did and did not touch. The pilot is in Mumbai, so the portal, the web tier, the reports bucket and <code>thara-records</code> all kept working, and patients and the branches, who reach the portal over the internet, noticed nothing. What stopped was in Colombo: the old system in the basement, and the IT team's own work, because the bastion admits only the IT office's address and the office had no power. The cloud did not fail; the building did. On the numbers: the last good copy was the 02:00 backup and the wrong data arrived at 15:20, so the restore lost 13 hours 20 minutes of work, against a target of one hour. The service was wrong from 15:20 and right again at 16:40, which is 80 minutes, inside the two hours. One target was met and the other was missed by a wide margin, and they were decided by different things: the drill is why the 80 minutes was possible, and the schedule is why the 13 hours was certain. For the design: back up the records at least every hour, either by changing the plan's frequency from daily to hourly or by switching the database's automated backups back on, which keep the changes between backups and allow a restore to a chosen minute; here that minute would be 15:19. Keep the backups for at least 7 days, in a vault or with the service, apart from the database itself, and keep one manual snapshot that does not go when a database is deleted. Say what a restore does: it creates a new database with a new endpoint, and it must be told again to use <code>thara-db-subnets</code>, <code>thara-db-sg</code> and no public access, or it lands where the web tier cannot reach it. Then the portal is pointed at the new endpoint and the data is checked before the service is declared back. The reports are already covered for this fault: versioning undoes an overwrite. The web server needs no backup at all: it is rebuilt from the image <code>thara-portal-v1</code>. On cost: automated backups up to the size of the database are free, and hourly backups of about 6 GB kept for a week come to about 10 GB stored, about USD 1 a month. The design adds about a dollar to a bill of USD 15.</p>
+<p><strong>(c)</strong> A strong answer takes the proposals separately. The first is right that a standby in a second zone is real protection, and wrong about what against. A standby receives every write, so at 15:20 it would have received the wrong values a moment after the primary did. It protects against the loss of a server or a zone, and this fault was neither; nor was it the Colombo power cut, which the pilot never felt. It doubles the database's cost, from about USD 15 to about USD 30, and with the backups stopped it would leave Thara with two faithful copies of the mistake and nothing to go back to. It would fail on the first bad write. The second is right that the restore worked and that the team's drill paid off. It is wrong to call thirteen hours luck: with one backup a day the loss is anything up to 24 hours, and nothing in the schedule knows what time a failure will choose. An RPO is a promise about the worst case, and this schedule never offered one hour. It would fail on any day a fault comes late. For the Head of IT, today: switch automated backups on, or make the plan hourly; take a manual snapshot now; find and stop the job in the old system before it runs again; and tell the consultants plainly which hours of work have to be entered again. What cannot be got back from the pilot is everything written between 02:00 and 15:20, unless it can be found in paper notes or in the old system. The design costs about USD 1 a month more. What would change the view: a requirement to survive the loss of a zone without any downtime, which is what would justify the standby as an addition to the backups and not a replacement for them; a database that grows far beyond 6 GB, which would make the backup line worth pricing again; or a drill that takes two hours and not 25 minutes, which would put the RTO itself in doubt.</p>
+<nav class="pager" aria-label="Page navigation"><span></span><span><a href="../index.html">All days</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence. See the <a href="../LICENSE-CONTENT.html">licence notes</a>.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../assets/js/site.js" defer></script>
+</body>
+</html>

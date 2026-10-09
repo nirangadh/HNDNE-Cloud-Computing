@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-AZ or read replica: one for availability, one for scale</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 74rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 .1rem; }
+  h3 { font-size: 1rem; margin: 0; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); max-width: 52rem; }
+  .bar { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: center; background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .8rem 1rem; margin-bottom: 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1.2rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button[aria-pressed=true] { background: var(--turquoise); }
+  button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 60rem) { .panels { grid-template-columns: 1fr; } }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem; }
+  .panel .sub { color: var(--ink-muted); margin: 0 0 .8rem; }
+  .app { border: 2px solid var(--navy); border-radius: 6px; padding: .5rem .8rem; background: var(--paper); font-weight: 600; }
+  .app small { display: block; font-weight: 400; color: var(--ink-muted); }
+  .ep { margin: .5rem 0; padding: .35rem .7rem; border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); font-size: .93rem; }
+  .ep.stopped { border-left-color: var(--signal-coral); background: var(--white); outline: 1px solid var(--silver); }
+  .zones { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+  .zone { border: 2px dashed var(--ink-muted); border-radius: 6px; padding: .5rem; }
+  .zone > span { font-size: .82rem; color: var(--ink-muted); }
+  .db { border: 2px solid var(--navy); border-radius: 6px; padding: .6rem .7rem; margin-top: .3rem; min-height: 11.5rem; transition: background-color .3s; }
+  .db.serving { background: var(--turquoise-tint); }
+  .db.idle { background: var(--paper); border-style: dotted; }
+  .db.failed { background: var(--white); border: 3px solid var(--signal-coral); }
+  .db .role { display: inline-block; font-size: .8rem; font-weight: 700; border: 1px solid var(--navy); border-radius: 4px; padding: 0 .4rem; margin: .2rem 0 .4rem; background: var(--white); }
+  .db.failed .role { border: 2px solid var(--signal-coral); }
+  .db p { margin: .2rem 0; font-size: .92rem; }
+  .meter { margin-top: .5rem; font-size: .82rem; }
+  .meter .track { background: var(--white); border: 1px solid var(--ink-muted); border-radius: 4px; height: 1rem; }
+  .meter .fill { height: 100%; background: var(--navy-raised); border-radius: 3px; transition: width .5s; }
+  .meter .fill.hot { background: var(--signal-amber); border-right: 2px solid var(--navy); }
+  @media (prefers-reduced-motion: reduce) { .db, .meter .fill { transition: none; } }
+  .link { text-align: center; font-size: .88rem; color: var(--ink-muted); margin: .5rem 0 0; }
+  .say { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .7rem .9rem; margin: .8rem 0 0; min-height: 6.5rem; }
+  .say b { display: block; }
+  .say.bad { border-left-color: var(--signal-coral); background: var(--white); outline: 1px solid var(--silver); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Multi-AZ or read replica?</h1>
+  <p class="lede">Both options give the patient records database a second copy. Before you press a button, say what each copy will do. Then fail the primary, and add the read load of an OPD morning, and see which design each problem belongs to.</p>
+
+  <div class="bar">
+    <button type="button" id="bFail" aria-pressed="false">Fail the primary</button>
+    <button type="button" id="bLoad" aria-pressed="false">Add read load</button>
+    <button type="button" id="bReset">Reset</button>
+  </div>
+
+  <div class="panels">
+    <section class="panel" aria-labelledby="hA">
+      <h2 id="hA">Multi-AZ: for availability</h2>
+      <p class="sub">A standby in a second zone. Every write reaches it before the write is confirmed.</p>
+      <div class="app">The web tier<small>reads and writes patient records</small></div>
+      <div class="ep" id="aEp"></div>
+      <div class="zones">
+        <div class="zone"><span>Availability zone a</span><div class="db" id="aP"></div></div>
+        <div class="zone"><span>Availability zone b</span><div class="db" id="aS"></div></div>
+      </div>
+      <p class="link">Copy kept in step with every write</p>
+      <div class="say" id="aSay" role="status" aria-live="polite"></div>
+    </section>
+    <section class="panel" aria-labelledby="hB">
+      <h2 id="hB">Read replica: for scale</h2>
+      <p class="sub">A working copy with an endpoint of its own. It follows the primary a little behind.</p>
+      <div class="app">The web tier<small>reads and writes patient records</small></div>
+      <div class="ep" id="bEp"></div>
+      <div class="zones">
+        <div class="zone"><span>Primary</span><div class="db" id="bP"></div></div>
+        <div class="zone"><span>Read replica</span><div class="db" id="bR"></div></div>
+      </div>
+      <p class="link">Changes follow a moment later</p>
+      <div class="say" id="bSay" role="status" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <footer>Neither design is a backup. Both copies follow the primary faithfully, so a wrong value written to the primary is written to the copy as well. In this module both are concepts: the lab builds a single database and proves that it can be restored. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  let failed = false, load = false;
+  const meter = (label, pct, hot) => '<div class="meter">' + label + ': ' + (pct === 0 ? 'none' : pct + '%') + '<div class="track"><div class="fill' + (hot ? ' hot' : '') + '" style="width:' + pct + '%"></div></div></div>';
+  const db = (id, cls, role, lines, meters) => { $(id).className = 'db ' + cls; $(id).innerHTML = '<h3>' + role[0] + '</h3><span class="role">' + role[1] + '</span>' + lines.map(l => '<p>' + l + '</p>').join('') + meters; };
+  function draw() {
+    const reads = load ? 95 : 30;
+    // Multi-AZ
+    if (!failed) {
+      $('aEp').className = 'ep'; $('aEp').innerHTML = 'One endpoint. It points at <b>zone a</b>.';
+      db('aP', 'serving', ['Primary', 'Serving'], ['Takes every read and every write.'], meter('Read load', reads, load) + meter('Write load', 20, false));
+      db('aS', 'idle', ['Standby', 'Waiting'], ['Holds a full copy.', 'Answers no queries.'], meter('Read load', 0, false) + meter('Write load', 0, false));
+    } else {
+      $('aEp').className = 'ep'; $('aEp').innerHTML = 'The same endpoint. It now points at <b>zone b</b>.';
+      db('aP', 'failed', ['Old primary', 'Failed'], ['Out of service.'], '');
+      db('aS', 'serving', ['Standby, promoted', 'Serving'], ['Took over by itself.', 'Takes every read and every write.'], meter('Read load', reads, load) + meter('Write load', 20, false));
+    }
+    let a = failed ? '<b>The standby took over, usually within a minute or two.</b>Nobody did anything. The endpoint is the same name, so the web tier reconnects without being told where to go. No confirmed write was lost, because each one had reached the standby first.' : '<b>Healthy.</b>The standby is a spare. It costs as much as a second database and does no work until it is needed.';
+    if (load) a += failed ? ' The read load came with it: there is still only one database answering.' : ' <b>The read load all lands on the primary.</b>The standby takes none of it. Multi-AZ adds availability and not one query of capacity.';
+    $('aSay').className = 'say' + (load && !failed ? ' bad' : ''); $('aSay').innerHTML = a;
+    // Read replica
+    if (!failed) {
+      $('bEp').className = 'ep'; $('bEp').innerHTML = 'Two endpoints: one for writes, one for <b>reads from the replica</b>.';
+      db('bP', 'serving', ['Primary', 'Serving'], ['Takes every write, and some reads.'], meter('Read load', load ? 45 : 15, false) + meter('Write load', 20, false));
+      db('bR', 'serving', ['Read replica', 'Serving reads'], ['Answers read queries only.'], meter('Read load', load ? 50 : 15, false) + meter('Write load', 0, false));
+    } else {
+      $('bEp').className = 'ep stopped'; $('bEp').innerHTML = 'The write endpoint answers <b>nothing</b>. The read endpoint still works.';
+      db('bP', 'failed', ['Primary', 'Failed'], ['Out of service.'], '');
+      db('bR', 'serving', ['Read replica', 'Serving reads'], ['Still answers reads, from data that may be a moment old.', 'Accepts no writes.'], meter('Read load', reads, load) + meter('Write load', 0, false));
+    }
+    let b = failed ? '<b>Nothing took over.</b>Patients can still read old reports, and no appointment can be booked, because nothing accepts a write. A person must promote the replica and point the web tier at it. A replica is not a failover plan.' : '<b>Healthy.</b>The replica shares the reading. The application must be told to send its read queries to the second endpoint.';
+    if (load && !failed) b += ' <b>The read load is spread over two databases.</b>This is the design for a busy OPD morning.';
+    $('bSay').className = 'say' + (failed ? ' bad' : ''); $('bSay').innerHTML = b;
+    $('bFail').setAttribute('aria-pressed', failed); $('bLoad').setAttribute('aria-pressed', load);
+  }
+  $('bFail').addEventListener('click', () => { failed = !failed; draw(); });
+  $('bLoad').addEventListener('click', () => { load = !load; draw(); });
+  $('bReset').addEventListener('click', () => { failed = false; load = false; draw(); });
+  draw();
+</script>
+</body>
+</html>

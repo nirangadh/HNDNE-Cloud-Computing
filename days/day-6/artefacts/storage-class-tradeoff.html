@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storage class trade-off: what it costs to keep a report, and how long it takes to get it back</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .3rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); max-width: 52rem; }
+  .bar { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .9rem 1rem; margin-bottom: 1rem; }
+  .bar label { display: block; font-weight: 700; margin-bottom: .3rem; }
+  .bar output { font-weight: 800; font-size: 1.2rem; }
+  input[type=range] { width: 100%; min-height: 44px; accent-color: var(--navy); }
+  input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .ticks { display: flex; justify-content: space-between; font-size: .85rem; color: var(--ink-muted); }
+  .rows { display: grid; gap: .6rem; }
+  .row { background: var(--white); border: 2px solid var(--silver); border-radius: 6px; padding: .7rem 1rem; display: grid; grid-template-columns: 15rem 1fr 9rem; gap: .4rem 1rem; align-items: center; }
+  .row.cheapest { border-color: var(--navy); }
+  .row.rule { background: var(--turquoise-wash); }
+  @media (max-width: 52rem) { .row { grid-template-columns: 1fr; } }
+  .name b { display: block; }
+  .name span { font-size: .88rem; color: var(--ink-muted); }
+  .track { background: var(--paper); border: 1px solid var(--ink-muted); border-radius: 4px; height: 1.6rem; position: relative; }
+  .fill { background: var(--turquoise); border-right: 2px solid var(--navy); height: 100%; border-radius: 3px 0 0 3px; transition: width .3s; min-width: 2px; }
+  .row.rule .fill { background: var(--navy-raised); }
+  @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+  .cost { font-weight: 800; font-size: 1.15rem; text-align: right; }
+  @media (max-width: 52rem) { .cost { text-align: left; } }
+  .cost small { display: block; font-weight: 400; font-size: .82rem; color: var(--ink-muted); }
+  .tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem .6rem; font-size: .88rem; }
+  .tag { border: 1px solid var(--navy); border-radius: 4px; padding: .1rem .5rem; background: var(--white); }
+  .tag.slow { background: var(--signal-amber); font-weight: 600; }
+  .tag.min { border: 2px solid var(--signal-coral); font-weight: 600; }
+  .tag.best { background: var(--navy); color: var(--white); font-weight: 600; }
+  .say { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .8rem 1rem; margin: 1rem 0 0; }
+  .say b { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Storage class trade-off</h1>
+  <p class="lede">Thara adds laboratory reports to <code>thara-reports-&lt;student id&gt;</code> every month and keeps each one for a time. Move the slider to say for how long. Each bar is the monthly storage bill, for every 100 GB of reports added each month, if all of them sat in that class. Then read the labels under the bar: the cheapest class to keep is never the quickest to open.</p>
+
+  <div class="bar">
+    <label for="keep">Each report is kept for <output id="keepOut" for="keep"></output></label>
+    <input type="range" id="keep" min="1" max="84" step="1" value="12" aria-describedby="say">
+    <div class="ticks" aria-hidden="true"><span>1 month</span><span>3 years</span><span>7 years</span></div>
+  </div>
+
+  <div class="rows" id="rows"></div>
+
+  <div class="say" id="say" role="status" aria-live="polite"></div>
+
+  <footer>Prices are rounded figures for ap-south-1 at the time of writing, in USD for each gigabyte stored for a month, and are here for comparison only: read the S3 pricing page before you rely on one. The bars count storage and nothing else. Requests, and the charge for each gigabyte read back from every class except S3 Standard, come on top. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  // price: USD per GB-month; min: months you pay for at least; get: what fetching an object involves
+  const CLASSES = [
+    { id: 'std', name: 'S3 Standard', sub: 'data in daily use', price: 0.025, min: 0, get: 'opens at once', fee: 'no charge to read', slow: false },
+    { id: 'ia', name: 'S3 Standard-Infrequent Access', sub: 'kept, and seldom opened', price: 0.019, min: 1, get: 'opens at once', fee: 'a charge for each GB read', slow: false },
+    { id: 'gir', name: 'S3 Glacier Instant Retrieval', sub: 'an archive that must still open at once', price: 0.005, min: 3, get: 'opens at once', fee: 'a higher charge for each GB read', slow: false },
+    { id: 'gfr', name: 'S3 Glacier Flexible Retrieval', sub: 'an archive that can wait', price: 0.0045, min: 3, get: 'minutes to hours, after a restore request', fee: 'a charge for each GB restored', slow: true },
+    { id: 'gda', name: 'S3 Glacier Deep Archive', sub: 'kept for years, almost never read', price: 0.002, min: 6, get: 'hours, after a restore request', fee: 'a charge for each GB restored', slow: true }
+  ];
+  const ADDED = 100; // GB of reports added each month
+  const $ = id => document.getElementById(id);
+  const usd = v => 'USD ' + (v >= 100 ? v.toFixed(0) : v.toFixed(2));
+  const span = m => m < 12 ? m + (m === 1 ? ' month' : ' months') : (m % 12 === 0 ? (m / 12) + (m === 12 ? ' year' : ' years') : Math.floor(m / 12) + (m < 24 ? ' year ' : ' years ') + (m % 12) + (m % 12 === 1 ? ' month' : ' months'));
+  function draw() {
+    const m = +$('keep').value;
+    $('keepOut').textContent = span(m);
+    $('keep').setAttribute('aria-valuetext', span(m));
+    // steady state: ADDED GB arrive each month and each stays m months; a class with a minimum bills at least that long
+    const rows = CLASSES.map(c => ({ c, cost: ADDED * Math.max(m, c.min) * c.price, under: m < c.min }));
+    const ruleCost = ADDED * (Math.min(m, 3) * 0.025 + Math.max(m - 3, 0) * 0.019);
+    const top = Math.max(...rows.map(r => r.cost), ruleCost);
+    const quick = rows.filter(r => !r.c.slow); const bestQuick = quick.reduce((a, b) => b.cost < a.cost ? b : a);
+    const best = rows.reduce((a, b) => b.cost < a.cost ? b : a);
+    let h = rows.map(r => '<section class="row' + (r === best ? ' cheapest' : '') + '" aria-label="' + r.c.name + '">'
+      + '<div class="name"><b>' + r.c.name + '</b><span>' + r.c.sub + '</span></div>'
+      + '<div class="track"><div class="fill" style="width:' + (100 * r.cost / top).toFixed(1) + '%"></div></div>'
+      + '<div class="cost">' + usd(r.cost) + '<small>a month</small></div>'
+      + '<div class="tags"><span class="tag' + (r.c.slow ? ' slow' : '') + '">Getting it back: ' + r.c.get + '</span><span class="tag">' + r.c.fee + '</span>'
+      + (r.under ? '<span class="tag min">Kept for less than its minimum: billed for ' + span(r.c.min) + ' anyway</span>' : (r.c.min ? '<span class="tag">Minimum ' + span(r.c.min) + '</span>' : ''))
+      + (r === best ? '<span class="tag best">Cheapest to keep</span>' : '') + (r === bestQuick && r !== best ? '<span class="tag best">Cheapest that opens at once</span>' : '') + '</div></section>').join('');
+    h += '<section class="row rule" aria-label="Thara\'s lifecycle rule"><div class="name"><b>Thara\'s lifecycle rule</b><span>S3 Standard for 90 days, then Standard-Infrequent Access</span></div>'
+      + '<div class="track"><div class="fill" style="width:' + (100 * ruleCost / top).toFixed(1) + '%"></div></div>'
+      + '<div class="cost">' + usd(ruleCost) + '<small>a month</small></div>'
+      + '<div class="tags"><span class="tag">Getting it back: opens at once, at every age</span><span class="tag">' + (m <= 3 ? 'Nothing is old enough to move yet' : 'Reports older than 90 days are in the cheaper class') + '</span></div></section>';
+    $('rows').innerHTML = h;
+    const stdCost = rows[0].cost;
+    let s = '<b>Kept for ' + span(m) + '</b>';
+    s += 'In steady state the bucket holds ' + (ADDED * m).toLocaleString('en-GB') + ' GB for every ' + ADDED + ' GB added each month. ';
+    s += 'The cheapest class to keep it in is ' + best.c.name + ', at ' + usd(best.cost) + ' a month against ' + usd(stdCost) + ' in S3 Standard. ';
+    s += best.c.slow ? 'But a patient who asks for an old report would wait: ' + best.c.get + '. The cheapest class that still opens at once is ' + bestQuick.c.name + ', at ' + usd(bestQuick.cost) + '. ' : '';
+    s += m <= 3 ? 'With so short a life, the lifecycle rule changes nothing: no report reaches 90 days.' : 'Thara\'s rule costs ' + usd(ruleCost) + ' a month: every report opens at once, and only those that are seldom read sit in the cheaper class.';
+    $('say').innerHTML = s;
+  }
+  $('keep').addEventListener('input', draw);
+  draw();
+</script>
+</body>
+</html>
