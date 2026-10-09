@@ -115,3 +115,60 @@ A label of a key and a value on a resource. It changes nothing about how the res
 A long-lived credential for an IAM user: a key id and a secret, used by programs and the command line. It works until someone deactivates or deletes it.
 
 *Thara example:* the key typed into `thara-web-1` today is deactivated in teardown and deleted on Day 5.
+
+## Day 3
+
+### VPC
+A private network that you define in software inside one region, with its own range of addresses. Nothing enters or leaves it until you say so.
+
+*Thara example:* `thara-vpc`, with the range `10.0.0.0/16`, holds everything the pilot builds from today.
+
+### Subnet
+A slice of a VPC's address range that lives in exactly one availability zone. Where a subnet sits decides which zone its servers are in.
+
+*Thara example:* `thara-private-a` is `10.0.11.0/24` in one zone, and `thara-private-b` is `10.0.12.0/24` in another.
+
+### Route table
+The list of rules a subnet uses to decide where to send traffic for each destination range. A subnet is associated with exactly one.
+
+*Thara example:* `thara-private-rt` holds only the local route, so the private subnets have no way out.
+
+### Internet gateway
+The door between a VPC and the internet. It is attached to the VPC, and it translates between an instance's private address and its public one.
+
+*Thara example:* one gateway is attached to `thara-vpc`, and only `thara-public-rt` has a route to it.
+
+### Public subnet
+A subnet whose route table sends `0.0.0.0/0` to an internet gateway. Its name plays no part. An instance in it also needs a public address to be reachable.
+
+*Thara example:* `thara-public-a` is public because it is associated with `thara-public-rt`, not because of what it is called.
+
+### Elastic IP
+A public IPv4 address that stays yours until you release it. It survives a stop and a start, and can be moved from one instance to another.
+
+*Thara example:* `thara-bastion` has no Elastic IP, so its public address changes each time it is stopped and started.
+
+### Default VPC
+The ready-made network that every region gives an account. Every subnet in it is public and hands each instance a public address.
+
+*Thara example:* the Day 2 `thara-web-1` ran in the default VPC; from today everything goes into `thara-vpc`.
+
+### Network ACL
+A firewall on a subnet, with numbered allow and deny rules tried lowest first. It is stateless: a reply is judged as a new packet and needs its own rule.
+
+*Thara example:* `thara-strict-nacl` breaks SSH to the bastion until an outbound rule allows the reply.
+
+### Ephemeral port
+A temporary, high-numbered port that a client picks for one connection. The server's reply is sent back to it.
+
+*Thara example:* the bastion's SSH reply goes to an ephemeral port on your laptop, which is why the strict network ACL needs `1024-65535` outbound.
+
+### Flow log
+A record of the traffic at the network interfaces of a VPC: who talked to whom, on which port, and whether it was accepted or rejected. It does not record what was said.
+
+*Thara example:* the flow log on `thara-vpc` shows a REJECT record for the attempt on the bastion's port 3389.
+
+### Bastion
+The one server that administrators connect to from outside, and from which they reach everything else. It is the only administrative door into the network.
+
+*Thara example:* `thara-bastion` accepts SSH from the IT office's address only, and `thara-web-1` accepts SSH only from the bastion's group.

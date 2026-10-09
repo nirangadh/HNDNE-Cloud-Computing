@@ -100,6 +100,40 @@
 <h3 id="access-key">Access key</h3>
 <p>A long-lived credential for an IAM user: a key id and a secret, used by programs and the command line. It works until someone deactivates or deletes it.</p>
 <p><em>Thara example:</em> the key typed into <code>thara-web-1</code> today is deactivated in teardown and deleted on Day 5.</p>
+<h2 id="day-3">Day 3</h2>
+<h3 id="vpc">VPC</h3>
+<p>A private network that you define in software inside one region, with its own range of addresses. Nothing enters or leaves it until you say so.</p>
+<p><em>Thara example:</em> <code>thara-vpc</code>, with the range <code>10.0.0.0/16</code>, holds everything the pilot builds from today.</p>
+<h3 id="subnet">Subnet</h3>
+<p>A slice of a VPC's address range that lives in exactly one availability zone. Where a subnet sits decides which zone its servers are in.</p>
+<p><em>Thara example:</em> <code>thara-private-a</code> is <code>10.0.11.0/24</code> in one zone, and <code>thara-private-b</code> is <code>10.0.12.0/24</code> in another.</p>
+<h3 id="route-table">Route table</h3>
+<p>The list of rules a subnet uses to decide where to send traffic for each destination range. A subnet is associated with exactly one.</p>
+<p><em>Thara example:</em> <code>thara-private-rt</code> holds only the local route, so the private subnets have no way out.</p>
+<h3 id="internet-gateway">Internet gateway</h3>
+<p>The door between a VPC and the internet. It is attached to the VPC, and it translates between an instance's private address and its public one.</p>
+<p><em>Thara example:</em> one gateway is attached to <code>thara-vpc</code>, and only <code>thara-public-rt</code> has a route to it.</p>
+<h3 id="public-subnet">Public subnet</h3>
+<p>A subnet whose route table sends <code>0.0.0.0/0</code> to an internet gateway. Its name plays no part. An instance in it also needs a public address to be reachable.</p>
+<p><em>Thara example:</em> <code>thara-public-a</code> is public because it is associated with <code>thara-public-rt</code>, not because of what it is called.</p>
+<h3 id="elastic-ip">Elastic IP</h3>
+<p>A public IPv4 address that stays yours until you release it. It survives a stop and a start, and can be moved from one instance to another.</p>
+<p><em>Thara example:</em> <code>thara-bastion</code> has no Elastic IP, so its public address changes each time it is stopped and started.</p>
+<h3 id="default-vpc">Default VPC</h3>
+<p>The ready-made network that every region gives an account. Every subnet in it is public and hands each instance a public address.</p>
+<p><em>Thara example:</em> the Day 2 <code>thara-web-1</code> ran in the default VPC; from today everything goes into <code>thara-vpc</code>.</p>
+<h3 id="network-acl">Network ACL</h3>
+<p>A firewall on a subnet, with numbered allow and deny rules tried lowest first. It is stateless: a reply is judged as a new packet and needs its own rule.</p>
+<p><em>Thara example:</em> <code>thara-strict-nacl</code> breaks SSH to the bastion until an outbound rule allows the reply.</p>
+<h3 id="ephemeral-port">Ephemeral port</h3>
+<p>A temporary, high-numbered port that a client picks for one connection. The server's reply is sent back to it.</p>
+<p><em>Thara example:</em> the bastion's SSH reply goes to an ephemeral port on your laptop, which is why the strict network ACL needs <code>1024-65535</code> outbound.</p>
+<h3 id="flow-log">Flow log</h3>
+<p>A record of the traffic at the network interfaces of a VPC: who talked to whom, on which port, and whether it was accepted or rejected. It does not record what was said.</p>
+<p><em>Thara example:</em> the flow log on <code>thara-vpc</code> shows a REJECT record for the attempt on the bastion's port 3389.</p>
+<h3 id="bastion">Bastion</h3>
+<p>The one server that administrators connect to from outside, and from which they reach everything else. It is the only administrative door into the network.</p>
+<p><em>Thara example:</em> <code>thara-bastion</code> accepts SSH from the IT office's address only, and <code>thara-web-1</code> accepts SSH only from the bastion's group.</p>
 <nav class="pager" aria-label="Page navigation"><span></span><span><a href="index.html">All days</a></span><span></span></nav>
 </div>
 </main>

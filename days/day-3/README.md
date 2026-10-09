@@ -2,7 +2,14 @@
 
 ## Materials
 
-Files appear here before the teaching day.
+- [Morning slides: VPC anatomy](slides/day-3-morning.pdf) (PDF)
+- [Afternoon slides: Build the Thara network](slides/day-3-afternoon.pdf) (PDF)
+- [Notes](notes.md): read before the lab
+- [Lab sheet](lab.md): steps, prove it, break it, teardown and cost line
+- Interactive visuals. They run in the browser: open them from the [course website](https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/), because GitHub shows them as code.
+  - [Packet path predictor: which check stops the packet?](artefacts/packet-path-predictor.html)
+  - [Security group versus network ACL: one connection, two firewalls](artefacts/sg-vs-nacl.html)
+  - [Thara VPC builder: what Day 3 adds to the architecture](artefacts/thara-vpc-builder.html)
 
 ## Morning: VPC anatomy
 
@@ -27,7 +34,7 @@ Files appear here before the teaching day.
 
 **Self-check (issued separately):** Domain 3 networking set A (15 items); Domain 3 networking set B (15 items).
 
-**Practice question:** PQ3, posted in [practice](../../practice/).
+**Practice question:** [PQ3](../../practice/PQ3.md), posted in [practice](../../practice/).
 
 **Tasks:**
 

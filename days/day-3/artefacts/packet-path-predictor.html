@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Packet path predictor: which check stops the packet?</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 62rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  .sr { position: absolute; left: -9999px; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; margin-bottom: 1rem; }
+  .fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem 1rem; }
+  @media (max-width: 46rem) { .fields { grid-template-columns: 1fr; } }
+  label { display: block; font-weight: 600; font-size: .92rem; margin-bottom: .2rem; }
+  select { font: inherit; width: 100%; min-height: 44px; padding: .4rem .5rem; border: 2px solid var(--ink-muted); border-radius: 6px; background: var(--white); color: var(--navy); }
+  select:focus-visible, button:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .actions { display: flex; flex-wrap: wrap; gap: .6rem; margin: 0 0 1rem; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); }
+  button.primary { background: var(--navy); color: var(--white); }
+  button:disabled { border-color: var(--silver); color: var(--ink-muted); background: var(--paper); cursor: not-allowed; }
+  ol.path { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+  ol.path li { display: grid; grid-template-columns: 2.2rem 1fr auto; gap: .2rem .8rem; align-items: start; border: 2px solid var(--silver); border-radius: 6px; padding: .55rem .8rem; background: var(--paper); color: var(--ink-muted); }
+  ol.path li .n { font-weight: 800; }
+  ol.path li .what { font-weight: 600; }
+  ol.path li .why { grid-column: 2 / 4; font-size: .93rem; display: none; }
+  ol.path li .mark { font-weight: 700; font-size: .85rem; border-radius: 4px; padding: .1rem .5rem; border: 1px solid var(--silver); white-space: nowrap; }
+  ol.path li.now { border-color: var(--navy); background: var(--white); color: var(--navy); }
+  ol.path li.pass { border-color: var(--turquoise-deep); background: var(--turquoise-wash); color: var(--navy); }
+  ol.path li.pass .mark { background: var(--turquoise); border-color: var(--navy); color: var(--navy); }
+  ol.path li.drop { border-color: var(--navy); border-left: 8px solid var(--signal-coral); background: var(--white); color: var(--navy); }
+  ol.path li.drop .mark { background: var(--signal-coral); border-color: var(--navy); color: var(--navy); }
+  ol.path li.pass .why, ol.path li.drop .why { display: block; }
+  .leg { font-size: .8rem; font-weight: 700; letter-spacing: .04em; color: var(--ink-muted); margin: .8rem 0 .3rem; }
+  .result { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-tint); border-radius: 4px; padding: .8rem 1rem; }
+  .result.bad { border-left-color: var(--signal-coral); background: var(--white); border-top: 1px solid var(--silver); border-right: 1px solid var(--silver); border-bottom: 1px solid var(--silver); }
+  .result dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem 1rem; margin: .4rem 0 0; }
+  .result dt { font-weight: 600; } .result dd { margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Predict the packet path</h1>
+  <p class="lede">A packet meets a series of checks on its way through <code>thara-vpc</code>, and its reply meets them again on the way back. Choose who sends it, where it is going and how the network is configured. Predict where it stops. Then step through the checks one at a time.</p>
+
+  <section class="panel" aria-labelledby="pkT">
+    <h2 id="pkT">The packet</h2>
+    <div class="fields">
+      <div><label for="src">Sent by</label>
+        <select id="src">
+          <option value="office">Your laptop in the IT office (your IP)</option>
+          <option value="patient">A patient's browser</option>
+          <option value="stranger">A random internet address</option>
+          <option value="bastion">thara-bastion</option>
+        </select></div>
+      <div><label for="dst">Going to</label>
+        <select id="dst">
+          <option value="bastion">thara-bastion, in thara-public-a</option>
+          <option value="web">thara-web-1, in thara-private-a</option>
+        </select></div>
+      <div><label for="port">On port</label>
+        <select id="port">
+          <option value="22">22 (SSH)</option>
+          <option value="80">80 (HTTP)</option>
+          <option value="3389">3389 (nothing listens there)</option>
+        </select></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="cfT">
+    <h2 id="cfT">The network</h2>
+    <div class="fields">
+      <div><label for="route">thara-public-rt</label>
+        <select id="route">
+          <option value="yes">Has the default route to the internet gateway</option>
+          <option value="no">The default route has been removed</option>
+        </select></div>
+      <div><label for="nacl">Network ACL on thara-public-a</label>
+        <select id="nacl">
+          <option value="default">The default one: allows everything</option>
+          <option value="strict">thara-strict-nacl: in 80 and 22, out 80 and 443</option>
+          <option value="eph">thara-strict-nacl, plus out 1024-65535</option>
+        </select></div>
+      <div><label for="websrc">SSH source in thara-web-sg</label>
+        <select id="websrc">
+          <option value="group">thara-bastion-sg (a group)</option>
+          <option value="myip">Your IP (an address)</option>
+        </select></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="prT">
+    <h2 id="prT">Your prediction</h2>
+    <div class="fields">
+      <div><label for="guess">Where does it stop?</label>
+        <select id="guess">
+          <option value="">Choose before you step</option>
+          <option value="ok">Nowhere: the connection works</option>
+          <option value="igw">At the internet gateway</option>
+          <option value="rt">At a route table</option>
+          <option value="nacl">At a network ACL</option>
+          <option value="sg">At a security group</option>
+        </select></div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button type="button" class="primary" id="step">Step to the next check</button>
+    <button type="button" id="run">Run to the end</button>
+    <button type="button" id="reset">Start again</button>
+  </div>
+  <p class="sr" id="status" aria-live="polite"></p>
+
+  <section class="panel" aria-labelledby="chT">
+    <h2 id="chT">The checks, in the order the packet meets them</h2>
+    <div id="lanes"></div>
+  </section>
+
+  <div id="result" class="result" hidden></div>
+
+  <footer>Names and address ranges are those of today's lab. The rules shown are the ones the lab builds: <code>thara-bastion-sg</code> allows SSH from your IP only; <code>thara-web-sg</code> allows HTTP from anywhere and SSH from the bastion's group.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const WHO = { office: 'your laptop', patient: "the patient's browser", stranger: 'the random address', bastion: 'thara-bastion' };
+  const SUBNET = { bastion: 'thara-public-a', web: 'thara-private-a' };
+  // Build the list of checks for the current choices. Each check: {leg, kind, what, pass, why}.
+  function plan() {
+    const s = $('src').value, d = $('dst').value, port = +$('port').value;
+    const route = $('route').value === 'yes', nacl = $('nacl').value, websrc = $('websrc').value;
+    const out = [], internet = s !== 'bastion';
+    const strict = nacl !== 'default';
+    const add = (leg, kind, what, pass, why) => out.push({ leg, kind, what, pass, why });
+    if (internet) {
+      add('Request', 'igw', 'Internet gateway', d === 'bastion',
+        d === 'bastion' ? 'thara-bastion has a public address. The gateway translates it to the private address and passes the packet into the VPC.'
+                        : 'thara-web-1 has no public address. There is nothing on the internet to send this packet to, so it never arrives at the VPC.');
+      add('Request', 'rt', 'Route table: the local route', true, 'Inside the VPC the local route, 10.0.0.0/16, delivers the packet to thara-public-a.');
+      const inOk = !strict || port === 80 || port === 22;
+      add('Request', 'nacl', 'Network ACL on thara-public-a, inbound rules', inOk,
+        !strict ? 'The default network ACL allows everything in.'
+                : inOk ? 'Rule ' + (port === 80 ? '100' : '110') + ' allows port ' + port + ' in. The first match decides.'
+                       : 'Rules 100 and 110 do not match port ' + port + '. The final rule, *, denies it.');
+      const sgOk = port === 22 && s === 'office';
+      add('Request', 'sg', 'Security group thara-bastion-sg', sgOk,
+        sgOk ? 'One rule allows SSH from your IP, and this packet is SSH from your IP.'
+             : port !== 22 ? 'No rule allows port ' + port + '. A security group has allow rules only, so what is not allowed is dropped.'
+                           : 'The only rule allows SSH from your IP. This packet comes from another address, so no rule allows it.');
+      add('Request', 'host', 'The instance thara-bastion', true, 'The SSH service is listening on port 22 and answers.');
+      add('Reply', 'sg', 'Security group thara-bastion-sg', true, 'Stateful: the group remembers the request it allowed, so the reply leaves without any rule being consulted.');
+      const outOk = nacl !== 'strict';
+      add('Reply', 'nacl', 'Network ACL on thara-public-a, outbound rules', outOk,
+        nacl === 'default' ? 'The default network ACL allows everything out.'
+          : outOk ? 'Stateless: the reply is judged as a new packet. It is going to a high-numbered port on the sender, and rule 120 allows 1024-65535 out.'
+                  : 'Stateless: the reply is judged as a new packet. It is going to a high-numbered port on the sender. Rules 100 and 110 allow only 80 and 443 out, so * denies it.');
+      add('Reply', 'rt', 'Route table thara-public-rt', route,
+        route ? 'The destination is on the internet. The default route, 0.0.0.0/0, sends the reply to the internet gateway.'
+              : 'The destination is on the internet and only the local route is left. The subnet has nowhere to send the reply.');
+      add('Reply', 'igw', 'Internet gateway', true, 'The gateway translates the private address back to the public one and the reply leaves the VPC.');
+    } else {
+      add('Request', 'rt', 'Route table thara-public-rt', true, 'The destination, 10.0.11.x, is inside 10.0.0.0/16. The local route delivers it. No gateway is involved.');
+      const o = !strict || port === 80 || (nacl === 'eph' && port >= 1024);
+      add('Request', 'nacl', 'Network ACL on thara-public-a, outbound rules', o,
+        !strict ? 'The default network ACL allows everything out.'
+          : o ? (port === 80 ? 'Rule 100 allows port 80 out.' : 'Rule 120 allows ports 1024-65535 out, and ' + port + ' is in that range.')
+              : 'No outbound rule allows port ' + port + ', so * denies it. The strict rules were written for visitors arriving, not for the bastion calling out.');
+      add('Request', 'nacl', 'Network ACL on thara-private-a, inbound rules', true, 'This subnet still has the default network ACL, which allows everything in.');
+      const g = port === 80 || (port === 22 && websrc === 'group');
+      add('Request', 'sg', 'Security group thara-web-sg', g,
+        port === 80 ? 'One rule allows HTTP from anywhere.'
+          : port === 22 ? (websrc === 'group' ? 'One rule allows SSH from thara-bastion-sg, and the bastion wears that group.'
+                                              : 'The SSH rule now names your IP. The bastion arrives from its private address, 10.0.1.x, which no rule allows.')
+                        : 'No rule allows port 3389. The absence of an allow is the deny.');
+      add('Request', 'host', 'The instance thara-web-1', true, port === 80 ? 'The web server is listening on port 80 and answers.' : 'The SSH service is listening on port 22 and answers.');
+      add('Reply', 'sg', 'Security group thara-web-sg', true, 'Stateful: the reply to an allowed request leaves without any rule being consulted.');
+      add('Reply', 'nacl', 'Network ACL on thara-private-a, outbound rules', true, 'The default network ACL allows everything out.');
+      add('Reply', 'rt', 'Route table thara-private-rt', true, 'The bastion is inside 10.0.0.0/16, so the local route delivers the reply. This table needs no other route for that.');
+      add('Reply', 'nacl', 'Network ACL on thara-public-a, inbound rules', !strict,
+        !strict ? 'The default network ACL allows everything in.'
+                : 'Stateless: the reply arrives on a high-numbered port, and the inbound rules allow only 80 and 22. * denies it.');
+    }
+    const stop = out.findIndex(c => !c.pass);
+    return { checks: stop < 0 ? out : out.slice(0, stop + 1), ok: stop < 0, s, d, port, last: stop < 0 ? null : out[stop] };
+  }
+  let P, at;
+  function draw() {
+    let h = '', leg = '';
+    P.checks.forEach((c, i) => {
+      if (c.leg !== leg) { if (leg) h += '</ol>'; leg = c.leg; h += '<p class="leg">' + (leg === 'Request' ? 'THE REQUEST, GOING IN' : 'THE REPLY, COMING BACK') + '</p><ol class="path">'; }
+      const st = i < at ? (c.pass ? 'pass' : 'drop') : i === at ? 'now' : '';
+      const mark = i < at ? (c.pass ? 'Passed' : 'Dropped here') : i === at ? 'Next' : 'Waiting';
+      h += '<li class="' + st + '"><span class="n">' + (i + 1) + '</span><span class="what">' + c.what + '</span><span class="mark">' + mark + '</span><span class="why">' + c.why + '</span></li>';
+    });
+    $('lanes').innerHTML = h + '</ol>';
+    const done = at >= P.checks.length;
+    $('step').disabled = $('run').disabled = done;
+    $('result').hidden = !done;
+    if (done) finish();
+  }
+  function finish() {
+    const g = $('guess').value, L = P.last;
+    const sees = P.ok ? 'The connection opens.' : 'A timeout. Nothing comes back to say why.';
+    let log;
+    if (P.ok) log = 'ACCEPT records, in both directions.';
+    else if (L.kind === 'igw') log = 'No record at all. The packet never reached a network interface of the VPC.';
+    else if (L.kind === 'rt') log = 'An ACCEPT record for the request. The two firewalls allowed it; the reply was lost to routing, which a flow log does not judge.';
+    else if (L.leg === 'Reply') log = 'An ACCEPT record for the request and a REJECT record for its reply. Each direction is judged, and recorded, separately.';
+    else log = 'A REJECT record at the interface, with the source address and destination port ' + P.port + '.';
+    let verdict = '';
+    if (g) verdict = '<dt>Your prediction</dt><dd>' + ((P.ok && g === 'ok') || (!P.ok && g === L.kind) ? 'Right.' : 'Not this time. Read the reason on the last check and try another case.') + '</dd>';
+    $('result').className = 'result' + (P.ok ? '' : ' bad');
+    $('result').innerHTML = '<strong>' + (P.ok ? 'The packet and its reply both get through.' : 'Stopped at check ' + P.checks.length + ': ' + L.what + ', on the ' + L.leg.toLowerCase() + '.') + '</strong>' +
+      '<dl><dt>What ' + WHO[P.s] + ' sees</dt><dd>' + sees + '</dd><dt>What the flow log shows</dt><dd>' + log + '</dd>' + verdict + '</dl>';
+    $('status').textContent = $('result').textContent;
+  }
+  function reset() {
+    if ($('src').value === 'bastion') { $('dst').value = 'web'; $('dst').disabled = true; } else $('dst').disabled = false;
+    P = plan(); at = 0; draw(); $('status').textContent = 'Ready. ' + P.checks.length + ' or fewer checks ahead.';
+  }
+  $('step').onclick = () => {
+    at++; draw();
+    const c = P.checks[at - 1];
+    if (at < P.checks.length) $('status').textContent = c.what + ': passed. ' + c.why;
+  };
+  $('run').onclick = () => { at = P.checks.length; draw(); };
+  $('reset').onclick = () => { $('guess').value = ''; reset(); };
+  ['src', 'dst', 'port', 'route', 'nacl', 'websrc'].forEach(id => $(id).addEventListener('change', reset));
+  reset();
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>PQ3: A network for the Trincomalee branch | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Posted after Day 3. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/practice/PQ3.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="PQ3: A network for the Trincomalee branch">
+<meta property="og:description" content="Posted after Day 3. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/practice/PQ3.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/practice/PQ3.html","name":"PQ3: A network for the Trincomalee branch","position":2}]}</script>
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>PQ3: A network for the Trincomalee branch</h1><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<p>Posted after Day 3. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.</p>
+<h2 id="scenario">Scenario</h2>
+<p>Thara Hospitals is opening a fifth branch, in Trincomalee, and it must be working within a month. The branch gets a small appointment system of its own with two tiers: a <strong>web tier</strong> that patients and reception staff use from the internet, and a <strong>database</strong> of appointments, which holds patient names.</p>
+<p>The Head of IT wants the system in a VPC of its own in Asia Pacific (Mumbai), ap-south-1, built to the same pattern as the pilot so that the two networks can be connected later. How they will be connected is not part of this question.</p>
+<p>Constraints you should notice:</p>
+<ul>
+<li>The branch VPC is given the range <strong><code>10.2.0.0/16</code></strong>. The pilot's <code>thara-vpc</code> uses <code>10.0.0.0/16</code> and the partner laboratory uses <code>10.1.0.0/16</code>.</li>
+<li>The web tier must be reachable from the internet on HTTP, and must keep working if <strong>one availability zone is lost</strong>.</li>
+<li>The database listens on TCP port 3306. It must accept connections <strong>only from the web tier</strong>, and it must never have a public address.</li>
+<li>Administrators connect by SSH, <strong>only from the Colombo IT office</strong>, whose public address range is <code>203.0.113.0/24</code>, and only through one bastion.</li>
+<li>The Data Protection Officer wants to be able to show any connection attempt that was refused.</li>
+<li>The CFO has set aside <strong>USD 40 a month</strong> of the pilot's USD 150 for this branch, and wants every line explained.</li>
+</ul>
+<p>Use these rounded prices. Do not rely on remembered ones.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Price</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>t3.micro</code>, running</td>
+<td>USD 0.011 per hour (a month is 730 hours)</td>
+</tr>
+<tr>
+<td>A public IPv4 address, in use or idle</td>
+<td>USD 0.005 per hour</td>
+</tr>
+<tr>
+<td>A VPC, its subnets, route tables, internet gateway, security groups and network ACLs</td>
+<td>No charge</td>
+</tr>
+</tbody>
+</table></div>
+<p>Every server in this system is a <code>t3.micro</code>: two web servers, one database server and one bastion.</p>
+<h2 id="questions">Questions</h2>
+<p><strong>(a) Explain (6 marks).</strong> Explain what makes a subnet public. Then distinguish a security group from a network ACL by what each is attached to, whether it keeps state, the kinds of rule it holds and the order in which its rules are evaluated, and explain why a reply needs a rule on one of them and not on the other.</p>
+<p><strong>(b) Apply (8 marks).</strong> Design the branch VPC. Draw it, or describe it precisely enough to be drawn:</p>
+<ul>
+<li>the subnets, with a range and an availability zone for each, and whether each is public or private;</li>
+<li>the route tables, with every route in each and the subnets associated with each;</li>
+<li>where the two web servers, the database server and the bastion sit, and which of them have a public address; and</li>
+<li>the inbound rules of three security groups, one each for the bastion, the web tier and the database, giving the type or port and the source of every rule.</li>
+</ul>
+<p>Then state what you would switch on for the Data Protection Officer, and where its records would go.</p>
+<p><strong>(c) Evaluate (6 marks).</strong> Two proposals are made to simplify the design.</p>
+<ol>
+<li>A colleague: "Drop the bastion. Give the database server a public address and allow SSH to it from the IT office range only. It is the same rule with one server fewer."</li>
+<li>A second colleague: "Replace the three security groups with one network ACL on each subnet. An ACL can deny as well as allow, so it is the stronger tool."</li>
+</ol>
+<p>Evaluate each proposal against the scenario. State what it would save, what it would cost Thara in other ways and how it could fail. Finish with a judgement for the CFO on whether the design fits inside USD 40 a month, using the prices given, and say what would change your view.</p>
+<h2 id="answer-guidance">Answer guidance</h2>
+<p>This guidance describes what a strong answer covers. It is not a model answer to memorise; the marks go to reasoning applied to Thara.</p>
+<p><strong>(a)</strong> A strong answer says that a subnet is public because its route table has a default route, <code>0.0.0.0/0</code>, to an internet gateway, and that an instance in it is reachable only if it also has a public address; the subnet's name decides nothing. It then contrasts the two firewalls on the same four points. A security group is attached to an instance's network interface, is stateful, holds allow rules only, and is evaluated as a whole. A network ACL is attached to a subnet, is stateless, holds allow and deny rules, and is evaluated in numbered order with the first match deciding. Because a security group remembers the request it allowed, the reply passes without a rule. A network ACL judges the reply as a new packet, travelling from the service's port to a temporary high-numbered port on the client, so it needs its own rule for the ephemeral range in the other direction.</p>
+<p><strong>(b)</strong> A strong answer carves four subnets out of <code>10.2.0.0/16</code> across two zones, for example <code>10.2.1.0/24</code> and <code>10.2.2.0/24</code> as public subnets in zones a and b, and <code>10.2.11.0/24</code> and <code>10.2.12.0/24</code> as private subnets in the same two zones. It attaches an internet gateway. The public route table holds the local route and <code>0.0.0.0/0</code> to the gateway and is associated with both public subnets. The private route table holds the local route only and is associated with both private subnets. One web server sits in each public subnet with a public address, which is what meets the loss of one zone. The bastion sits in a public subnet with a public address. The database server sits in a private subnet with none. The rules: the bastion's group allows SSH from <code>203.0.113.0/24</code>; the web tier's group allows HTTP from anywhere and SSH from the bastion's group; the database's group allows port 3306 from the web tier's group and SSH from the bastion's group. Naming a group as the source, not an address range, is the mark of a strong answer: the rule keeps working when a web server is replaced and gets a new address. For the Data Protection Officer: a flow log on the VPC, delivered to a log group in CloudWatch Logs, where a refused attempt appears as a REJECT record with its source address and port.</p>
+<p><strong>(c)</strong> A strong answer takes the proposals separately. The first saves the bastion, about USD 11.68 a month, and breaks a stated requirement: the database must never have a public address. To be reached it would also have to sit in a public subnet, so the patient data is one mistaken rule away from the internet, and the single door that the Head of IT asked for is gone. The second misreads what each tool is for. A network ACL cannot name a group as a source, so "only from the web tier" becomes "from the public subnets' ranges", which also admits the bastion and anything else placed there. It cannot tell one instance in a subnet from another. And it is stateless, so every allow needs a matching return rule for the ephemeral ports, and the commonest failure is a connection that times out because that rule was forgotten. Its real strength, denying a named range for a whole subnet, is not something this design needs. On cost: a running <code>t3.micro</code> with a public address is USD 0.016 an hour, about USD 11.68 a month, and without one about USD 8.03. Two web servers are about USD 23.36, the database server about USD 8.03, the bastion about USD 11.68: about USD 43 in all, just over the ceiling. The network itself costs nothing. The answer for the CFO is not to remove the bastion but to stop it when nobody is administering the system: a stopped bastion has no instance charge and no public address charge, which brings the design to roughly USD 31 plus a little storage. What would change the view: a requirement for administrators to be on call at all hours, a ceiling that cannot stretch to two web servers, or a blocklist of addresses that the hospital must refuse, which is the one job here that a network ACL would do better.</p>
+<nav class="pager" aria-label="Page navigation"><span></span><span><a href="../index.html">All days</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence. See the <a href="../LICENSE-CONTENT.html">licence notes</a>.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../assets/js/site.js" defer></script>
+</body>
+</html>

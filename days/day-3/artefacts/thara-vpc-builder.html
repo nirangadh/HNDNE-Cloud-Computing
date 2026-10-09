@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thara VPC builder: what Day 3 adds to the architecture</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 76rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.1rem; margin: 0 0 .5rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  .sr { position: absolute; left: -9999px; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .frame { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .5rem; overflow-x: auto; }
+  .frame svg { display: block; width: 100%; min-width: 60rem; height: auto; }
+  .key { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; margin: .7rem 0 1rem; font-size: .9rem; color: var(--ink-muted); }
+  .key b { color: var(--navy); }
+  .cols { display: grid; grid-template-columns: 19rem 1fr; gap: 1rem; margin-top: 1rem; }
+  @media (max-width: 52rem) { .cols { grid-template-columns: 1fr; } }
+  .list { display: grid; gap: .4rem; align-content: start; }
+  .list button { font: inherit; text-align: left; border-radius: 6px; padding: .5rem .7rem; cursor: pointer; border: 2px solid var(--ink-muted); background: var(--white); color: var(--navy); min-height: 44px; }
+  .list button .st { display: block; font-size: .8rem; color: var(--ink-muted); }
+  .list button.today { border-color: var(--navy); background: var(--turquoise-tint); }
+  .list button[aria-pressed="true"] { background: var(--turquoise); border-color: var(--navy); }
+  .list button[aria-pressed="true"] .st { color: var(--navy); }
+  button:focus-visible, svg g[tabindex]:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .panel .state { display: inline-block; font-size: .8rem; font-weight: 700; border-radius: 4px; padding: .1rem .5rem; border: 1px solid var(--navy); margin-bottom: .5rem; }
+  .panel .state.today { background: var(--turquoise); }
+  .panel .state.later { background: var(--paper); border-color: var(--ink-muted); color: var(--ink-muted); }
+  .panel table { border-collapse: collapse; width: 100%; margin: .5rem 0; }
+  .panel th, .panel td { text-align: left; vertical-align: top; padding: .4rem .6rem; border-bottom: 1px solid var(--silver); font-size: .95rem; }
+  .panel th { width: 11rem; color: var(--ink-muted); font-weight: 600; }
+  .panel td.step { width: 7rem; white-space: nowrap; font-weight: 600; }
+  .note { background: var(--turquoise-tint); border-left: 5px solid var(--turquoise-deep); border-radius: 4px; padding: .7rem 1rem; margin-top: .8rem; }
+  svg g[data-component] { cursor: pointer; }
+  svg g.earlier { opacity: .5; }
+  svg g.later { opacity: .2; }
+  svg g.today rect.box { stroke: #2A7A7A; stroke-width: 2.6; }
+  svg g.sel rect.box, svg g.sel rect.frame { stroke: #0D2B45; stroke-width: 3.4; }
+  svg #c4 rect { pointer-events: all; }
+  svg path[data-needs] { opacity: .15; }
+  svg path[data-needs].on { opacity: 1; }
+</style>
+</head>
+<body>
+<main>
+  <h1>The Thara architecture after Day 3</h1>
+  <p class="lede">Today's lab builds components 4, 5 and 6. Choose a component, in the drawing or in the list, to see how it is configured and which lab step builds it.</p>
+  <div class="frame">
+<svg viewBox="10 80 1170 600" role="img" aria-labelledby="dgT" id="dg" font-family="'Open Sans', Arial, sans-serif">
+  <title id="dgT">The Thara Hospitals architecture, with the components built on Day 3 lit</title>
+  <defs>
+    <style>
+      .teal{fill:#48C9B0}.amber{fill:#F4B942}.navy{fill:#0D2B45}
+      .box{fill:#FFFFFF;stroke:#0D2B45;stroke-width:1.2}
+      .sub-pub{fill:#EDFAF7;stroke:#2A7A7A;stroke-width:1.3;stroke-dasharray:6 4}
+      .sub-priv{fill:#F7F7F7;stroke:#0D2B45;stroke-width:1.3;stroke-dasharray:6 4}
+      .lbl{font-size:12.5px;fill:#0D2B45}.small{font-size:9.8px;fill:#546472}
+      .num{font-size:11.5px;font-weight:700;fill:#0D2B45}
+      .title{font-size:19px;font-weight:700;fill:#0D2B45}
+      .line{stroke:#0D2B45;stroke-width:1.4;fill:none}
+      .dashed{stroke:#546472;stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+    </style>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0D2B45"/></marker>
+  </defs>
+  <rect x="20" y="110" width="180" height="60" rx="8" class="box"/>
+  <text x="118" y="135" class="lbl" text-anchor="middle">Patients and</text>
+  <text x="118" y="153" class="lbl" text-anchor="middle">Colombo IT (internet)</text>
+  <g id="c13" data-component="13">
+    <rect x="20" y="200" width="180" height="70" rx="8" class="box"/>
+    <circle cx="36" cy="212" r="10" class="amber"/><text x="36" y="216" class="num" text-anchor="middle">13</text>
+    <text x="118" y="232" class="lbl" text-anchor="middle">Edge</text>
+    <text x="118" y="246" class="small" text-anchor="middle">WAF (demo), CloudFront (concept)</text>
+    <text x="118" y="261" class="small" text-anchor="middle">Shield (concept)</text>
+    <rect x="20" y="300" width="180" height="70" rx="8" class="box"/>
+    <circle cx="36" cy="312" r="10" class="amber"/><text x="36" y="316" class="num" text-anchor="middle">13</text>
+    <text x="118" y="334" class="lbl" text-anchor="middle">Branch hospitals</text>
+    <text x="118" y="350" class="small" text-anchor="middle">Kandy, Galle, Negombo, Kurunegala</text>
+    <text x="118" y="364" class="small" text-anchor="middle">Site-to-Site VPN (concept)</text>
+  </g>
+  <g id="c1" data-component="1">
+    <rect x="20" y="420" width="180" height="70" rx="8" class="box"/>
+    <circle cx="36" cy="432" r="10" class="teal"/><text x="36" y="436" class="num" text-anchor="middle">1</text>
+    <text x="118" y="454" class="lbl" text-anchor="middle">Account guardrails</text>
+    <text x="118" y="470" class="small" text-anchor="middle">root MFA, IAM admin,</text>
+    <text x="118" y="484" class="small" text-anchor="middle">Budget, tags, Cost Explorer</text>
+  </g>
+  <g id="c10" data-component="10">
+    <rect x="20" y="520" width="180" height="80" rx="8" class="box"/>
+    <circle cx="36" cy="532" r="10" class="teal"/><text x="36" y="536" class="num" text-anchor="middle">10</text>
+    <text x="118" y="556" class="lbl" text-anchor="middle">Identity, keys, audit</text>
+    <text x="118" y="572" class="small" text-anchor="middle">roles, least privilege, KMS,</text>
+    <text x="118" y="587" class="small" text-anchor="middle">CloudTrail, GuardDuty (demo)</text>
+  </g>
+  <g id="c4" data-component="4">
+    <rect x="220" y="110" width="720" height="560" rx="12" class="frame" fill="none" stroke="#48C9B0" stroke-width="2.5"/>
+    <circle cx="240" cy="130" r="11" class="teal"/><text x="240" y="134" class="num" text-anchor="middle">4</text>
+    <text x="258" y="135" class="lbl">thara-vpc 10.0.0.0/16</text>
+    <rect x="520" y="90" width="120" height="36" rx="18" class="box"/>
+    <text x="580" y="113" class="lbl" text-anchor="middle">Internet gateway</text>
+    <rect x="245" y="160" width="330" height="480" rx="8" fill="none" stroke="#AAAAAA" stroke-width="1"/>
+    <text x="255" y="178" class="small">Availability Zone a</text>
+    <rect x="595" y="160" width="330" height="480" rx="8" fill="none" stroke="#AAAAAA" stroke-width="1"/>
+    <text x="605" y="178" class="small">Availability Zone b</text>
+    <rect x="260" y="190" width="300" height="150" rx="6" class="sub-pub"/>
+    <text x="270" y="208" class="small">thara-public-a 10.0.1.0/24</text>
+    <rect x="610" y="190" width="300" height="150" rx="6" class="sub-pub"/>
+    <text x="620" y="208" class="small">thara-public-b 10.0.2.0/24</text>
+    <rect x="260" y="360" width="300" height="260" rx="6" class="sub-priv"/>
+    <text x="270" y="378" class="small">thara-private-a 10.0.11.0/24</text>
+    <rect x="610" y="360" width="300" height="260" rx="6" class="sub-priv"/>
+    <text x="620" y="378" class="small">thara-private-b 10.0.12.0/24</text>
+  </g>
+  <g id="c12" data-component="12">
+    <rect x="470" y="220" width="240" height="40" rx="20" class="box"/>
+    <circle cx="485" cy="240" r="10" class="teal"/><text x="485" y="244" class="num" text-anchor="middle">12</text>
+    <text x="600" y="245" class="lbl" text-anchor="middle">Application Load Balancer</text>
+  </g>
+  <g id="c5" data-component="5">
+    <rect x="275" y="280" width="130" height="46" rx="6" class="box"/>
+    <circle cx="290" cy="295" r="10" class="teal"/><text x="290" y="299" class="num" text-anchor="middle">5</text>
+    <text x="345" y="300" class="lbl" text-anchor="middle">Bastion</text>
+    <text x="345" y="316" class="small" text-anchor="middle">thara-bastion</text>
+  </g>
+  <g id="c7" data-component="7">
+    <rect x="760" y="280" width="130" height="46" rx="6" class="box"/>
+    <circle cx="775" cy="295" r="10" class="teal"/><text x="775" y="299" class="num" text-anchor="middle">7</text>
+    <text x="830" y="300" class="lbl" text-anchor="middle">NAT gateway</text>
+    <text x="830" y="316" class="small" text-anchor="middle">bounded window</text>
+  </g>
+  <g id="c6" data-component="6">
+    <rect x="275" y="395" width="270" height="70" rx="6" class="box"/>
+    <circle cx="290" cy="410" r="10" class="teal"/><text x="290" y="414" class="num" text-anchor="middle">6</text>
+    <text x="410" y="420" class="lbl" text-anchor="middle">Web tier: thara-web-1</text>
+    <text x="410" y="438" class="small" text-anchor="middle">from the Day 2 AMI (component 2)</text>
+    <text x="410" y="454" class="small" text-anchor="middle">Auto Scaling group min 2 (12)</text>
+    <rect x="625" y="395" width="270" height="70" rx="6" class="box"/>
+    <circle cx="640" cy="410" r="10" class="teal"/><text x="640" y="414" class="num" text-anchor="middle">6</text>
+    <text x="760" y="420" class="lbl" text-anchor="middle">Web tier: thara-web-2</text>
+    <text x="760" y="438" class="small" text-anchor="middle">from the Day 2 AMI (component 2)</text>
+    <text x="760" y="454" class="small" text-anchor="middle">Auto Scaling group min 2 (12)</text>
+  </g>
+  <g id="c11" data-component="11">
+    <rect x="275" y="500" width="270" height="70" rx="6" class="box"/>
+    <circle cx="290" cy="515" r="10" class="teal"/><text x="290" y="519" class="num" text-anchor="middle">11</text>
+    <text x="410" y="525" class="lbl" text-anchor="middle">Patient records: RDS thara-records</text>
+    <text x="410" y="543" class="small" text-anchor="middle">encrypted with alias/thara-records</text>
+    <text x="410" y="559" class="small" text-anchor="middle">AWS Backup plan, RPO 1h, RTO 2h</text>
+  </g>
+  <rect x="625" y="500" width="270" height="70" rx="6" class="box" stroke-dasharray="4 3"/>
+  <text x="760" y="530" class="lbl" text-anchor="middle">Multi-AZ standby (concept)</text>
+  <text x="760" y="548" class="small" text-anchor="middle">taught, not built in the pilot</text>
+  <g id="c8" data-component="8">
+    <rect x="470" y="585" width="240" height="40" rx="20" class="box"/>
+    <circle cx="485" cy="605" r="10" class="teal"/><text x="485" y="609" class="num" text-anchor="middle">8</text>
+    <text x="600" y="610" class="lbl" text-anchor="middle">S3 gateway endpoint</text>
+  </g>
+  <g id="c3" data-component="3">
+    <rect x="980" y="560" width="190" height="80" rx="8" class="box"/>
+    <circle cx="995" cy="575" r="10" class="teal"/><text x="995" y="579" class="num" text-anchor="middle">3</text>
+    <text x="1075" y="590" class="lbl" text-anchor="middle">Laboratory reports</text>
+    <text x="1075" y="608" class="small" text-anchor="middle">S3 thara-reports</text>
+    <text x="1075" y="623" class="small" text-anchor="middle">versioned, encrypted, no public</text>
+  </g>
+  <g id="c9" data-component="9">
+    <rect x="980" y="200" width="190" height="90" rx="12" class="frame" fill="none" stroke="#2A7A7A" stroke-width="1.8"/>
+    <circle cx="995" cy="215" r="10" class="teal"/><text x="995" y="219" class="num" text-anchor="middle">9</text>
+    <text x="1075" y="235" class="lbl" text-anchor="middle">Partner laboratory</text>
+    <text x="1075" y="253" class="small" text-anchor="middle">partnerlab-vpc 10.1.0.0/16</text>
+    <text x="1075" y="271" class="small" text-anchor="middle">VPC peering, built then withdrawn</text>
+  </g>
+  <g id="c2" data-component="2">
+    <rect x="980" y="400" width="190" height="70" rx="8" class="box"/>
+    <circle cx="995" cy="415" r="10" class="teal"/><text x="995" y="419" class="num" text-anchor="middle">2</text>
+    <text x="1075" y="430" class="lbl" text-anchor="middle">Portal image</text>
+    <text x="1075" y="448" class="small" text-anchor="middle">custom AMI + EBS snapshot</text>
+    <text x="1075" y="463" class="small" text-anchor="middle">source of every web instance</text>
+  </g>
+  <path data-needs="13" d="M118 170 L118 200" class="line"/>
+  <path data-needs="13" d="M118 270 L118 300" class="dashed"/>
+  <path data-needs="13" d="M200 230 L520 108" class="line" marker-end="url(#arr)"/>
+  <path data-needs="12" d="M580 126 L590 220" class="line" marker-end="url(#arr)"/>
+  <path data-needs="13" d="M200 335 L245 335" class="dashed" marker-end="url(#arr)"/>
+  <path data-needs="12" d="M520 260 L410 395" class="line" marker-end="url(#arr)"/>
+  <path data-needs="12" d="M660 260 L760 395" class="line" marker-end="url(#arr)"/>
+  <path data-needs="5,6" d="M345 326 L345 395" class="line" marker-end="url(#arr)"/>
+  <path data-needs="11" d="M410 465 L410 500" class="line" marker-end="url(#arr)"/>
+  <path data-needs="11" d="M760 465 L470 535" class="line" marker-end="url(#arr)"/>
+  <path data-needs="8" d="M545 430 L590 585" class="line" marker-end="url(#arr)"/>
+  <path data-needs="8" d="M710 605 L980 600" class="line" marker-end="url(#arr)"/>
+  <path data-needs="7" d="M830 280 L600 126" class="line" marker-end="url(#arr)"/>
+  <path data-needs="9" d="M925 245 L980 245" class="dashed" marker-end="url(#arr)"/>
+  <path data-needs="2,6" d="M980 435 L895 420" class="dashed" marker-end="url(#arr)"/>
+</svg>
+  </div>
+  <p class="key"><span><b>Bright</b>: built today</span><span><b>Dimmed</b>: built on an earlier day</span><span><b>Faint</b>: not built yet</span></p>
+  <p class="sr" id="status" aria-live="polite"></p>
+  <div class="cols">
+    <div class="list" id="list" role="group" aria-label="Components"></div>
+    <section class="panel" id="panel" aria-labelledby="pT"></section>
+  </div>
+  <footer>The drawing is the module's canonical architecture. Thara Hospitals is fictional. The second web server, <code>thara-web-2</code>, appears in the drawing because the web tier is one component; it is built on Day 7.</footer>
+</main>
+<script>
+  const TODAY = 3;
+  // One entry per numbered component. `day` is the day that first builds it; `rows` are shown as a table.
+  const C = [
+    { id: 1, name: 'Guardrails', day: 1, text: 'The account itself, locked before anything was built in it.',
+      rows: [['Root user', 'MFA on; put away after Day 1'], ['Daily identity', '<code>admin-&lt;student id&gt;</code>, with its own MFA'], ['Budget', '<code>thara-budget</code>, credits excluded'], ['Region', 'Asia Pacific (Mumbai), ap-south-1']] },
+    { id: 2, name: 'Patient portal web server and image', day: 2, text: 'The portal server as an image that can be launched again.',
+      rows: [['Image', '<code>thara-portal-v1</code>: the root volume only'], ['Data snapshot', 'kept from the 8 GiB data volume'], ['Today', 'The image is proven in step 8, and the Day 2 server is retired in step 10']] },
+    { id: 3, name: 'Laboratory reports bucket', day: 2, text: 'Where the laboratory report PDFs live.',
+      rows: [['Bucket', '<code>thara-reports-&lt;student id&gt;</code>, in Mumbai'], ['Public access', 'Block Public Access on'], ['Later', 'Day 5 and Day 6 add to it']] },
+    { id: 4, name: 'Thara VPC', day: 3, text: 'The network everything else sits in: the Colombo basement rebuilt, across two availability zones.',
+      steps: [
+        ['Step 2', '<code>thara-vpc</code>, <code>10.0.0.0/16</code>, DNS hostnames enabled'],
+        ['Step 3', '<code>thara-public-a</code> <code>10.0.1.0/24</code> and <code>thara-private-a</code> <code>10.0.11.0/24</code> in zone a; <code>thara-public-b</code> <code>10.0.2.0/24</code> and <code>thara-private-b</code> <code>10.0.12.0/24</code> in zone b. Public addresses assigned automatically in the two public subnets only'],
+        ['Step 4', 'An internet gateway, attached to <code>thara-vpc</code>'],
+        ['Step 5', '<code>thara-public-rt</code>: <code>0.0.0.0/0</code> to the internet gateway; both public subnets. <code>thara-private-rt</code>: the local route only; both private subnets'],
+        ['Step 6', '<code>thara-bastion-sg</code> and <code>thara-web-sg</code>'],
+        ['Step 12', 'An experiment with <code>thara-strict-nacl</code> on <code>thara-public-a</code>, reverted; the default network ACL stays'],
+        ['Step 13', 'A flow log on the whole VPC, delivered to <code>thara-flow-logs</code>']],
+      note: 'A subnet here is public because of its route table, not because of its name.' },
+    { id: 5, name: 'Bastion for Colombo IT', day: 3, text: 'The one door for administrators.',
+      steps: [
+        ['Step 7', '<code>thara-bastion</code>: <code>t3.micro</code>, Amazon Linux, key pair <code>thara-key</code>, in <code>thara-public-a</code>, with a public address'],
+        ['Step 6', '<code>thara-bastion-sg</code>: SSH from your IP only'],
+        ['Step 12', 'Stops answering behind the strict network ACL until the return rule is added'],
+        ['Break it', 'Keeps its public address and cannot be reached once the default route is removed']],
+      note: 'Its public address changes each time it is stopped and started.' },
+    { id: 6, name: 'Portal web tier', day: 3, text: 'The portal servers, out of reach of the internet.',
+      steps: [
+        ['Step 8', '<code>thara-web-1</code>: launched from <code>thara-portal-v1</code> into <code>thara-private-a</code>, with no public address'],
+        ['Step 6', '<code>thara-web-sg</code>: HTTP from anywhere; SSH from <code>thara-bastion-sg</code>, named as a group'],
+        ['Step 9', 'Reached from the bastion on its private address; serves the pilot page; cannot reach the internet'],
+        ['Step 11', 'SSH from the bastion fails when the rule names your IP in place of the group']],
+      note: 'The second server, in zone b, arrives on Day 7 with the Auto Scaling group.' },
+    { id: 7, name: 'NAT gateway', day: 4, text: 'A way out for the private tier, built and removed inside one lab segment.' },
+    { id: 8, name: 'S3 gateway endpoint', day: 4, text: 'A private path from the web tier to the reports bucket.' },
+    { id: 9, name: 'Partner diagnostic laboratory VPC', day: 4, text: 'A second network, peered to this one and then withdrawn.' },
+    { id: 10, name: 'Identity, keys and audit', day: 5, text: 'Roles, least privilege, encryption keys and the audit trail.' },
+    { id: 11, name: 'Patient records database and Backup plan', day: 6, text: 'The records database, in the private subnets.' },
+    { id: 12, name: 'Load balancer and Auto Scaling group', day: 7, text: 'The way in for patients, and a web tier that replaces its own servers.' },
+    { id: 13, name: 'Edge and branches', day: 4, text: 'Discussed on Day 4 and shown on Day 7.' }
+  ];
+  const $ = id => document.getElementById(id);
+  const kind = c => c.day === TODAY ? 'today' : c.day < TODAY ? 'earlier' : 'later';
+  const word = c => c.day === TODAY ? 'built today' : c.day < TODAY ? 'built on Day ' + c.day : 'not built yet: Day ' + c.day;
+  const built = new Set(C.filter(c => c.day <= TODAY).map(c => String(c.id)));
+  let sel = null;
+  function show(id, announce) {
+    sel = id; const c = C.find(x => x.id === id);
+    document.querySelectorAll('#dg g[data-component]').forEach(g => g.classList.toggle('sel', +g.dataset.component === id));
+    document.querySelectorAll('#list button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.id === id)));
+    let h = '<span class="state ' + kind(c) + '">' + word(c) + '</span><h2 id="pT">Component ' + c.id + ': ' + c.name + '</h2><p>' + c.text + '</p>';
+    if (c.steps) h += '<table><caption class="sr">Configuration and the lab step that built it</caption>' + c.steps.map(r => '<tr><td class="step">' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table>';
+    if (c.rows) h += '<table>' + c.rows.map(r => '<tr><th scope="row">' + r[0] + '</th><td>' + r[1] + '</td></tr>').join('') + '</table>';
+    if (c.note) h += '<div class="note">' + c.note + '</div>';
+    $('panel').innerHTML = h;
+    if (announce) $('status').textContent = 'Component ' + c.id + ', ' + c.name + ', ' + word(c) + '.';
+  }
+  C.forEach(c => {
+    const g = document.querySelector('#dg g[data-component="' + c.id + '"]');
+    g.classList.add(kind(c)); g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button');
+    g.setAttribute('aria-label', 'Component ' + c.id + ', ' + c.name + ', ' + word(c));
+    g.addEventListener('click', () => show(c.id, true));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(c.id, true); } });
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = c.id; b.className = kind(c);
+    b.innerHTML = c.id + '. ' + c.name + '<span class="st">' + word(c) + '</span>';
+    b.onclick = () => show(c.id, true); $('list').appendChild(b);
+  });
+  document.querySelectorAll('#dg path[data-needs]').forEach(p => p.classList.toggle('on', p.dataset.needs.split(',').every(n => built.has(n))));
+  show(4, false);
+</script>
+</body>
+</html>

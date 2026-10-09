@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Day 3 notes: VPC anatomy | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Day 3 morning notes: VPC anatomy. These notes go with the morning slides. They build the ideas you need before this afternoon&#x27;s lab, where you...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/notes.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Day 3 notes: VPC anatomy">
+<meta property="og:description" content="Day 3 morning notes: VPC anatomy. These notes go with the morning slides. They build the ideas you need before this afternoon&#x27;s lab, where you...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/notes.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"Day 3 morning notes: VPC anatomy. These notes go with the morning slides. They build the ideas you need before this afternoon's lab, where you...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Lecture notes","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Day 3 notes: VPC anatomy","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/notes.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/","name":"Day 3","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-3/notes.html","name":"Day 3 notes: VPC anatomy","position":3}]}</script>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>VPC anatomy</h1><p class="sub">Day 3, morning notes</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 7">LO7</span></div>
+<p>These notes go with the morning slides. They build the ideas you need before this afternoon's lab, where you build component 4 (the Thara VPC), component 5 (the bastion for Colombo IT) and component 6 (the portal web tier) of the Thara architecture.</p>
+<h2 id="where-you-are-starting">Where you are starting</h2>
+<p>So far you have built components 1, 2 and 3: the guardrails, the portal web server with its image <code>thara-portal-v1</code>, and the laboratory reports bucket. The server ran in the default VPC, a network you did not design, behind a security group with three rules that you were told to treat as a firewall and no more. The image has never been launched. And you were asked to carve <code>10.0.0.0/16</code> into four subnets on paper.</p>
+<p>Today the network becomes yours. You already know most of it: subnets, routing tables, default routes, NAT and firewalls are Year 1 material. What is new is that all of it is software, created in seconds and thrown away as easily. The morning names the parts and teaches you to predict where a packet will be stopped. The afternoon has you build the network by hand and test every prediction.</p>
+<h2 id="1-a-vpc-is-a-network-you-already-know">1. A VPC is a network you already know</h2>
+<p><strong>The VPC.</strong> An Amazon <a class="term" data-term="vpc" href="../../glossary.html#vpc">VPC</a> (Virtual Private Cloud) is a software-defined network that belongs to your account and lives in one region. You give it a range of private addresses as a CIDR block. Thara's is <code>thara-vpc</code>, <code>10.0.0.0/16</code>. Nothing gets in or out of it until you say so.</p>
+<p><strong>Subnets.</strong> A <a class="term" data-term="subnet" href="../../glossary.html#subnet">subnet</a> is a slice of the VPC's range, and each subnet lives in exactly one availability zone. That is the difference from a VLAN on a campus: where a subnet sits decides which building its servers are in. Spreading a tier across two subnets in two zones is how you survive the loss of one. Thara has four: <code>thara-public-a</code> (<code>10.0.1.0/24</code>) and <code>thara-private-a</code> (<code>10.0.11.0/24</code>) in one zone, <code>thara-public-b</code> (<code>10.0.2.0/24</code>) and <code>thara-private-b</code> (<code>10.0.12.0/24</code>) in another.</p>
+<p><strong>Route tables.</strong> A <a class="term" data-term="route-table" href="../../glossary.html#route-table">route table</a> is a list of rules: for this destination range, send the packet to that target. Every route table in a VPC starts with one route you cannot remove, the VPC's own range to <strong>local</strong>, which is why every subnet can reach every other subnet in the VPC without your doing anything. A subnet is associated with <strong>exactly one</strong> route table. If you do not associate it, it silently uses the VPC's <strong>main route table</strong>.</p>
+<p><strong>The internet gateway.</strong> An <a class="term" data-term="internet-gateway" href="../../glossary.html#internet-gateway">internet gateway</a> is the VPC's door to the internet. You create it, attach it to the VPC, and then nothing happens, because no route points at it yet. It also does a job you do not see: an instance only ever knows its private address, and the gateway translates between that and the instance's public address.</p>
+<p><strong>What makes a subnet public.</strong> A subnet is a <a class="term" data-term="public-subnet" href="../../glossary.html#public-subnet">public subnet</a> when its route table has a default route, <code>0.0.0.0/0</code>, to an internet gateway. An instance in it is reachable from the internet when it also has a public address. Both are needed. The subnet's name plays no part.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Route table has <code>0.0.0.0/0</code> to the gateway</th>
+<th>Instance has a public address</th>
+<th>Reachable from the internet?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thara-bastion</code> in <code>thara-public-a</code></td>
+<td>yes</td>
+<td>yes</td>
+<td>yes, if its security group allows it</td>
+</tr>
+<tr>
+<td><code>thara-web-1</code> in <code>thara-private-a</code></td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr>
+<td>An instance with a public address in a subnet with no such route</td>
+<td>no</td>
+<td>yes</td>
+<td>no</td>
+</tr>
+</tbody>
+</table></div>
+<figure class="art"><svg aria-labelledby="pub-t pub-d" role="img" style="min-width:640px" viewbox="0 0 640 372"><title id="pub-t">What makes a subnet public</title><desc id="pub-d">Inside the outline of thara-vpc, 10.0.0.0/16, two subnets are drawn alike, each with an instance and a route table. Both tables hold the route 10.0.0.0/16 to local. The left table also holds 0.0.0.0/0 to the gateway, and an arrow rises from it to the internet gateway above: that subnet is public. The right table has no other route: that subnet is private.</desc><rect fill="#FFFFFF" height="372" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">What makes a subnet public</text><rect fill="#FFFFFF" height="34" rx="17" stroke="#0D2B45" stroke-width="2.5" width="150" x="92" y="40"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="167" y="62">Internet gateway</text><rect fill="none" height="212" rx="10" stroke="#48C9B0" stroke-width="2.5" width="624" x="8" y="92"></rect><text fill="#2A7A7A" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="end" x="620" y="112">thara-vpc 10.0.0.0/16</text><rect fill="#DEF5F1" height="170" rx="8" stroke="#2A7A7A" stroke-dasharray="7 5" stroke-width="1.8" width="294" x="20" y="122"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" x="32" y="144">a subnet</text><rect fill="#0D2B45" height="46" rx="6" width="84" x="32" y="196"></rect><rect fill="#48C9B0" height="11" rx="2" width="68" x="40" y="204"></rect><rect fill="#133B50" height="11" rx="2" width="68" x="40" y="222"></rect><circle cx="48" cy="227.5" fill="#F4B942" r="2.8"></circle><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="74" y="262">an instance</text><rect fill="#FFFFFF" height="92" rx="6" stroke="#0D2B45" stroke-width="1.5" width="176" x="128" y="160"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="216" y="180">its route table</text><text fill="#0D2B45" font-family="Courier New, monospace" font-size="13" font-weight="600" text-anchor="start" x="140" y="204">10.0.0.0/16</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="end" x="292" y="204">local</text><rect fill="#48C9B0" height="26" rx="3" width="164" x="134" y="216"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="13" font-weight="700" text-anchor="start" x="140" y="234">0.0.0.0/0</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" x="292" y="234">gateway</text><rect fill="#F7F7F7" height="170" rx="8" stroke="#0D2B45" stroke-dasharray="7 5" stroke-width="1.8" width="294" x="326" y="122"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" x="338" y="144">a subnet</text><rect fill="#0D2B45" height="46" rx="6" width="84" x="338" y="196"></rect><rect fill="#48C9B0" height="11" rx="2" width="68" x="346" y="204"></rect><rect fill="#133B50" height="11" rx="2" width="68" x="346" y="222"></rect><circle cx="354" cy="227.5" fill="#F4B942" r="2.8"></circle><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="380" y="262">an instance</text><rect fill="#FFFFFF" height="92" rx="6" stroke="#0D2B45" stroke-width="1.5" width="176" x="434" y="160"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="522" y="180">its route table</text><text fill="#0D2B45" font-family="Courier New, monospace" font-size="13" font-weight="600" text-anchor="start" x="446" y="204">10.0.0.0/16</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="end" x="598" y="204">local</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" x="522" y="234">no other route</text><path d="M216 160 L216 84" fill="none" stroke="#2A7A7A" stroke-width="3"></path><path d="M210 86 L216 76 L222 86 Z" fill="#2A7A7A"></path><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="800" text-anchor="middle" x="167" y="326">PUBLIC</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="800" text-anchor="middle" x="473" y="326">PRIVATE</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="14" y="350">The subnets are drawn alike and could carry any name. The default route decides.</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="366">To be reached from the internet, an instance in the public one also needs a public address.</text></svg><figcaption>The two subnets are drawn alike and could carry any name. One line in a route table is the whole difference between public and private. <a class="full" href="img/public-is-a-route.svg">Open this diagram at full size</a></figcaption></figure>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">A colleague creates <code>thara-public-b</code> and forgets to associate it with <code>thara-public-rt</code>. An instance in it has a public address. Can a patient reach that instance?</p><ol class="qc-opts"><li>Yes: the subnet is public and the instance has a public address</li><li data-right="">No: the subnet is using the main route table, which has no route out<span class="qc-key"> (answer)</span></li><li>Yes, as soon as its security group allows HTTP from anywhere</li></ol><p class="qc-why"><strong>Why:</strong> A subnet that is not associated uses the main route table, and that table has no route to the internet gateway. The name and the public address change nothing, and a security group cannot supply a missing route.</p></div>
+<p><strong>Public addresses.</strong> A public address that AWS assigns automatically is borrowed: stop the instance and it is released, start it and you get a different one, as you saw in the Day 2 demonstration. An <strong><a class="term" data-term="elastic-ip" href="../../glossary.html#elastic-ip">Elastic IP</a></strong> is a public address that stays yours until you release it, so it survives a stop and can be moved from one instance to another. At the time of writing every public IPv4 address costs USD 0.005 an hour, in use or idle.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q"><code>thara-bastion</code> is stopped in teardown and started again on Day 4. The address the IT office saved no longer answers. Why?</p><ol class="qc-opts"><li data-right="">Its automatic public address was released when it stopped<span class="qc-key"> (answer)</span></li><li>Its key pair expired while the instance was stopped</li><li>Its security group went back to having no rules at all</li></ol><p class="qc-why"><strong>Why:</strong> An automatically assigned public address is borrowed and is replaced at the next start. An Elastic IP is the kind that stays. Key pairs do not expire, and stopping an instance changes nothing in its security group.</p></div>
+<p><strong>The default VPC.</strong> Every region comes with a <a class="term" data-term="default-vpc" href="../../glossary.html#default-vpc">default VPC</a> so that a first instance works at once. Every subnet in it is public and gives each instance a public address. That is convenient for a first server and wrong for real work: there is no private tier, nothing was designed, and anything you launch is one careless security group rule away from the internet. From today, everything goes into <code>thara-vpc</code>.</p>
+<div class="box know"><p>VLANs, an L3 switch's routing table, and the edge router's default route. Subnets are the VLANs, a route table is the L3 switch's routing table, and the <code>0.0.0.0/0</code> route to the internet gateway is the default route on the edge router.</p></div>
+<div class="box thara"><p><code>thara-vpc</code> is the Colombo basement rebuilt, with two "buildings": two availability zones, so that one flood cannot take both.</p></div>
+<div class="box mistake"><p>"A subnet named public is public." A name is a label for people. Only a route to the internet gateway, plus a public address on the instance, makes anything reachable. Name a subnet <code>thara-public-b</code>, forget to associate it with the public route table, and it is private.</p></div>
+<h2 id="2-two-firewalls-two-behaviours">2. Two firewalls, two behaviours</h2>
+<p>A packet on its way to an instance passes two firewalls, and they behave differently.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Security group</th>
+<th>Network ACL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Attached to</td>
+<td>A network interface, so in effect an instance</td>
+<td>A subnet</td>
+</tr>
+<tr>
+<td>State</td>
+<td><strong>Stateful</strong>: a reply to allowed traffic is allowed automatically</td>
+<td><strong>Stateless</strong>: every packet is judged alone, replies included</td>
+</tr>
+<tr>
+<td>Rules</td>
+<td>Allow only. What is not allowed is dropped</td>
+<td>Allow and deny</td>
+</tr>
+<tr>
+<td>Evaluation</td>
+<td>All rules together: if any rule allows it, it passes</td>
+<td>In numbered order, lowest first; the first match decides</td>
+</tr>
+<tr>
+<td>Return traffic</td>
+<td>Nothing to write</td>
+<td>Needs its own rule, for the ephemeral ports</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Security groups.</strong> You met these on Day 2. A <a class="term" data-term="security-group" href="../../glossary.html#security-group">security group</a> holds allow rules only, and they are evaluated as a whole: there is no order, and no rule can cancel another. It is stateful, so when a request is allowed in, its reply goes out without a rule.</p>
+<p><strong>Network ACLs.</strong> A <a class="term" data-term="network-acl" href="../../glossary.html#network-acl">network ACL</a> (access control list) guards a whole subnet. Its rules are numbered and tried from the lowest number up; the first one that matches decides, and a final rule, shown as <code>*</code>, denies whatever is left. It is stateless. It does not remember that it let a request in, so the reply is judged as a new packet against the rules for the other direction.</p>
+<figure class="art"><svg aria-labelledby="fw-t fw-d" role="img" style="min-width:640px" viewbox="0 0 640 356"><title id="fw-t">Two firewalls on one path</title><desc id="fw-d">Your laptop, sending from the ephemeral port 51544, is on the left. On the right is a subnet with a network ACL drawn as a bar at its edge and, inside, an instance on port 22 surrounded by a security group. A request arrow passes point 1 at the network ACL and point 2 at the security group. A reply arrow returns through point 3 at the security group, which remembers the request, and point 4 at the network ACL, which judges the reply as a new packet and needs its own outbound rule for ports 1024 to 65535.</desc><rect fill="#FFFFFF" height="356" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">Two firewalls on one path</text><rect fill="#F7F7F7" height="92" rx="8" stroke="#AAAAAA" stroke-width="1.5" width="96" x="14" y="132"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="62" y="158">your laptop</text><text fill="#546472" font-family="Courier New, monospace" font-size="12" font-weight="400" text-anchor="middle" x="62" y="180">port 51544</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="62" y="200">ephemeral</text><rect fill="#DEF5F1" height="238" rx="8" stroke="#2A7A7A" stroke-dasharray="7 5" stroke-width="1.8" width="394" x="232" y="50"></rect><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" x="614" y="72">the subnet</text><rect fill="#0D2B45" height="164" rx="5" width="28" x="218" y="96"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="232" y="86">network ACL</text><rect fill="#FFFFFF" height="156" rx="14" stroke="#2A7A7A" stroke-width="5" width="190" x="420" y="100"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="515" y="124">security group</text><rect fill="#0D2B45" height="46" rx="6" width="84" x="473" y="150"></rect><rect fill="#48C9B0" height="11" rx="2" width="68" x="481" y="158"></rect><rect fill="#133B50" height="11" rx="2" width="68" x="481" y="176"></rect><circle cx="489" cy="181.5" fill="#F4B942" r="2.8"></circle><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" x="515" y="216">the instance</text><text fill="#546472" font-family="Courier New, monospace" font-size="12" font-weight="400" text-anchor="middle" x="515" y="236">port 22</text><path d="M110 152 L462 152" fill="none" stroke="#0D2B45" stroke-width="3"></path><path d="M460 146 L470 152 L460 158 Z" fill="#0D2B45"></path><path d="M470 204 L118 204" fill="none" stroke="#2A7A7A" stroke-width="3"></path><path d="M120 198 L110 204 L120 210 Z" fill="#2A7A7A"></path><circle cx="232" cy="152" fill="#48C9B0" r="10" stroke="#FFFFFF" stroke-width="2"></circle><circle cx="232" cy="204" fill="#F4B942" r="10" stroke="#FFFFFF" stroke-width="2"></circle><circle cx="420" cy="152" fill="#48C9B0" r="10" stroke="#FFFFFF" stroke-width="2"></circle><circle cx="420" cy="204" fill="#48C9B0" r="10" stroke="#FFFFFF" stroke-width="2"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="326" y="142">request</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="326" y="226">reply</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="232" y="157">1</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="420" y="157">2</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="420" y="209">3</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="232" y="209">4</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="254" y="254">4: judged as a new</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="start" x="254" y="270">packet. Needs its own rule</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="312">1 and 2: the request is checked by the network ACL, then by the security group.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="330">3: the security group remembers the request, so the reply leaves with no rule consulted.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="348">4: the network ACL remembers nothing. Without an outbound rule for 1024-65535 the reply dies here.</text></svg><figcaption>The network ACL stands at the edge of the subnet and the security group at the instance. The request passes both. The reply is remembered by one and judged afresh by the other. <a class="full" href="img/two-firewalls.svg">Open this diagram at full size</a></figcaption></figure>
+<p><strong>The reply, and ephemeral ports.</strong> When your laptop opens an SSH connection, it sends from a temporary, high-numbered port that it picks for that one connection: an <a class="term" data-term="ephemeral-port" href="../../glossary.html#ephemeral-port">ephemeral port</a>. The server's reply goes from port 22 back to that port. A security group never notices. A network ACL must have an outbound rule that allows the range those ports come from, <code>1024-65535</code>, or the reply dies at the edge of the subnet and the connection times out. Try it in <a href="artefacts/sg-vs-nacl.html">sg-vs-nacl</a> before you do it for real this afternoon.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">Someone puts a network ACL on <code>thara-public-a</code> that allows inbound 22 and 80, and outbound 80 and 443. SSH to the bastion now times out. Where does the connection die?</p><ol class="qc-opts"><li>At the inbound rules, which do not cover SSH</li><li>At the security group, which has lost its rule</li><li data-right="">At the outbound rules, when the reply leaves<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> Inbound 22 is allowed, so the request arrives. The reply travels to an ephemeral port on your laptop, and no outbound rule allows that range. The security group is untouched, and being stateful it would let the reply out anyway.</p></div>
+<p><strong>Why both exist, and where each fails.</strong> A security group is precise: it follows the instance and says exactly who may talk to it. But it cannot deny. If one address range must be blocked whatever the groups say, only a network ACL can do that, for the whole subnet at once. A network ACL is a blunt second layer: it cannot tell one instance in a subnet from another, it does not see traffic that stays inside the subnet, and it fails in exactly the way above when someone forgets the return rule. In this module the network ACLs stay open and the security groups do the work.</p>
+<p><strong>A group as a source.</strong> A security group rule can name another security group as its source, instead of an address range. "Allow SSH from <code>thara-bastion-sg</code>" means: from any instance that wears that group, whatever its address is today. This is how tiers are chained. The bastion is reachable from one address, the web tier accepts SSH only from the bastion's group, and on Day 6 the database will accept connections only from the web tier's group.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">The records database must accept connections only from the web tier, whose instances will be replaced many times on Day 7. Which source should its rule name?</p><ol class="qc-opts"><li>The private address of each web instance</li><li>The address ranges of both private subnets</li><li data-right="">The security group that the web tier wears<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> A group as a source follows membership, so a replaced instance is covered the moment it wears <code>thara-web-sg</code>. Addresses go stale with every replacement, and a subnet range admits everything else that lives in the subnet.</p></div>
+<div class="box know"><p>A stateful firewall versus a router ACL. The firewall tracks connections and lets replies back by itself. The router ACL is a numbered list checked top down, and you write the return entry yourself. A security group is the firewall. A network ACL is the router ACL.</p></div>
+<div class="box thara"><p>The bastion should be reachable only from the IT office; the database only from the web tier. The first is a security group rule with one address as its source. The second is a rule with a group as its source.</p></div>
+<div class="box mistake"><p>"Security groups can deny." They cannot. A security group has allow rules only, and the absence of an allow is the deny. If you need to block one specific range, that is a job for a network ACL.</p></div>
+<div class="box mistake"><p>"Network ACLs are stateful." They are not. Allowing a request in says nothing about its reply, which needs its own rule in the other direction.</p></div>
+<h2 id="3-seeing-the-traffic">3. Seeing the traffic</h2>
+<p><strong>Flow Logs.</strong> A VPC <a class="term" data-term="flow-log" href="../../glossary.html#flow-log">Flow Log</a> records the traffic that reaches or leaves the network interfaces of a VPC. It does not record what was said, only who talked to whom: one record for each flow in each capture window. A record in the default format looks like this:</p>
+<pre tabindex="0"><code class="language-text">2 &lt;account id&gt; eni-0a1b... 203.0.113.25 10.0.1.25 51544 22 6 20 4249 1700000000 1700000050 ACCEPT OK
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>In this record</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Interface</td>
+<td><code>eni-0a1b...</code></td>
+<td>The network interface where the traffic was seen</td>
+</tr>
+<tr>
+<td>Source and destination address</td>
+<td><code>203.0.113.25</code>, <code>10.0.1.25</code></td>
+<td>Who sent it, and to whom</td>
+</tr>
+<tr>
+<td>Source and destination port</td>
+<td><code>51544</code>, <code>22</code></td>
+<td>An ephemeral port on the client, SSH on the server</td>
+</tr>
+<tr>
+<td>Protocol</td>
+<td><code>6</code></td>
+<td>TCP (17 is UDP, 1 is ICMP)</td>
+</tr>
+<tr>
+<td>Packets and bytes</td>
+<td><code>20</code>, <code>4249</code></td>
+<td>How much traffic the record covers</td>
+</tr>
+<tr>
+<td>Start and end</td>
+<td>two numbers</td>
+<td>The capture window, as timestamps</td>
+</tr>
+<tr>
+<td>Action</td>
+<td><code>ACCEPT</code></td>
+<td>The verdict of the security group and the network ACL</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>ACCEPT and REJECT.</strong> The action says whether the two firewalls let the traffic pass. <code>REJECT</code> means that a security group or a network ACL refused it. A dropped packet is silent for the sender, who sees only a timeout, but it is not silent for you. Each interface records its own verdict, so one packet can be an ACCEPT where it leaves and a REJECT where it arrives.</p>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">The Data Protection Officer asks whether an attempt to connect to the bastion on port 3389, which no rule allows, left any trace. What do you answer?</p><ol class="qc-opts"><li>No: the security group drops the packet silently</li><li data-right="">Yes: a REJECT record, with the address it came from<span class="qc-key"> (answer)</span></li><li>Yes: an ACCEPT record, because the packet arrived</li></ol><p class="qc-why"><strong>Why:</strong> The drop is silent only for the sender. The flow log records the attempt at the bastion's interface as a REJECT, with its source address and port. ACCEPT would mean that the firewalls let it through.</p></div>
+<p><strong>Where the records go.</strong> Today's flow log is delivered to <strong>Amazon CloudWatch Logs</strong>, into a log group, with one log stream for each network interface. This is your first use of CloudWatch, the service that collects what your resources report about themselves. Day 7 returns to it for metrics and alarms.</p>
+<p><strong>VPC DNS.</strong> Every VPC has a DNS resolver at the base of its range plus two. For <code>thara-vpc</code> that is <code>10.0.0.2</code>. Instances use it without any configuration. With DNS hostnames enabled on the VPC, each instance also gets a private DNS name, which is why the lab switches that setting on.</p>
+<div class="box know"><p>NetFlow export to a collector. A router summarises each conversation it forwards and sends the summary to a collector, where you search it later. A flow log is the summary; CloudWatch Logs is the collector.</p></div>
+<div class="box thara"><p>The Data Protection Officer's "how would we know?" begins with flow logs. If someone tries the bastion's door, the attempt is on record, with the address it came from and the port it tried.</p></div>
+<h2 id="predict-the-packet-path">Predict the packet path</h2>
+<p>Before the lab you trace three packets on paper, in class, on a printed diagram of <code>thara-vpc</code>. For each one, mark every hop and every table or rule that is consulted, in order: internet gateway, route table, network ACL, security group, instance. Then check yourself in <a href="artefacts/packet-path-predictor.html">packet-path-predictor</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Trace</th>
+<th>The question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A patient's browser requests the pilot page from <code>thara-web-1</code>, and the reply returns</td>
+<td>Which hops and which checks does each direction pass?</td>
+</tr>
+<tr>
+<td>An SSH attempt from a random internet address to the bastion</td>
+<td>Where is it stopped, and by which of the two firewalls?</td>
+</tr>
+<tr>
+<td>A reply to an allowed inbound connection, through a network ACL that lacks the ephemeral ports</td>
+<td>Where does it die?</td>
+</tr>
+</tbody>
+</table></div>
+<p>The first trace has a catch. As the network stands at the end of today, a patient cannot reach <code>thara-web-1</code> at all, and you should be able to say why before the lab. Day 7 gives patients a way in that does not put the web tier on the internet.</p>
+<h2 id="before-the-lab">Before the lab</h2>
+<ul>
+<li>Find <code>thara-key.pem</code>. Without it you cannot reach the bastion, and AWS will not give you a second copy.</li>
+<li>You need an SSH client in a terminal on your own computer: Terminal on macOS or Linux, PowerShell on Windows.</li>
+<li>Have your subnet plan in front of you. The lab uses the four subnets agreed this morning.</li>
+<li>Open <a href="artefacts/thara-vpc-builder.html">thara-vpc-builder</a> and find components 4, 5 and 6. Each one tells you which lab step builds it.</li>
+<li>Open your cost ledger. The network itself is free. The estimate for the day is USD 0.40, for two small instances and what they leave stored.</li>
+</ul>
+<h2 id="reading">Reading</h2>
+<ul>
+<li>AWS, <em>Amazon VPC User Guide</em>, "Security groups" and "Network ACLs".</li>
+<li>For Day 4: AWS, <em>Amazon VPC User Guide</em>, "NAT gateways", "VPC peering basics" and "Gateway endpoints".</li>
+</ul>
+<p>Self-check: CLF-C02 bank, Domain 3 networking set A (15 items) and set B (15 items), issued separately. Practice question: <a href="../../practice/PQ3.html">PQ3</a>.</p>
+<p>Task for Day 4: write one paragraph on why VPC peering is non-transitive, and what that forces a hospital group with five sites to do.</p>
+
+<script type="application/json" id="glossary-data">{"default-vpc":{"d":"The ready-made network that every region gives an account. Every subnet in it is public and hands each instance a public address.","t":"Default VPC","x":"the Day 2 <code>thara-web-1<\/code> ran in the default VPC; from today everything goes into <code>thara-vpc<\/code>."},"elastic-ip":{"d":"A public IPv4 address that stays yours until you release it. It survives a stop and a start, and can be moved from one instance to another.","t":"Elastic IP","x":"<code>thara-bastion<\/code> has no Elastic IP, so its public address changes each time it is stopped and started."},"ephemeral-port":{"d":"A temporary, high-numbered port that a client picks for one connection. The server's reply is sent back to it.","t":"Ephemeral port","x":"the bastion's SSH reply goes to an ephemeral port on your laptop, which is why the strict network ACL needs <code>1024-65535<\/code> outbound."},"flow-log":{"d":"A record of the traffic at the network interfaces of a VPC: who talked to whom, on which port, and whether it was accepted or rejected. It does not record what was said.","t":"Flow log","x":"the flow log on <code>thara-vpc<\/code> shows a REJECT record for the attempt on the bastion's port 3389."},"internet-gateway":{"d":"The door between a VPC and the internet. It is attached to the VPC, and it translates between an instance's private address and its public one.","t":"Internet gateway","x":"one gateway is attached to <code>thara-vpc<\/code>, and only <code>thara-public-rt<\/code> has a route to it."},"network-acl":{"d":"A firewall on a subnet, with numbered allow and deny rules tried lowest first. It is stateless: a reply is judged as a new packet and needs its own rule.","t":"Network ACL","x":"<code>thara-strict-nacl<\/code> breaks SSH to the bastion until an outbound rule allows the reply."},"public-subnet":{"d":"A subnet whose route table sends <code>0.0.0.0/0<\/code> to an internet gateway. Its name plays no part. An instance in it also needs a public address to be reachable.","t":"Public subnet","x":"<code>thara-public-a<\/code> is public because it is associated with <code>thara-public-rt<\/code>, not because of what it is called."},"route-table":{"d":"The list of rules a subnet uses to decide where to send traffic for each destination range. A subnet is associated with exactly one.","t":"Route table","x":"<code>thara-private-rt<\/code> holds only the local route, so the private subnets have no way out."},"security-group":{"d":"A firewall attached to an instance, with allow rules only. It is stateful: when a request is allowed in, its reply is allowed out automatically.","t":"Security group","x":"the group in front of <code>thara-web-1<\/code> allows HTTP from anywhere, and SSH from your IP and from the EC2 Instance Connect service."},"subnet":{"d":"A slice of a VPC's address range that lives in exactly one availability zone. Where a subnet sits decides which zone its servers are in.","t":"Subnet","x":"<code>thara-private-a<\/code> is <code>10.0.11.0/24<\/code> in one zone, and <code>thara-private-b<\/code> is <code>10.0.12.0/24<\/code> in another."},"vpc":{"d":"A private network that you define in software inside one region, with its own range of addresses. Nothing enters or leaves it until you say so.","t":"VPC","x":"<code>thara-vpc<\/code>, with the range <code>10.0.0.0/16<\/code>, holds everything the pilot builds from today."}}</script>
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this morning</h2><ul><li><a href="slides/day-3-morning.pdf">Slides for this morning (PDF)</a></li><li><a href="artefacts/packet-path-predictor.html">Packet path predictor: which check stops the packet?</a> (visual)</li><li><a href="artefacts/sg-vs-nacl.html">Security group versus network ACL: one connection, two firewalls</a> (visual)</li><li><a href="plays/p3-words.html">Words ladder: Day 3</a> (10 minutes)</li><li><a href="plays/p3-1-build-it-in-order.html">Build it in order</a> (5 minutes)</li><li><a href="plays/p3-2-find-the-fault-in-the-network.html">Find the fault in the network</a> (10 minutes)</li><li><a href="plays/p3-quiz.html">Day quiz: Thara&#x27;s own network</a> (10 minutes)</li><li><a href="../../practice/PQ3.html">Practice question 3</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d3m">Mark this morning as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-2/lab.html">Day 2 afternoon</a></span><span><a href="index.html">Day 3</a></span><span>Next: <a href="../../days/day-3/lab.html">Day 3 afternoon</a></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>
