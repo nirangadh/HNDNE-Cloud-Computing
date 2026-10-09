@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peering is not transitive: three VPCs, two peerings, and a hub</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1rem; margin: 0 0 .4rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  .sr { position: absolute; left: -9999px; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; align-items: end; background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .8rem 1rem; margin-bottom: 1rem; }
+  .bar label { display: grid; gap: .15rem; font-weight: 600; }
+  select { font: inherit; min-height: 44px; padding: .3rem .5rem; border: 2px solid var(--navy); border-radius: 6px; background: var(--white); color: var(--navy); }
+  label.opt { display: flex !important; gap: .6rem; align-items: center; min-height: 44px; }
+  label.opt input { width: 1.3rem; height: 1.3rem; accent-color: var(--navy); flex: none; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1.2rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--navy); color: var(--white); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .frame { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .5rem; overflow-x: auto; margin: 0 0 1rem; }
+  .frame svg { display: block; width: 100%; min-width: 44rem; height: auto; }
+  .verdict { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .7rem 1rem; margin: 0 0 1rem; }
+  .verdict.bad { border-left-color: var(--signal-coral); background: var(--white); outline: 1px solid var(--silver); }
+  .verdict b { display: block; }
+  .tables { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 54rem) { .tables { grid-template-columns: 1fr; } }
+  .panel { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: .8rem 1rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: .3rem .4rem; border-bottom: 1px solid var(--silver); font-size: .9rem; }
+  th { color: var(--ink-muted); font-weight: 600; }
+  tr.hit td { background: var(--turquoise); font-weight: 700; }
+  tr.miss td { background: var(--signal-coral); font-weight: 700; }
+  tr.new td { font-style: italic; }
+  .count { font-weight: 700; margin: 0 0 1rem; }
+  .box { fill: var(--white); stroke: var(--navy); stroke-width: 1.6; }
+  .lbl { font-size: 14px; font-weight: 700; fill: var(--navy); }
+  .small { font-size: 12px; fill: var(--ink-muted); }
+  .link { fill: none; stroke: var(--navy); stroke-width: 2.5; }
+  .link.dim { stroke: var(--silver); stroke-dasharray: 5 5; }
+  .link.on { stroke: var(--turquoise-deep); stroke-width: 5; }
+  .link.cut { stroke: var(--signal-coral); stroke-width: 5; }
+  .hub { fill: var(--turquoise-tint); stroke: var(--navy); stroke-width: 1.6; }
+  .hide { visibility: hidden; }
+  #dot { fill: var(--navy); }
+  #stop line { stroke: var(--signal-coral); stroke-width: 5; stroke-linecap: round; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Peering is not transitive</h1>
+  <p class="lede">Three networks. A is peered with B, and B is peered with C. Send a packet from A to C and see where it stops. Then try the fix that looks obvious, and then add a Transit Gateway.</p>
+
+  <div class="bar">
+    <label>From <select id="src"><option value="A">A: thara-vpc</option><option value="B">B: partnerlab-vpc</option><option value="C">C: the third network</option></select></label>
+    <label>To <select id="dst"><option value="A">A: thara-vpc</option><option value="B">B: partnerlab-vpc</option><option value="C" selected>C: the third network</option></select></label>
+    <label class="opt"><input type="checkbox" id="tempt"> <span>In A's route table, send C's range to the A-B peering</span></label>
+    <label class="opt"><input type="checkbox" id="tgw"> <span>Attach all three to a Transit Gateway</span></label>
+    <button type="button" id="send">Send the packet</button>
+  </div>
+
+  <div class="frame">
+  <svg id="dg" viewBox="0 0 760 170" role="img" aria-labelledby="dT dD" font-family="'Open Sans', Arial, sans-serif">
+    <title id="dT">Three VPCs in a row, with two peering connections and an optional hub</title>
+    <desc id="dD">VPC A is thara-vpc, VPC B is partnerlab-vpc and VPC C is a third network. A peering connection joins A to B and another joins B to C. Below them is a Transit Gateway that can be attached to all three.</desc>
+    <line id="lAB" class="link" x1="220" y1="85" x2="290" y2="85"/>
+    <line id="lBC" class="link" x1="470" y1="85" x2="540" y2="85"/>
+    <text x="255" y="72" class="small" text-anchor="middle">peering</text>
+    <text x="505" y="72" class="small" text-anchor="middle">peering</text>
+    <g id="hub" class="hide">
+      <line id="lA" class="link" x1="130" y1="130" x2="340" y2="232"/>
+      <line id="lB" class="link" x1="380" y1="130" x2="380" y2="206"/>
+      <line id="lC" class="link" x1="630" y1="130" x2="420" y2="232"/>
+      <rect x="290" y="206" width="180" height="56" rx="28" class="hub"/>
+      <text x="380" y="231" class="lbl" text-anchor="middle">Transit Gateway</text>
+      <text x="380" y="249" class="small" text-anchor="middle">one attachment for each network</text>
+    </g>
+    <rect x="40" y="40" width="180" height="90" rx="10" class="box"/>
+    <text x="130" y="70" class="lbl" text-anchor="middle">A: thara-vpc</text><text x="130" y="92" class="small" text-anchor="middle">10.0.0.0/16</text><text x="130" y="110" class="small" text-anchor="middle">Thara Hospitals</text>
+    <rect x="290" y="40" width="180" height="90" rx="10" class="box"/>
+    <text x="380" y="70" class="lbl" text-anchor="middle">B: partnerlab-vpc</text><text x="380" y="92" class="small" text-anchor="middle">10.1.0.0/16</text><text x="380" y="110" class="small" text-anchor="middle">the partner laboratory</text>
+    <rect x="540" y="40" width="180" height="90" rx="10" class="box"/>
+    <text x="630" y="70" class="lbl" text-anchor="middle">C: a third network</text><text x="630" y="92" class="small" text-anchor="middle">10.2.0.0/16</text><text x="630" y="110" class="small" text-anchor="middle">the partner's own partner</text>
+    <g id="stop" visibility="hidden"><line x1="-9" y1="-9" x2="9" y2="9"/><line x1="-9" y1="9" x2="9" y2="-9"/></g>
+    <circle id="dot" r="8" cx="130" cy="85" visibility="hidden"/>
+  </svg>
+  </div>
+
+  <div class="verdict" id="verdict" role="status" aria-live="polite"><b>Nothing sent yet.</b> Leave the two boxes unticked and send a packet from A to C first.</div>
+  <p class="count" id="count"></p>
+
+  <div class="tables" id="tables"></div>
+  <footer>Thara Hospitals is fictional. Security groups are assumed to allow the traffic, so that only the routing decides. The third network's range is an example.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const V = { A: { name: 'A: thara-vpc', cidr: '10.0.0.0/16', x: 130 }, B: { name: 'B: partnerlab-vpc', cidr: '10.1.0.0/16', x: 380 }, C: { name: 'C: the third network', cidr: '10.2.0.0/16', x: 630 } };
+  const PEER = { AB: ['A', 'B'], BC: ['B', 'C'] };
+  let timer = null;
+  // A route is [destination VPC, target, note]; target is 'local', 'AB', 'BC' or 'tgw'.
+  function table(v) {
+    const hub = $('tgw').checked, r = [[v, 'local']];
+    if (hub) { Object.keys(V).filter(o => o !== v).forEach(o => r.push([o, 'tgw'])); return r; }
+    if (v === 'A') { r.push(['B', 'AB']); if ($('tempt').checked) r.push(['C', 'AB', true]); }
+    if (v === 'B') { r.push(['A', 'AB']); r.push(['C', 'BC']); }
+    if (v === 'C') r.push(['B', 'BC']);
+    return r;
+  }
+  const tname = t => t === 'local' ? 'local' : t === 'tgw' ? 'tgw-... (the Transit Gateway)' : 'pcx-... (the ' + t[0] + '-' + t[1] + ' peering)';
+  function render(marks) {
+    $('tables').innerHTML = Object.keys(V).map(v => '<section class="panel"><h2>Route table of ' + V[v].name + '</h2><table><thead><tr><th>Destination</th><th>Target</th></tr></thead><tbody>' +
+      table(v).map(r => { const m = marks && marks[v + '>' + r[0]]; return '<tr class="' + (m || '') + (r[2] ? ' new' : '') + '"><td><code>' + V[r[0]].cidr + '</code></td><td><code>' + tname(r[1]) + '</code></td></tr>'; }).join('') +
+      (marks && marks[v + '>none'] ? '<tr class="miss"><td colspan="2">No route for ' + V[marks[v + '>none']].cidr + '</td></tr>' : '') + '</tbody></table></section>').join('');
+    const hub = $('tgw').checked;
+    $('hub').classList.toggle('hide', !hub);
+    $('dg').setAttribute('viewBox', hub ? '0 0 760 280' : '0 0 760 170');
+    $('lAB').classList.toggle('dim', hub); $('lBC').classList.toggle('dim', hub);
+    $('count').textContent = hub ? 'With the hub: three attachments. A fourth network needs one more attachment and no change to the others\' links.'
+      : 'With peering only: every pair that must talk needs its own connection. Three networks need three for a full mesh, and five need ten.';
+  }
+  function decide(s, d) {
+    const marks = {}, hub = $('tgw').checked;
+    const out = table(s).find(r => r[0] === d);
+    if (!out) { marks[s + '>none'] = d; return { ok: false, marks, legs: [[s, s]], stopAt: s, head: 'Dropped in ' + s + ': no route.', text: s + '\'s route table has no entry for ' + V[d].cidr + '. ' + s + ' is not peered with ' + d + ', and the peerings that exist say nothing about a third network. The sender sees a timeout.' }; }
+    if (out[1] === 'tgw') { marks[s + '>' + d] = 'hit'; marks[d + '>' + s] = 'hit';
+      return { ok: true, marks, hub: [s, d], head: 'Delivered, through the Transit Gateway.', text: 'Each network holds one route for each of the others, all pointing at the hub, and the hub knows every range. The reply returns the same way. Non-transitivity is gone, at the price of a service that charges for each attachment and for the traffic.' }; }
+    const ends = PEER[out[1]];
+    if (!ends.includes(d)) { marks[s + '>' + d] = 'miss';
+      return { ok: false, marks, legs: [[s, ends.find(e => e !== s)]], stopAt: ends.find(e => e !== s), half: true, head: 'Dropped at the peering connection.', text: 'The route is accepted by the console, and the packet is sent into the A-B peering. But a peering carries only traffic between the two VPCs it joins, and ' + V[d].cidr + ' belongs to neither. B does not forward for A. No route can make a peering transitive.' }; }
+    marks[s + '>' + d] = 'hit';
+    const back = table(d).find(r => r[0] === s);
+    if (!back) { marks[d + '>none'] = s; return { ok: false, marks, legs: [[s, d]], stopAt: d, head: 'The request arrives. The reply is dropped.', text: d + ' has no route back to ' + V[s].cidr + '. A peering needs a route on both sides.' }; }
+    marks[d + '>' + s] = 'hit';
+    return { ok: true, marks, legs: [[s, d]], head: 'Delivered, across one peering.', text: s + ' and ' + d + ' are the two ends of one peering connection, and each has a route to the other. The reply uses the route on ' + d + '\'s side.' };
+  }
+  function clearRun() {
+    clearInterval(timer); timer = null;
+    document.querySelectorAll('.link').forEach(l => l.classList.remove('on', 'cut'));
+    $('dot').setAttribute('visibility', 'hidden'); $('stop').setAttribute('visibility', 'hidden');
+  }
+  function finish(res) {
+    const v = $('verdict'); v.className = 'verdict' + (res.ok ? '' : ' bad');
+    v.innerHTML = '<b>' + (res.ok ? '✓ ' : '✗ ') + res.head + '</b>' + res.text;
+    render(res.marks);
+    if (!res.ok) { const x = res.half ? (V[res.legs[0][0]].x + V[res.stopAt].x) / 2 : V[res.stopAt].x, y = res.half ? 85 : 148;
+      $('stop').setAttribute('transform', 'translate(' + x + ',' + y + ')'); $('stop').setAttribute('visibility', 'visible'); }
+  }
+  function send() {
+    clearRun();
+    const s = $('src').value, d = $('dst').value;
+    if (s === d) { const v = $('verdict'); v.className = 'verdict'; v.innerHTML = '<b>Choose two different networks.</b> Traffic inside one VPC uses its local route and never touches a peering.'; render(); return; }
+    const res = decide(s, d);
+    let pts = [];
+    if (res.hub) { ['l' + s, 'l' + d].forEach(id => $(id).classList.add('on')); pts = [[V[s].x, 130], [380, 234], [V[d].x, 130]]; }
+    else {
+      const a = res.legs[0][0], b = res.legs[0][1];
+      if (a !== b) { const id = 'l' + [a, b].sort().join(''); $(id).classList.add(res.ok ? 'on' : 'cut');
+        const xa = V[a].x, xb = res.half ? (V[a].x + V[b].x) / 2 : V[b].x; pts = [[xa, 85], [xb, 85]]; }
+    }
+    if (reduce || pts.length < 2) { finish(res); return; }
+    const dot = $('dot'); dot.setAttribute('cx', pts[0][0]); dot.setAttribute('cy', pts[0][1]); dot.setAttribute('visibility', 'visible');
+    let seg = 0, t = 0;
+    timer = setInterval(() => {
+      const a = pts[seg], b = pts[seg + 1];
+      if (!b) { clearInterval(timer); timer = null; if (!res.ok) dot.setAttribute('visibility', 'hidden'); finish(res); return; }
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; t += 9 / len;
+      if (t >= 1) { t = 0; seg++; dot.setAttribute('cx', b[0]); dot.setAttribute('cy', b[1]); return; }
+      dot.setAttribute('cx', a[0] + (b[0] - a[0]) * t); dot.setAttribute('cy', a[1] + (b[1] - a[1]) * t);
+    }, 30);
+  }
+  function reset() { clearRun(); render(); const v = $('verdict'); v.className = 'verdict'; v.innerHTML = '<b>Ready.</b> Send the packet to see which route is used.'; }
+  $('send').addEventListener('click', send);
+  ['src', 'dst', 'tempt', 'tgw'].forEach(id => $(id).addEventListener('change', reset));
+  render();
+</script>
+</body>
+</html>

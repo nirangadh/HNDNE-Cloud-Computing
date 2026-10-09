@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hybrid compare: Site-to-Site VPN or Direct Connect for a site</title>
+<link rel="stylesheet" href="../../../assets/fonts/fonts.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--navy); font-family: var(--font-body); line-height: 1.5; }
+  main { max-width: 66rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-family: var(--font-heading); font-weight: 700; font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 .1rem; }
+  .lede { max-width: 46rem; margin: 0 0 1.25rem; color: var(--ink-muted); }
+  code { font-family: var(--font-code); font-size: .95em; }
+  footer { margin-top: 1.5rem; font-size: .85rem; color: var(--ink-muted); }
+  .need { background: var(--white); border: 1px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; margin-bottom: 1rem; display: grid; gap: .4rem; }
+  .need label.range { display: grid; gap: .15rem; font-weight: 700; }
+  .need input[type=range] { width: 100%; min-height: 44px; accent-color: var(--navy); }
+  .need output { font-size: 1.4rem; font-weight: 800; }
+  label.opt { display: flex; gap: .6rem; align-items: center; min-height: 44px; font-weight: 600; }
+  label.opt input { width: 1.3rem; height: 1.3rem; accent-color: var(--navy); flex: none; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: .55rem 1.2rem; min-height: 44px; cursor: pointer; border: 2px solid var(--navy); background: var(--white); color: var(--navy); justify-self: start; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--turquoise-deep); outline-offset: 3px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 50rem) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--white); border: 2px solid var(--silver); border-radius: 6px; padding: 1rem 1.1rem; }
+  .card.fits { border-color: var(--navy); }
+  .card .sub { color: var(--ink-muted); font-size: .9rem; margin: 0 0 .6rem; }
+  .card .badge { display: inline-block; font-weight: 700; font-size: .85rem; border-radius: 4px; padding: .15rem .6rem; border: 1px solid var(--navy); margin-bottom: .6rem; }
+  .card.fits .badge { background: var(--turquoise); }
+  .card.no .badge { background: var(--white); border-color: var(--signal-coral); border-width: 2px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; vertical-align: top; padding: .45rem .5rem; border-bottom: 1px solid var(--silver); font-size: .93rem; }
+  th { width: 6.5rem; color: var(--ink-muted); font-weight: 600; }
+  td.mark { width: 5.2rem; font-weight: 700; white-space: nowrap; }
+  tr.bad td { background: var(--paper); }
+  tr.bad td.mark { border-left: 5px solid var(--signal-coral); }
+  tr.good td.mark { border-left: 5px solid var(--turquoise-deep); }
+  .verdict { border-left: 5px solid var(--turquoise-deep); background: var(--turquoise-wash); border-radius: 4px; padding: .8rem 1rem; margin: 1rem 0 0; }
+  .verdict b { display: block; }
+  .fine { font-size: .85rem; color: var(--ink-muted); margin: .6rem 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>VPN or Direct Connect?</h1>
+  <p class="lede">A site, such as a branch hospital, has to reach a VPC. Set what the site needs and see how each option answers on the four points that decide it: bandwidth, latency, cost and setup time.</p>
+
+  <div class="need">
+    <label class="range">How much bandwidth does the site need? <output id="bwv" for="bw">50 Mbps</output>
+      <input type="range" id="bw" min="0" max="6" value="1" step="1" aria-describedby="bwn"></label>
+    <span id="bwn" class="fine">From 10 Mbps to 10 Gbps.</span>
+    <label class="opt"><input type="checkbox" id="steady"> The applications need steady latency, the same at every hour</label>
+    <label class="opt"><input type="checkbox" id="month"> The site must be connected within a month</label>
+    <label class="opt"><input type="checkbox" id="reuse"> No new leased line: the site must reuse its existing internet link</label>
+    <button type="button" id="thara">Set it for a Thara branch</button>
+  </div>
+
+  <div class="grid">
+    <section class="card" id="vpn" aria-labelledby="vT"></section>
+    <section class="card" id="dx" aria-labelledby="dT"></section>
+  </div>
+  <div class="verdict" id="verdict" role="status" aria-live="polite"></div>
+
+  <footer>Figures as at the time of writing. A VPN connection is about USD 0.05 for each connection-hour, and a month is 730 hours. Direct Connect has a port charge by the hour and a carrier's charge for the circuit, which depends on the site; no figure is given here. Thara Hospitals is fictional.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const STEPS = [[10, '10 Mbps'], [50, '50 Mbps'], [100, '100 Mbps'], [500, '500 Mbps'], [1000, '1 Gbps'], [5000, '5 Gbps'], [10000, '10 Gbps']];
+  const row = (label, ok, mark, text) => '<tr class="' + (ok ? 'good' : 'bad') + '"><th scope="row">' + label + '</th><td class="mark">' + (ok ? '✓ ' : '✗ ') + mark + '</td><td>' + text + '</td></tr>';
+  function draw() {
+    const [mbps, label] = STEPS[+$('bw').value]; $('bwv').textContent = label;
+    const steady = $('steady').checked, month = $('month').checked, reuse = $('reuse').checked;
+    // Site-to-Site VPN
+    const vBw = mbps <= 1250, vLat = !steady;
+    const v = [
+      row('Bandwidth', vBw, vBw ? 'fits' : 'too small', vBw ? 'A tunnel carries up to about 1.25 Gbps, and never more than the site\'s own internet link.' : 'A tunnel carries up to about 1.25 Gbps. ' + label + ' is beyond one tunnel.'),
+      row('Latency', vLat, vLat ? 'accepted' : 'varies', 'The tunnel crosses the internet, so its delay changes with the internet\'s.' + (steady ? ' That does not meet a need for steady latency.' : '')),
+      row('Cost', true, 'low', 'About USD 0.05 for each connection-hour: about USD 36.50 a month for one site, plus data transfer.'),
+      row('Setup time', true, 'hours', 'Over the link the site already has. It needs a customer gateway device at the site, and can be working the same day.')
+    ];
+    const vOk = vBw && vLat;
+    // Direct Connect
+    const dTime = !month, dLine = !reuse;
+    const d = [
+      row('Bandwidth', true, mbps < 1000 ? 'far more' : 'fits', 'A dedicated port of 1 Gbps and upwards.' + (mbps < 1000 ? ' For ' + label + ' most of it would stand idle.' : '')),
+      row('Latency', true, 'steady', 'A private path that does not cross the internet, so the delay is consistent.'),
+      row('Cost', dLine, dLine ? 'expensive' : 'ruled out', 'A port charge for every hour and the carrier\'s circuit to the site.' + (reuse ? ' It is a new dedicated line, which this site may not have.' : '')),
+      row('Setup time', dTime, dTime ? 'weeks' : 'too slow', 'Weeks to provision.' + (month ? ' It may not be delivered inside a month.' : ''))
+    ];
+    const dOk = dTime && dLine;
+    $('vpn').className = 'card ' + (vOk ? 'fits' : 'no');
+    $('vpn').innerHTML = '<h2 id="vT">Site-to-Site VPN</h2><p class="sub">Encrypted tunnels over the internet</p><span class="badge">' + (vOk ? '✓ Fits this need' : '✗ Does not fit') + '</span><table>' + v.join('') + '</table>';
+    $('dx').className = 'card ' + (dOk ? 'fits' : 'no');
+    $('dx').innerHTML = '<h2 id="dT">Direct Connect</h2><p class="sub">A dedicated physical link through a carrier</p><span class="badge">' + (dOk ? '✓ Fits this need' : '✗ Does not fit') + '</span><table>' + d.join('') + '</table>';
+    let head, text;
+    if (vOk && dOk) { head = 'Both would work. Choose the VPN.'; text = 'Nothing in this need asks for what Direct Connect adds, so the cheaper option that is ready in hours wins. Direct Connect earns its price when the bandwidth outgrows a tunnel or the latency must be steady.'; }
+    else if (vOk) { head = 'Site-to-Site VPN.'; text = 'It meets the need over the link the site already has. Direct Connect fails on ' + [!dLine && 'the rule against a new line', !dTime && 'the time it takes to arrive'].filter(Boolean).join(' and on ') + '.'; }
+    else if (dOk) { head = 'Direct Connect.'; text = 'The VPN fails on ' + [!vBw && 'bandwidth', !vLat && 'latency'].filter(Boolean).join(' and on ') + ', and nothing here rules out a dedicated line. Many sites start on a VPN while the line is being provisioned.'; }
+    else { head = 'Neither option fits. Something has to give.'; text = 'The need asks for ' + [!vBw && 'more bandwidth than a tunnel carries', !vLat && 'steady latency'].filter(Boolean).join(' and ') + ', which points to Direct Connect, and also rules it out by ' + [!dLine && 'forbidding a new line', !dTime && 'wanting it within a month'].filter(Boolean).join(' and by ') + '. This is a conversation with whoever set the constraints, not a configuration problem.'; }
+    $('verdict').innerHTML = '<b>' + head + '</b>' + text;
+  }
+  ['bw', 'steady', 'month', 'reuse'].forEach(id => $(id).addEventListener('input', draw));
+  $('thara').addEventListener('click', () => { $('bw').value = 1; $('steady').checked = false; $('month').checked = false; $('reuse').checked = true; draw(); });
+  draw();
+</script>
+</body>
+</html>

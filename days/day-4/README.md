@@ -2,9 +2,17 @@
 
 ## Materials
 
-Files appear here before the teaching day.
+- [Morning slides: Beyond a VPC: egress, peering, hybrid, edge](slides/day-4-morning.pdf) (PDF)
+- [Afternoon slides: Egress, endpoint and the partner laboratory](slides/day-4-afternoon.pdf) (PDF)
+- [Notes](notes.md): read before the lab
+- [Lab sheet](lab.md): steps, prove it, break it, teardown and cost line
+- Interactive visuals. They run in the browser: open them from the [course website](https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-4/), because GitHub shows them as code.
+  - [Egress paths: three ways out of the private web tier](artefacts/egress-paths.html)
+  - [Peering is not transitive: three VPCs, two peerings, and a hub](artefacts/peering-transitivity.html)
+  - [Hybrid compare: Site-to-Site VPN or Direct Connect for a site](artefacts/hybrid-compare.html)
+  - [Thara VPC builder: what Day 4 adds to the architecture, and what it takes away](artefacts/thara-vpc-builder.html)
 
-## Morning: Beyond the VPC: egress, peering, hybrid, edge
+## Morning: Beyond a VPC: egress, peering, hybrid, edge
 
 **Ideas covered:** Getting out without being reachable; Talking to other networks; Names and the edge; Estimating the pilot.
 
@@ -30,7 +38,7 @@ Files appear here before the teaching day.
 
 **Self-check (issued separately):** Domain 3 networking set C (10 items); Domain 2 set A (15 items).
 
-**Practice question:** PQ4, posted in [practice](../../practice/).
+**Practice question:** [PQ4](../../practice/PQ4.md), posted in [practice](../../practice/).
 
 **Tasks:**
 

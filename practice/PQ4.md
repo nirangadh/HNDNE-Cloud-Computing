@@ -1,0 +1,57 @@
+# PQ4: Connecting the branches
+
+Posted after Day 4. Attempt it without notes in about 35 minutes, then compare your answer with the guidance below. Bring your attempt to the review session.
+
+## Scenario
+
+The pilot is running in `thara-vpc` (`10.0.0.0/16`) in Asia Pacific (Mumbai), ap-south-1. The partner diagnostic laboratory's network (`10.1.0.0/16`) is already peered with it. The Head of IT now wants the other sites to reach the portal's private web tier, so that staff no longer depend on the leased lines to Colombo, which fail in monsoon weather.
+
+There are two kinds of site.
+
+- **Four branch hospitals**: Kandy, Galle, Negombo and Kurunegala. Each is a building with its own local network and a router, and each already has an ordinary internet link. Their local networks are `172.16.1.0/24`, `172.16.2.0/24`, `172.16.3.0/24` and `172.16.4.0/24`.
+- **The new Trincomalee branch**, whose appointment system runs in a VPC of its own in the same region, `10.2.0.0/16`, built to the same pattern as the pilot.
+
+Constraints you should notice:
+
+- **No new leased lines.** Branch connectivity must reuse the existing internet links.
+- Trincomalee must be connected **within a month**.
+- Consultants at the branches open laboratory reports during clinics. They need the portal to answer **reliably**; nobody needs live video, and a report that takes a second longer to open is acceptable.
+- The CFO has set aside **USD 80 a month** of the pilot's USD 150 for connecting sites, and wants every line explained.
+
+Use these rounded prices. Do not rely on remembered ones.
+
+| Item | Price |
+|---|---|
+| A Site-to-Site VPN connection | USD 0.05 per connection-hour (a month is 730 hours) |
+| A VPC peering connection between two VPCs in one region | No charge for the connection |
+| Direct Connect | A port charge for every hour, and a carrier's circuit to each site. No figure is given: the carrier describes it as expensive, and delivery as "weeks" |
+
+Ignore data transfer charges.
+
+## Questions
+
+**(a) Explain (6 marks).** Explain what a VPC peering connection is, why it is described as non-transitive, and what must be true before two peered VPCs can exchange traffic. Then distinguish a Site-to-Site VPN from Direct Connect by the path each uses, and by bandwidth, latency, cost and setup time.
+
+**(b) Apply (8 marks).** Design the connectivity.
+
+- For Trincomalee: name the mechanism, and write the route that must be added to `thara-private-rt` and the route that must be added to the private route table of the Trincomalee VPC, giving the destination and the target of each.
+- For the four branches: name the mechanism, say what must exist at each branch, and say which address ranges each side must be able to route to.
+- State whether, in your design, Trincomalee can reach the partner laboratory through `thara-vpc`, and why.
+- Calculate the monthly cost of connecting all five sites, using the prices given.
+
+**(c) Evaluate (6 marks).** Two proposals are made.
+
+1. A colleague: "Peering costs nothing. Trincomalee is peered with us and we are peered with the partner laboratory, so Trincomalee can send its samples to the partner through us. And we should peer the four branches as well, and save the VPN charges."
+2. A second colleague: "A VPN's latency goes up and down with the internet. Order Direct Connect for Kandy, the busiest branch, so that at least one branch has a steady link."
+
+Evaluate each proposal against the scenario: say what is right in it, what is wrong, and how it would fail. Finish with a judgement for the CFO on whether your design fits inside USD 80 a month, what you would do about it, and what would change your view.
+
+## Answer guidance
+
+This guidance describes what a strong answer covers. It is not a model answer to memorise; the marks go to reasoning applied to Thara.
+
+**(a)** A strong answer says that a peering connection is a private link between exactly two VPCs, requested by one side and accepted by the other, over which instances reach each other on private addresses. It is non-transitive because it carries only traffic that starts in one of its two VPCs and ends in the other: it will not forward for a third network, so A peered with B and B peered with C does not connect A to C. Before traffic flows, the connection must be accepted, each VPC's route table must hold a route to the other's range with the peering connection as its target, the two ranges must not overlap, and the security groups must allow the traffic. On hybrid connectivity: a Site-to-Site VPN is a set of encrypted tunnels over the internet, between AWS and a customer gateway device at the site; its bandwidth is limited to about 1.25 Gbps for each tunnel and by the site's own link, its latency varies because the internet's does, it costs about USD 0.05 for each connection-hour, and it can be working within hours. Direct Connect is a dedicated physical link through a carrier: larger and steadier, expensive, and weeks to provision.
+
+**(b)** A strong answer chooses **VPC peering** for Trincomalee, because it is a VPC in the same region with a range that does not overlap `10.0.0.0/16`. In `thara-private-rt`: destination `10.2.0.0/16`, target the peering connection. In Trincomalee's private route table: destination `10.0.0.0/16`, target the same peering connection. Both are needed, because the reply needs a route of its own. It chooses a **Site-to-Site VPN** for each of the four branches, because a branch is not a VPC, it already has an internet link, and no new line is allowed. Each branch needs a customer gateway device, which can be its existing router if that router supports it. Thara's side must be able to route to `172.16.1.0/24`, `172.16.2.0/24`, `172.16.3.0/24` and `172.16.4.0/24`, and each branch's router must send `10.0.0.0/16` into its tunnel. Trincomalee **cannot** reach the partner laboratory through `thara-vpc`: the two peerings meet at `thara-vpc`, and a peering does not forward for a third network. If that path were ever needed, it would take a peering of its own between those two networks, with the partner's agreement. The cost: one VPN connection is 0.05 x 730 = USD 36.50 a month, so four are **USD 146.00**. The peering adds nothing. The total for the five sites is USD 146.00 a month.
+
+**(c)** A strong answer takes the proposals separately. The first is right that the peering connection is free and wrong twice. Peering is not transitive, so Trincomalee's traffic for the partner laboratory would be dropped at the peering however the route tables were written; and it should not be made to work quietly, because the partner agreed to connect to the pilot, not to a branch system holding patient names. And a branch hospital cannot be peered at all: peering joins two VPCs, and a branch is a building with a router. The VPN charge is the price of reaching something that is not in AWS. The second proposal is right about the VPN's latency and wrong for this scenario. Direct Connect is a new dedicated line, which the constraints forbid; it would not arrive for weeks; it is the most expensive option on a budget that is already exceeded; and nothing the consultants do needs a steady delay, since a report that opens a second late is acceptable. Its real strength, steady latency and large bandwidth, answers a question nobody at Thara has asked. A strong answer also notices what neither proposal mentions: each branch still depends on one internet link, so a VPN replaces the leased line's monsoon failures only as far as that link is more reliable. For the CFO: the design costs USD 146.00 a month against USD 80 set aside, so it does not fit. Two branches cost USD 73.00 and do. The honest recommendation is to connect Trincomalee now at no charge, connect two branches inside the USD 80, chosen by how badly each one's leased line performed in the last monsoon, and put the other two to the CFO as a costed request for a further USD 73 a month, set against what three days on paper cost. What would change the view: a clinical application that needs steady latency or far more bandwidth, which would reopen Direct Connect for the site that runs it; a relaxation of the rule on new lines; or a sixth and seventh network to connect, at which point a hub that every network attaches to once becomes cheaper to run than a growing set of separate connections.

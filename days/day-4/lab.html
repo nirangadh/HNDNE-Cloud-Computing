@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="hndne-cc-site">
+<title>Lab 4: Egress, endpoint and the partner laboratory | Cloud Computing</title>
+<meta name="author" content="Niranga Dharmaratna">
+<meta name="description" content="Day 4 afternoon lab sheet: Egress, endpoint and the partner. Day 4, afternoon session. Duration 3 hours. Builds component 7 (NAT gateway), component 8 (S3 gateway...">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-4/lab.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Cloud Computing, HND Network Engineering Year 2">
+<meta property="og:title" content="Lab 4: Egress, endpoint and the partner laboratory">
+<meta property="og:description" content="Day 4 afternoon lab sheet: Egress, endpoint and the partner. Day 4, afternoon session. Duration 3 hours. Builds component 7 (NAT gateway), component 8 (S3 gateway...">
+<meta property="og:url" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-4/lab.html">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://nirangadh.github.io/HNDNE-Cloud-Computing/assets/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Thara Hospitals pilot team at the architecture board, with two students arriving.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","author":{"@type":"Person","affiliation":{"@type":"Organization","name":"School of Computing & Engineering, National Institute of Business Management"},"name":"Niranga Dharmaratna"},"description":"Day 4 afternoon lab sheet: Egress, endpoint and the partner. Day 4, afternoon session. Duration 3 hours. Builds component 7 (NAT gateway), component 8 (S3 gateway...","inLanguage":"en-GB","isAccessibleForFree":true,"isPartOf":{"@id":"https://nirangadh.github.io/HNDNE-Cloud-Computing/#course","@type":"Course","name":"Cloud Computing, HND Network Engineering Year 2","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/"},"learningResourceType":"Lab sheet","license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","name":"Lab 4: Egress, endpoint and the partner laboratory","url":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-4/lab.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/","name":"Cloud Computing","position":1},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-4/","name":"Day 4","position":2},{"@type":"ListItem","item":"https://nirangadh.github.io/HNDNE-Cloud-Computing/days/day-4/lab.html","name":"Lab 4: Egress, endpoint and the partner laboratory","position":3}]}</script>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site-header"><div class="wrap"><div><p class="eyebrow"><a href="../../index.html">Cloud Computing | HND Network Engineering, Year 2</a></p><h1>Egress, endpoint and the partner laboratory</h1><p class="sub">Day 4, afternoon lab</p><div class="bars" aria-hidden="true"><i></i><i></i></div></div></div></header>
+<main id="main">
+<div class="wrap prose">
+<div class="meta"><span class="badge" title="Learning outcome 5">LO5</span><span class="badge" title="Learning outcome 7">LO7</span><span class="chip">You build: component 7</span><span class="chip">You build: component 8</span><span class="chip">You build: component 9</span><span class="chip cost">Credit use: USD 1.50</span></div>
+<p><strong>Day 4, afternoon session. Duration 3 hours. Builds component 7 (NAT gateway), component 8 (S3 gateway endpoint) and component 9 (Partner diagnostic laboratory VPC) of the Thara Hospitals architecture.</strong></p>
+<div class="table-wrap"><table class="meta-table">
+
+<tbody>
+<tr>
+<td>Learning outcomes</td>
+<td>LO5, LO7</td>
+</tr>
+<tr>
+<td>Sub-outcomes</td>
+<td>S5.4, S7.2</td>
+</tr>
+<tr>
+<td>Prerequisites</td>
+<td>From Day 3: <code>thara-vpc</code> with its subnets and route tables, and <code>thara-bastion</code> and <code>thara-web-1</code>, both stopped. From Day 2: the bucket <code class="long">thara-reports-&lt;student id&gt;</code>, the inactive access key and its <code>.csv</code> file. On your computer: <code>thara-key.pem</code></td>
+</tr>
+<tr>
+<td>Estimated credit consumption</td>
+<td>USD 1.50</td>
+</tr>
+<tr>
+<td>Evidence pack</td>
+<td>Pack 4, due before the next teaching day</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="0-before-you-start">0. Before you start</h2>
+<ol>
+<li>Region check: the console shows <strong>Asia Pacific (Mumbai) ap-south-1</strong>. If not, change it now.</li>
+<li>You are signed in as your <strong>admin IAM user</strong>, not root.</li>
+<li>Tags for everything today: <code>Module=CC</code>, <code>Day=4</code>, <code>Owner=&lt;student id&gt;</code>.</li>
+<li>Open your cost ledger. Write today's date and the segment names below with a blank cost column.</li>
+</ol>
+<p>Console labels below are as they appeared at the time of writing. AWS renames buttons from time to time; if a label differs, look for the same idea nearby and tell your lecturer.</p>
+<p>You need the same terminal as on Day 3, opened in the folder that holds <code>thara-key.pem</code>, and the <code>.csv</code> file of the access key you created on Day 2.</p>
+<h3 id="the-ideas-behind-todays-lab">The ideas behind today's lab</h3>
+<h4 id="timed-builds">Timed builds</h4>
+<p>Until today nothing you built could hurt you if you forgot it for an hour. Today one thing can. Three rules apply to the whole afternoon.</p>
+<ul>
+<li><strong>The NAT gateway bills from the moment it is created</strong>, not from the moment you use it: about USD 0.056 for every hour it exists in ap-south-1, plus USD 0.056 for each gigabyte that passes through it, at the time of writing. So it is created, used and deleted inside one segment. Segment 1 is that window, and your ledger records how many minutes it stayed open.</li>
+<li><strong>The Elastic IP bills while it is yours</strong>, attached or not, at USD 0.005 an hour. A NAT gateway needs one. Deleting the gateway hands the address back to you, not back to AWS, so you release it in the same segment.</li>
+<li><strong>Everything today is tagged <code>Day=4</code></strong>, including the things you delete before you leave. The tags are how Day 7 shows what today cost.</li>
+</ul>
+<p>Two things today carry no name, only the three tags: the NAT gateway and the Elastic IP, and later the endpoint and the peering connection. There is one of each, so the console's type column identifies it. The partner laboratory's network is <code>partnerlab-vpc</code> and its server is <code>partnerlab-1</code>, from Thara's naming table.</p>
+<p>One thing from Day 2 comes back for a few minutes. The image <code>thara-portal-v1</code> was made before the access key was typed in, so <code>thara-web-1</code> holds no credentials. In step 8 you switch the Day 2 key on and type it into <code>thara-web-1</code> once more, to prove that the bucket can be reached without the internet. It is still the insecure method, and it is switched off again in teardown. Day 5 replaces it for good.</p>
+<figure class="art"><svg aria-labelledby="peer-t peer-d" role="img" style="min-width:640px" viewbox="0 0 640 348"><title id="peer-t">A peering needs a route on both sides</title><desc id="peer-d">Two networks side by side: thara-vpc, 10.0.0.0/16, holding thara-web-1, and partnerlab-vpc, 10.1.0.0/16, holding partnerlab-1, joined by a peering connection. Under the first is thara-private-rt with route 1, 10.1.0.0/16 to the peering, which carries the request. Under the second is the partner's route table with route 2, 10.0.0.0/16 to the peering, which carries the reply.</desc><rect fill="#FFFFFF" height="348" width="640"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" x="14" y="26">A peering needs a route on both sides</text><rect fill="none" height="212" rx="10" stroke="#48C9B0" stroke-width="2.5" width="260" x="8" y="40"></rect><text fill="#2A7A7A" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="start" x="20" y="60">thara-vpc</text><text fill="#546472" font-family="Courier New, monospace" font-size="12" font-weight="400" text-anchor="end" x="256" y="60">10.0.0.0/16</text><rect fill="none" height="212" rx="10" stroke="#48C9B0" stroke-width="2.5" width="260" x="372" y="40"></rect><text fill="#2A7A7A" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="start" x="384" y="60">partnerlab-vpc</text><text fill="#546472" font-family="Courier New, monospace" font-size="12" font-weight="400" text-anchor="end" x="620" y="60">10.1.0.0/16</text><rect fill="#0D2B45" height="46" rx="6" width="84" x="170" y="78"></rect><rect fill="#48C9B0" height="11" rx="2" width="68" x="178" y="86"></rect><rect fill="#133B50" height="11" rx="2" width="68" x="178" y="104"></rect><circle cx="186" cy="109.5" fill="#F4B942" r="2.8"></circle><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="212" y="142">thara-web-1</text><rect fill="#0D2B45" height="46" rx="6" width="84" x="386" y="78"></rect><rect fill="#48C9B0" height="11" rx="2" width="68" x="394" y="86"></rect><rect fill="#133B50" height="11" rx="2" width="68" x="394" y="104"></rect><circle cx="402" cy="109.5" fill="#F4B942" r="2.8"></circle><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="middle" x="428" y="142">partnerlab-1</text><rect fill="#DEF5F1" height="34" rx="17" stroke="#0D2B45" stroke-width="2" width="104" x="268" y="84"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" x="320" y="105.5">peering</text><rect fill="#FFFFFF" height="80" rx="6" stroke="#0D2B45" stroke-width="1.5" width="240" x="18" y="160"></rect><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="start" x="30" y="180">thara-private-rt</text><rect fill="#F4B942" height="26" rx="3" width="228" x="24" y="192"></rect><circle cx="38" cy="205" fill="#FFFFFF" r="9"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="38" y="209.5">1</text><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="start" x="54" y="210">10.1.0.0/16</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="end" x="246" y="210">peering</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="30" y="233">plus the local route</text><rect fill="#FFFFFF" height="80" rx="6" stroke="#0D2B45" stroke-width="1.5" width="240" x="382" y="160"></rect><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="394" y="180">the partner's route table</text><rect fill="#48C9B0" height="26" rx="3" width="228" x="388" y="192"></rect><circle cx="402" cy="205" fill="#FFFFFF" r="9"></circle><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="800" text-anchor="middle" x="402" y="209.5">2</text><text fill="#0D2B45" font-family="Courier New, monospace" font-size="12" font-weight="700" text-anchor="start" x="418" y="210">10.0.0.0/16</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="end" x="610" y="210">peering</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="394" y="233">plus the local route</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="276">1: the request leaves thara-web-1. Thara's route table needs a route to the partner's range.</text><text fill="#0D2B45" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="294">2: the reply leaves partnerlab-1. The partner's route table needs a route to Thara's range.</text><text fill="#2A7A7A" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" x="14" y="318">With only route 1 the request arrives and the reply is dropped. The ping fails either way.</text><text fill="#546472" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" x="14" y="336">The two ranges must not overlap, or neither table could tell the networks apart.</text></svg><figcaption>A request and its reply are two journeys, and each one is decided by a different route table. Take either route away and the ping fails. <a class="full" href="img/both-sides-of-a-peering.svg">Open this diagram at full size</a></figcaption></figure>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">You delete the NAT gateway at the end of segment 1, see it reach <strong>Deleted</strong>, and go home. What is still on the bill tomorrow?</p><ol class="qc-opts"><li>Nothing: deleting the gateway removes everything that came with it</li><li>The gateway itself, which bills until the end of the day</li><li data-right="">The Elastic IP, which stays in your account until you release it<span class="qc-key"> (answer)</span></li></ol><p class="qc-why"><strong>Why:</strong> Deleting the gateway only detaches its address. An Elastic IP bills by the hour for as long as it is yours, attached or idle, so step 7 releases it. A deleted gateway stops billing at once.</p></div>
+<div class="qc"><p class="qc-label">Quick check</p><p class="qc-q">In step 14 the ping to <code>partnerlab-1</code> reports 100% packet loss. The peering connection is <strong>Active</strong>, and <code>thara-private-rt</code> has its route to <code>10.1.0.0/16</code>. Where do you look next?</p><ol class="qc-opts"><li>At the peering connection, which must be accepted a second time</li><li data-right="">At the partner's route table, which has no route back to <code>10.0.0.0/16</code><span class="qc-key"> (answer)</span></li><li>At <code>thara-web-sg</code>, which has no inbound rule for ICMP</li></ol><p class="qc-why"><strong>Why:</strong> The request arrives, and the reply has no route home. A reply to a connection that <code>thara-web-1</code> started needs no inbound rule, because a security group is stateful, and a connection that is Active has already been accepted.</p></div>
+<div class="box mistake"><p>"Deleting the NAT gateway releases the Elastic IP." It does not. The address goes back to your account, idle, and bills until you release it. Step 7 does both, in that order.</p></div>
+<div class="box mistake"><p>"One side's route is enough for peering." It is not. A route on Thara's side sends the request. The reply needs a route of its own in the partner's table. Steps 14 and 15 show the difference.</p></div>
+<h2 id="1-objective">1. Objective</h2>
+<p>At the end of this lab the private web tier has been patched through a <a class="term" data-term="nat-gateway" href="../../glossary.html#nat-gateway">NAT gateway</a> that no longer exists, <code>thara-web-1</code> reaches the laboratory reports bucket through a <a class="term" data-term="gateway-endpoint" href="../../glossary.html#gateway-endpoint">gateway endpoint</a> that stays, and a partner network has been <a class="term" data-term="vpc-peering" href="../../glossary.html#vpc-peering">peered</a> to <code>thara-vpc</code>, tested from both sides and withdrawn: components 7, 8 and 9. The endpoint persists, and Day 5 reads the bucket through it; the lab serves Thara's requirements that the web tier is patched without being exposed to the internet and that the partner diagnostic laboratory can send results into the system. Keep <a href="artefacts/thara-vpc-builder.html">thara-vpc-builder</a> open beside the console: it shows what each step adds to the picture, and what is gone by the end.</p>
+<h2 id="2-timed-segments">2. Timed segments</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Minutes</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NAT gateway create, use, delete</td>
+<td>50</td>
+<td>about USD 0.056 per hour plus USD 0.056 per GB, plus USD 0.005 per hour for its public IPv4 address; target under USD 0.10</td>
+</tr>
+<tr>
+<td>S3 gateway endpoint</td>
+<td>30</td>
+<td>free</td>
+</tr>
+<tr>
+<td>Partner VPC and peering</td>
+<td>55</td>
+<td>one extra <code>t3.micro</code> for the segment, about USD 0.011 per hour</td>
+</tr>
+<tr>
+<td>Ledger, teardown, evidence</td>
+<td>30</td>
+<td>nil</td>
+</tr>
+</tbody>
+</table></div>
+<p>Segments containing a NAT gateway, a load balancer or a database are created, used and deleted inside the segment. Do not carry them across the break. Today that means segment 1: if a break falls inside it, finish step 7 first. The two Thara instances also bill by the hour while they run, as on Day 3, so they are stopped before you leave. Prices are for ap-south-1 at the time of writing.</p>
+<h2 id="3-steps">3. Steps</h2>
+<p>Each step states what to do and what you should see. If you do not see it, stop and diagnose before moving on.</p>
+<p class="segment">Segment 1: NAT gateway create, use, delete</p>
+<ol class="steps">
+<li data-n="1">
+<p><strong>Check where and who you are.</strong> Confirm the region selector shows <strong>Asia Pacific (Mumbai) ap-south-1</strong> and the top bar shows <code>admin-&lt;student id&gt;</code>. <span class="expect"><b class="expect-label">You should see</b> both are correct.</span></p>
+</li>
+<li data-n="2">
+<p><strong>Start the two instances and reopen the door.</strong> In EC2, <strong>Instances</strong>, select <code>thara-bastion</code> and <code>thara-web-1</code>, then <strong>Instance state</strong>, <strong>Start instance</strong>. The bastion comes back with a <strong>new</strong> public address, and your own address may have changed since Day 3. So open <strong>Security groups</strong>, <code>thara-bastion-sg</code>, <strong>Edit inbound rules</strong>, set the source of the SSH rule to <strong>My IP</strong> again, and save. Note the bastion's new <strong>Public IPv4 address</strong>, connect to it, and hop to <code>thara-web-1</code> with the method you used in step 9 of the Day 3 lab:</p>
+<pre tabindex="0"><code class="language-bash">ssh-add thara-key.pem
+ssh -A ec2-user@&lt;bastion public IPv4 address&gt;
+ssh ec2-user@&lt;web private address&gt;    # typed on the bastion
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> a prompt on <code>thara-web-1</code> of the form <code class="long">[ec2-user@ip-10-0-11-... ~]$</code>. If the first connection waits and times out, check the SSH source of <code>thara-bastion-sg</code> before anything else. The network has not changed since Day 3.</span></p>
+</li>
+<li data-n="3">
+<p><strong>Confirm that there is still no way out.</strong> On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">curl -m 10 -I https://aws.amazon.com
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> nothing for ten seconds, then a timeout. This is where Day 3 ended. In the VPC console open <strong>Route tables</strong>, <code>thara-private-rt</code>, and take a screenshot of its <strong>Routes</strong> tab: one route, <code>10.0.0.0/16</code> to <strong>local</strong>. That is your "before".</span></p>
+</li>
+<li data-n="4">
+<p><strong>Allocate an Elastic IP and create the NAT gateway.</strong> In the VPC console choose <strong>Elastic IPs</strong>, <strong>Allocate Elastic IP address</strong>. Leave the settings as they are, add the three tags and choose <strong>Allocate</strong>. Write the time in your ledger: the address bills from now. Then choose <strong>NAT gateways</strong>, <strong>Create NAT gateway</strong>. Leave the name empty. If the page asks for an <strong>Availability mode</strong>, choose <strong>Zonal</strong>. Subnet <code>thara-public-a</code>; connectivity type <strong>Public</strong>; for <strong>Elastic IP allocation ID</strong> choose the address you have just allocated; add the three tags; choose <strong>Create NAT gateway</strong>. Write the time in your ledger. <span class="expect"><b class="expect-label">You should see</b> the state is <strong>Pending</strong> and becomes <strong>Available</strong> within a few minutes. The gateway sits in a <strong>public</strong> subnet on purpose: it needs the internet gateway's route itself, so that the private subnets do not.</span></p>
+</li>
+<li data-n="5">
+<p><strong>Give the private subnets a default route.</strong> Open <strong>Route tables</strong>, <code>thara-private-rt</code>, <strong>Routes</strong>, <strong>Edit routes</strong>, <strong>Add route</strong>: destination <code>0.0.0.0/0</code>, target <strong>NAT Gateway</strong>, then your gateway. Save. <span class="expect"><b class="expect-label">You should see</b> two routes, <code>10.0.0.0/16</code> to <strong>local</strong> and <code>0.0.0.0/0</code> to an id beginning <code>nat-</code>. Take a screenshot. Compare it with <code>thara-public-rt</code>: both tables now have a default route, and only the target differs.</span></p>
+</li>
+<li data-n="6">
+<p><strong>Use the window.</strong> On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">curl -m 10 -I https://aws.amazon.com
+curl -s https://checkip.amazonaws.com
+sudo dnf clean metadata
+sudo dnf -y update
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the first command prints a status line beginning <code>HTTP/</code>. The second prints the address that the internet sees for <code>thara-web-1</code>: it is your Elastic IP, the NAT gateway's address, not an address of the instance, which still has none. The update ends with <code>Complete!</code> or <code>Nothing to do.</code>; either means that the server reached its package repositories. The web tier has been patched, and nothing on the internet could have started a connection to it.</span></p>
+</li>
+<li data-n="7">
+<p><strong>Close the window.</strong> Do these in order. Open <code>thara-private-rt</code>, <strong>Edit routes</strong>, remove the <code>0.0.0.0/0</code> route and save. Choose <strong>NAT gateways</strong>, select yours, <strong>Actions</strong>, <strong>Delete NAT gateway</strong>, type <code>delete</code> and confirm. Wait until its state is <strong>Deleted</strong>; this takes a minute or two, and the address cannot be released before then. Then choose <strong>Elastic IPs</strong>, select the address, <strong>Actions</strong>, <strong>Release Elastic IP addresses</strong>, <strong>Release</strong>. Write both times in your ledger, with the minutes the gateway existed. On <code>thara-web-1</code> run the first <code>curl</code> of step 6 once more. <span class="expect"><b class="expect-label">You should see</b> the list of Elastic IPs is empty; the NAT gateway shows <strong>Deleted</strong> (the line stays visible for about an hour and costs nothing); <code>thara-private-rt</code> is back to one route; and the <code>curl</code> times out again.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 2: S3 gateway endpoint</p>
+<ol class="steps" start="8">
+<li data-n="8">
+<p><strong>Switch the Day 2 key on, and find that it is not enough.</strong> Read "The ideas behind today's lab" in section 0 again. Open IAM, <strong>Users</strong>, <code>admin-&lt;student id&gt;</code>, <strong>Security credentials</strong>, <strong>Access keys</strong>, and for the Day 2 key choose <strong>Actions</strong>, <strong>Activate</strong>. On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">aws configure
+# AWS Access Key ID: from the .csv file
+# AWS Secret Access Key: from the .csv file
+# Default region name: ap-south-1
+# Default output format: json
+clear
+aws s3 ls s3://thara-reports-&lt;student id&gt; --cli-connect-timeout 5
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> after a pause of up to half a minute, an error containing <code class="long">Connect timeout on endpoint URL</code>. The key is valid and the bucket exists. The request never arrived: S3 is a public service, and the private subnets have no path to it. Type the region exactly: with a different region, or none, the command looks for S3 somewhere that today's endpoint does not cover.</span></p>
+</li>
+<li data-n="9">
+<p><strong>Create the gateway endpoint.</strong> In the VPC console choose <strong>Endpoints</strong>, <strong>Create endpoint</strong>. Leave the name empty. Type <strong>AWS services</strong>. Under <strong>Services</strong>, add the filter <strong>Type = Gateway</strong> and select <code class="long">com.amazonaws.ap-south-1.s3</code>. VPC <code>thara-vpc</code>. Under <strong>Route tables</strong>, tick <code>thara-private-rt</code> and nothing else. Policy <strong>Full access</strong>. Add the three tags and choose <strong>Create endpoint</strong>. <span class="expect"><b class="expect-label">You should see</b> the endpoint shows <strong>Available</strong>. Open <code>thara-private-rt</code> again: it has a second route that you did not write, whose destination begins <code>pl-</code> and whose target begins <code>vpce-</code>. The destination is a prefix list, the address ranges of S3 in Mumbai, kept up to date by AWS. Take a screenshot.</span></p>
+</li>
+<li data-n="10">
+<p><strong>Reach the bucket with no internet path.</strong> On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">aws s3 ls s3://thara-reports-&lt;student id&gt;
+curl -m 10 -I https://aws.amazon.com
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the first command lists <code>reports-index.txt</code>, the file you uploaded on Day 2. The second still times out. The web tier can read the reports bucket and cannot reach the internet: there is no NAT gateway, no default route and no public address anywhere in this path. Leave the key active for now; sections 4 and 5 need it, and teardown switches it off. One more observation, for your notes: run <code>sudo dnf check-update</code> and write down whether it answers. Amazon Linux keeps its own package repositories in S3 in your region, so it may. Software from anywhere else still needs the NAT gateway.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 3: Partner VPC and peering</p>
+<ol class="steps" start="11">
+<li data-n="11">
+<p><strong>Create the partner laboratory's network.</strong> In the VPC console choose <strong>Create VPC</strong>, <strong>VPC only</strong>: name tag <code>partnerlab-vpc</code>, IPv4 CIDR <code>10.1.0.0/16</code>, the three tags. Then <strong>Subnets</strong>, <strong>Create subnet</strong>: VPC <code>partnerlab-vpc</code>, no subnet name, Availability Zone <code>ap-south-1a</code>, IPv4 subnet CIDR block <code>10.1.1.0/24</code>, the three tags. <span class="expect"><b class="expect-label">You should see</b> select the new subnet and open its <strong>Route table</strong> tab: it is using the main route table of <code>partnerlab-vpc</code>, with one route, <code>10.1.0.0/16</code> to <strong>local</strong>. You did not associate it, so the main route table took it, as Day 3 said it would. Today that is what you want.</span></p>
+</li>
+<li data-n="12">
+<p><strong>Launch the partner's server.</strong> In EC2 choose <strong>Launch instances</strong>. Name <code>partnerlab-1</code>, with the three tags on <strong>Instances</strong> and <strong>Volumes</strong>. Amazon Linux, <code>t3.micro</code>. For <strong>Key pair</strong> choose <strong>Proceed without a key pair</strong>: nobody will log in to this server. Under <strong>Network settings</strong> choose <strong>Edit</strong>: VPC <code>partnerlab-vpc</code>, the subnet you created, <strong>Auto-assign public IP</strong> disabled, <strong>Create security group</strong> with the name the page offers. Change its one inbound rule: type <strong>All ICMP - IPv4</strong>, source <strong>Custom</strong>, <code>10.0.0.0/16</code>. Launch. <span class="expect"><b class="expect-label">You should see</b> the instance is running with a <strong>Private IPv4 address</strong> of the form <code>10.1.1.x</code> and no public address. Note the private address. Its security group admits ping from Thara's range and nothing else.</span></p>
+</li>
+<li data-n="13">
+<p><strong>Create the peering connection and accept it.</strong> In the VPC console choose <strong>Peering connections</strong>, <strong>Create peering connection</strong>. Leave the name empty. <strong>VPC ID (Requester)</strong> <code>thara-vpc</code>; <strong>Account</strong> My account; <strong>Region</strong> This Region; <strong>VPC ID (Accepter)</strong> <code>partnerlab-vpc</code>; the three tags; <strong>Create peering connection</strong>. Then <strong>Actions</strong>, <strong>Accept request</strong>, and confirm. If the console offers to modify your route tables, decline: you do that by hand. On <code>thara-web-1</code>:</p>
+<pre tabindex="0"><code class="language-bash">ping -c 3 -W 2 &lt;partner private address&gt;
+</code></pre>
+<p><span class="expect"><b class="expect-label">You should see</b> the connection's status is <strong>Active</strong>, and the ping reports <code>100% packet loss</code>. A peering connection is a link that nothing uses until a route points at it.</span></p>
+</li>
+<li data-n="14">
+<p><strong>Add the route on Thara's side only.</strong> Open <code>thara-private-rt</code>, <strong>Edit routes</strong>, <strong>Add route</strong>: destination <code>10.1.0.0/16</code>, target <strong>Peering Connection</strong>, then your connection. Save, take a screenshot, and repeat the ping. <span class="expect"><b class="expect-label">You should see</b> a route to an id beginning <code>pcx-</code>, and still <code>100% packet loss</code>. Write down why before you read on. The request now leaves <code>thara-vpc</code> and arrives at <code>partnerlab-1</code>, whose security group allows it. The reply is addressed to <code>10.0.11.x</code>, and the partner's route table has no route for that range, so the reply is dropped inside the partner's network. Keep this output for your evidence.</span></p>
+</li>
+<li data-n="15">
+<p><strong>Add the partner's side, then take it away again.</strong> Open <strong>Route tables</strong> and find the main route table of <code>partnerlab-vpc</code> (its <strong>VPC</strong> column names it). <strong>Edit routes</strong>, <strong>Add route</strong>: destination <code>10.0.0.0/16</code>, target <strong>Peering Connection</strong>, your connection. Save and repeat the ping. <span class="expect"><b class="expect-label">You should see</b> <code class="long">3 packets transmitted, 3 received, 0% packet loss</code>. Now remove that one route from the partner's table and ping again: <code>100% packet loss</code> returns. Add the route back and confirm that the ping works. Keep both outputs. Both tables must carry a route, and the two networks' ranges must not overlap, or neither table could tell them apart.</span></p>
+</li>
+</ol>
+<p class="segment">Segment 4: Ledger, teardown, evidence</p>
+<p>Write the ledger rows first (section 7), then do sections 4 and 5, then tear down (section 6), then collect the evidence (section 8).</p>
+<section class="mark prove"><h2 id="4-prove-it"><span class="mark-chip">PROVE IT</span> 4. Prove it</h2>
+<p>Paste the output of each into your evidence pack.</p>
+<ul>
+<li>Your saved output from step 6: the <code>curl</code> to the internet and the package update both succeeded through the NAT gateway. From step 7: the same <code>curl</code> timed out again once the route was removed.</li>
+<li>On <code>thara-web-1</code>, <code class="long">aws s3 ls s3://thara-reports-&lt;student id&gt;</code> succeeds now, while <code>thara-private-rt</code> has no default route. Show the listing and the route table together.</li>
+<li>Your saved outputs from steps 14 and 15: the ping to <code>10.1.1.x</code> succeeds only when both route tables carry the peering route.</li>
+</ul>
+</section><section class="mark break"><h2 id="5-break-it"><span class="mark-chip">BREAK IT</span> 5. Break it</h2>
+<p><strong>Fault:</strong> the bucket listing stops working, although the endpoint is still there and still shows <strong>Available</strong>.</p>
+<ol>
+<li>In the VPC console choose <strong>Endpoints</strong>, select your endpoint, <strong>Actions</strong>, <strong>Manage route tables</strong>. Untick <code>thara-private-rt</code>, tick <code>thara-public-rt</code>, and choose <strong>Modify route tables</strong>.</li>
+<li>On <code>thara-web-1</code> run <code class="long">aws s3 ls s3://thara-reports-&lt;student id&gt; --cli-connect-timeout 5</code>. <strong>Symptom:</strong> <code class="long">Connect timeout on endpoint URL</code>.</li>
+<li><strong>Locate it</strong> with what you already know. Nothing looks broken: the endpoint is <strong>Available</strong>, the key is active, the bucket exists. So ask the Day 3 question: where does this subnet send the packet? Select <code>thara-private-a</code>, open its <strong>Route table</strong> tab and read the routes. Only <code>10.0.0.0/16</code> to <strong>local</strong> is left. The <code>pl-</code> route has moved to <code>thara-public-rt</code>. An endpoint is nothing more than a route, and a subnet whose route table does not carry it has no path to S3.</li>
+<li><strong>Fix:</strong> <strong>Manage route tables</strong> again, tick <code>thara-private-rt</code>, untick <code>thara-public-rt</code>, save, and repeat the listing until it works.</li>
+</ol>
+<p>Record the fault, the symptom, the evidence that located it and the fix in the table in section 4 of your evidence pack. Say in one sentence why an endpoint that shows <strong>Available</strong> was not enough.</p>
+</section><section class="mark teardown"><h2 id="6-teardown"><span class="mark-chip">TEARDOWN</span> 6. Teardown</h2>
+<p>Do these in order. Check your ledger rows are written first.</p>
+<ol>
+<li><strong>Deactivate the Day 2 access key</strong>: IAM, your admin user, <strong>Security credentials</strong>, the key's <strong>Actions</strong>, <strong>Deactivate</strong>. <span class="expect"><b class="expect-label">You should see</b> status <strong>Inactive</strong>. The credentials file stays on <code>thara-web-1</code> until Day 5 and is useless while the key is off.</span></li>
+<li><strong>Confirm that segment 1 left nothing behind</strong>: <strong>NAT gateways</strong> shows yours as <strong>Deleted</strong> or no longer lists it, and <strong>Elastic IPs</strong> is empty. Both facts are in your ledger with their times.</li>
+<li><strong>Withdraw the partner laboratory.</strong> Open <code>thara-private-rt</code> and remove the <code>10.1.0.0/16</code> route. Choose <strong>Peering connections</strong>, select yours, <strong>Actions</strong>, <strong>Delete peering connection</strong>. In EC2 select <code>partnerlab-1</code>, <strong>Instance state</strong>, <strong>Terminate (delete) instance</strong>, and wait for <strong>Terminated</strong>. Then in the VPC console choose <strong>Your VPCs</strong>, select <code>partnerlab-vpc</code>, <strong>Actions</strong>, <strong>Delete VPC</strong>; the console lists the subnet, the route table and the security group that go with it. <span class="expect"><b class="expect-label">You should see</b> <code>thara-private-rt</code> shows exactly two routes, the local route and the <code>pl-</code> route, and neither is marked <strong>Blackhole</strong>.</span></li>
+<li><strong>If you copied the key to the bastion today</strong>, remove it: on the bastion, <code>rm ~/thara-key.pem</code>.</li>
+<li><strong>Stop <code>thara-bastion</code> and <code>thara-web-1</code></strong>: <strong>Instance state</strong>, <strong>Stop instance</strong>. Do not terminate them. <span class="expect"><b class="expect-label">You should see</b> both show <strong>Stopped</strong>.</span></li>
+</ol>
+<p>What you keep, and why:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The S3 gateway endpoint, associated with <code>thara-private-rt</code></td>
+<td>Day 5 reads the reports bucket through it. It costs nothing</td>
+</tr>
+<tr>
+<td><code>thara-vpc</code> and everything Day 3 built in it</td>
+<td>Every later lab builds inside this network, up to Day 7</td>
+</tr>
+<tr>
+<td><code>thara-bastion</code> and <code>thara-web-1</code>, stopped</td>
+<td>Day 5 starts them again</td>
+</tr>
+<tr>
+<td>The access key, inactive, and its <code>.csv</code> file</td>
+<td>Day 5 deletes the key</td>
+</tr>
+</tbody>
+</table></div>
+<p>A route whose target has been deleted is not removed for you. It stays in the table, marked <strong>Blackhole</strong>, and silently drops whatever matches it. That is why the routes come out before the things they point at.</p>
+</section><section class="mark cost"><h2 id="7-cost-line"><span class="mark-chip">COST</span> 7. Cost line</h2>
+<p>Estimate for today: <strong>USD 1.50</strong>. The afternoon itself comes to about USD 0.15: about fifty minutes of NAT gateway (about USD 0.05), two <code>t3.micro</code> instances for three hours and a third for one hour (about USD 0.08), and the public IPv4 addresses of the bastion and the NAT gateway (about USD 0.02). About a week of the two stopped root volumes adds USD 0.35. The rest is margin, because today's risk is a gateway left running: each extra hour is about USD 0.06, and a week of it would be about USD 9.40.</p>
+<p>Add one ledger row for each of: the Elastic IP (allocated and released, with times), the NAT gateway (created and deleted, with the minutes it existed), the gateway endpoint (cost 0.00), <code>partnerlab-1</code> (launched and terminated), the peering connection (cost 0.00), and <code>thara-bastion</code> and <code>thara-web-1</code> (start and stop times). Write the day's total against the estimate. If it is higher than the estimate, write why in one line.</p>
+</section><h2 id="8-evidence-required">8. Evidence required</h2>
+<ol>
+<li>Four screenshots of the routes of <code>thara-private-rt</code>: before any change (step 3), with the NAT route (step 5), with the endpoint's route (step 9), and with the peering route (step 14).</li>
+<li>Your ledger rows for the NAT gateway and the Elastic IP, showing when each was created and removed and the elapsed minutes.</li>
+<li>The ping output without the partner-side route and with it (steps 14 and 15).</li>
+<li>The outputs listed in section 4.</li>
+<li>Your break-it row from section 5, with your sentence on why <strong>Available</strong> was not enough.</li>
+</ol>
+<p>Check every screenshot before you submit it: no secret access key, no private key, and the middle digits of your account id masked.</p>
+<h2 id="9-thara-connection">9. Thara connection</h2>
+<p>This lab meets one requirement in two ways and tests a third. The web tier must be patched without being exposed to the internet: the NAT gateway gave it a way out for fifty minutes and no way in, and the endpoint gives it a permanent path to the one service it needs every day. The laboratory reports never crossed the internet on their way to the web tier, which is what the Data Protection Officer will ask about first. The partner diagnostic laboratory sends results into the system: a peering connection carries them between two private networks, and you have shown both how to open it and how to withdraw it cleanly, route first. The CFO would ask how many hours the NAT gateway ran this month and who decided when to delete it; your ledger row is the answer. The Head of IT would ask what the partner's network can now reach inside Thara's, and the answer is whatever the routes and the security groups allow, and nothing more.</p>
+
+<script type="application/json" id="glossary-data">{"gateway-endpoint":{"d":"A private path from a VPC to Amazon S3 that never crosses the internet. It is a route, placed in the route tables you choose, and it has no charge.","t":"Gateway endpoint","x":"<code>thara-web-1<\/code> lists <code>thara-reports-&lt;student id&gt;<\/code> through the endpoint on <code>thara-private-rt<\/code>, with no default route."},"nat-gateway":{"d":"A managed service in a public subnet that lets instances in private subnets start connections to the internet and receive the replies. Nothing outside can start a connection through it. It bills for every hour it exists.","t":"NAT gateway","x":"the pilot creates one to patch the web tier, and deletes it inside the same lab segment."},"vpc-peering":{"d":"A private link between exactly two VPCs. It is not transitive: it carries only traffic between its own two networks. Each side needs a route to the other, and the two address ranges must not overlap.","t":"VPC peering","x":"<code>thara-vpc<\/code> is peered with <code>partnerlab-vpc<\/code>, <code>10.1.0.0/16<\/code>, so that the partner laboratory can send results in."}}</script>
+<section class="resources" aria-labelledby="h-res"><h2 id="h-res">Everything for this afternoon</h2><ul><li><a href="slides/day-4-afternoon.pdf">Slides for this afternoon (PDF)</a></li><li><a href="artefacts/thara-vpc-builder.html">Thara VPC builder: what Day 4 adds to the architecture, and what it takes away</a> (visual)</li><li><a href="plays/p4-words.html">Words ladder: Day 4</a> (10 minutes)</li><li><a href="plays/p4-1-which-way-out.html">Which way out?</a> (7 minutes)</li><li><a href="plays/p4-2-the-gateway-nobody-deleted.html">The gateway nobody deleted</a> (10 minutes)</li><li><a href="plays/p4-quiz.html">Day quiz: beyond the VPC</a> (10 minutes)</li><li><a href="../../templates/cost-ledger.csv">Cost ledger template</a> and <a href="../../templates/evidence-pack.html">evidence pack template</a> (also as a <a href="../../templates/evidence-pack.pdf">PDF form</a>)</li><li><a href="../../practice/PQ4.html">Practice question 4</a></li></ul></section><div class="progress-box"><button class="btn" type="button" data-progress="d4a">Mark this afternoon as done</button><span class="progress-note">A record for you, saved only on this device. It never locks or unlocks anything.</span></div><nav class="pager" aria-label="Page navigation"><span>Previous: <a href="../../days/day-4/notes.html">Day 4 morning</a></span><span><a href="index.html">Day 4</a></span><span></span></nav>
+</div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<p class="author">&copy; Niranga Dharmaratna, School of Computing &amp; Engineering, National Institute of Business Management</p>
+<p>Content licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>; code licensed MIT; Open Sans under the SIL Open Font Licence.</p>
+<p>Dates and submissions are announced for your cohort. Thara Hospitals is fictional.</p>
+<p>Anything you mark as done is saved only on this device. Nothing leaves it.</p>
+</div></footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>
